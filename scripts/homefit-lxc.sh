@@ -156,9 +156,15 @@ msg_ok "LXC is online"
 msg_info "Installing OS packages inside LXC"
 pct exec "$CTID" -- bash -Eeuo pipefail <<'INNER'
 export DEBIAN_FRONTEND=noninteractive
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
 apt-get update -qq
 apt-get install -y -qq \
-  python3 python3-venv python3-pip git curl ca-certificates >/dev/null
+  python3 python3-venv python3-pip git curl ca-certificates locales >/dev/null
+# Generate a real en_US.UTF-8 so later log output isn't noisy
+echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+locale-gen en_US.UTF-8 >/dev/null 2>&1 || true
+update-locale LANG=en_US.UTF-8 >/dev/null 2>&1 || true
 INNER
 msg_ok "OS packages installed"
 
@@ -170,7 +176,7 @@ msg_ok "User created"
 
 msg_info "Cloning $REPO"
 pct exec "$CTID" -- bash -Eeuo pipefail -c "
-  sudo -u homefit bash -c '
+  runuser -u homefit -- bash -c '
     cd /home/homefit &&
     if [ -d workout-app/.git ]; then
       cd workout-app && git fetch --all --quiet && git reset --hard origin/$BRANCH
@@ -183,7 +189,8 @@ msg_ok "Repo cloned"
 
 msg_info "Installing Python dependencies"
 pct exec "$CTID" -- bash -Eeuo pipefail <<'INNER'
-sudo -u homefit bash -c '
+export LC_ALL=C.UTF-8 LANG=C.UTF-8
+runuser -u homefit -- bash -c '
   cd /home/homefit/workout-app &&
   python3 -m venv .venv &&
   .venv/bin/pip install --quiet --upgrade pip &&
@@ -235,5 +242,5 @@ echo "   URL:      http://${CT_IP:-<unknown>}:${PORT}"
 echo
 echo "   Enter the container with: pct enter $CTID"
 echo "   View logs with:           pct exec $CTID -- journalctl -u ${APP_NAME} -f"
-echo "   Update later with:        pct exec $CTID -- sudo -u homefit bash -c 'cd ~/workout-app && git pull && .venv/bin/pip install -r requirements.txt' && pct exec $CTID -- systemctl restart ${APP_NAME}"
+echo "   Update later with:        pct exec $CTID -- runuser -u homefit -- bash -c 'cd ~/workout-app && git pull && .venv/bin/pip install -r requirements.txt' && pct exec $CTID -- systemctl restart ${APP_NAME}"
 echo
