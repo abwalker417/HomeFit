@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Setup — HomeFit{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1>Build your plan</h1>
+  <p class="subtle">Takes about 20 seconds. You can update these anytime.</p>
+
+  <form method="post" class="form">
+    <label class="field">
+      <span>Current weight (lbs)</span>
+      <input type="number" name="current_weight" step="0.1" min="60" max="600"
+             value="{{ profile.current_weight if profile.current_weight else '' }}" required>
+    </label>
+
+    <label class="field">
+      <span>Goal weight (lbs)</span>
+      <input type="number" name="goal_weight" step="0.1" min="60" max="600"
+             value="{{ profile.goal_weight if profile.goal_weight else '' }}" required>
+    </label>
+
+    <label class="field">
+      <span>Fitness level</span>
+      <select name="fitness_level">
+        {% set fl = profile.fitness_level or 'beginner' %}
+        <option value="beginner"     {% if fl == 'beginner' %}selected{% endif %}>Beginner</option>
+        <option value="intermediate" {% if fl == 'intermediate' %}selected{% endif %}>Intermediate</option>
+        <option value="advanced"     {% if fl == 'advanced' %}selected{% endif %}>Advanced</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span>Workout days per week</span>
+      <input type="number" name="days_per_week" min="1" max="7"
+             value="{{ profile.days_per_week or 4 }}" required>
+    </label>
+
+    <fieldset class="field">
+      <legend>Any limitations? (select all that apply)</legend>
+      {% set lim = profile.limitations or [] %}
+      <label class="checkbox">
+        <input type="checkbox" name="limitations" value="bad_back"
+               {% if 'bad_back' in lim %}checked{% endif %}>
+        Bad back / lower back issues
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="limitations" value="bad_knees"
+               {% if 'bad_knees' in lim %}checked{% endif %}>
+        Bad knees
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="limitations" value="bad_shoulders"
+               {% if 'bad_shoulders' in lim %}checked{% endif %}>
+        Shoulder issues
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="limitations" value="bad_wrists"
+               {% if 'bad_wrists' in lim %}checked{% endif %}>
+        Wrist issues
+      </label>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary">Save and build plan</button>
+  </form>
+</section>
+{% endblock %}

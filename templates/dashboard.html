@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Home — HomeFit{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-top">
+    <div>
+      <p class="eyebrow">Your plan</p>
+      <h1>
+        {% if plan.goal == 'lose' %}Cut weight plan
+        {% elif plan.goal == 'gain' %}Bulk & strength plan
+        {% else %}Maintenance plan{% endif %}
+      </h1>
+    </div>
+    <a class="pill" href="{{ url_for('onboarding') }}">Edit</a>
+  </div>
+  <p class="subtle">{{ plan.summary }}</p>
+
+  <div class="hero-stats">
+    <div>
+      <strong>{{ profile.current_weight }}</strong>
+      <span>lbs now</span>
+    </div>
+    <div>
+      <strong>{{ profile.goal_weight }}</strong>
+      <span>lbs goal</span>
+    </div>
+    <div>
+      <strong>{{ profile.days_per_week }}</strong>
+      <span>days/week</span>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Log today's weight</h2>
+  <form id="weight-form" class="inline-form" autocomplete="off">
+    <input type="number" name="weight" step="0.1" min="60" max="600"
+           value="{{ profile.current_weight }}" required>
+    <button type="submit" class="btn btn-secondary">Log</button>
+  </form>
+  <p id="weight-status" class="subtle"></p>
+</section>
+
+<section>
+  <h2 class="section-title">This week</h2>
+  <div class="day-grid">
+    {% for day in plan.days %}
+    <a class="day-card" href="{{ url_for('workout', day_number=day.day_number) }}">
+      <span class="day-num">Day {{ day.day_number }}</span>
+      <strong>{{ day.name }}</strong>
+      <span class="day-meta">{{ day.exercises|length }} exercises</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+{% if stats.total_workouts %}
+<section class="card">
+  <h2>You've got this</h2>
+  <p class="subtle">
+    {{ stats.total_workouts }} workouts completed · {{ stats.last_7_days }} this week ·
+    {{ stats.total_minutes }} total minutes
+  </p>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  setupWeightForm();
+</script>
+{% endblock %}

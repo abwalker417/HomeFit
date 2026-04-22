@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Exercise library — HomeFit{% endblock %}
+
+{% block content %}
+<section>
+  <h1>Exercise library</h1>
+  <p class="subtle">
+    All bodyweight, no equipment.
+    {% if profile.limitations %}
+      Exercises that conflict with your limitations are marked and hidden from plans.
+    {% endif %}
+  </p>
+
+  <div class="filter-bar">
+    <input id="ex-search" type="search" placeholder="Search exercises…">
+    <select id="ex-filter">
+      <option value="all">All</option>
+      <option value="legs">Legs</option>
+      <option value="upper">Upper</option>
+      <option value="core">Core</option>
+      <option value="cardio">Cardio</option>
+    </select>
+  </div>
+
+  <ul class="exercise-list library-list">
+    {% for ex in exercises %}
+    <li class="exercise-item {% if not ex.allowed %}blocked{% endif %}"
+        data-category="{{ ex.category }}"
+        data-name="{{ ex.name|lower }}">
+      <details>
+        <summary>
+          <div class="ex-head">
+            <span class="ex-num">{{ ex.category[:3]|upper }}</span>
+            <div class="ex-title">
+              <strong>{{ ex.name }}</strong>
+              <span class="ex-meta">
+                Difficulty {{ ex.difficulty }}/3
+                {% if not ex.allowed %}
+                  · <span class="warn">skipped: {{ ex.blocked_by|join(', ')|replace('bad_', '') }}</span>
+                {% endif %}
+              </span>
+            </div>
+          </div>
+        </summary>
+        <div class="ex-body">
+          {% if ex.gif %}
+          <img class="ex-gif" src="{{ ex.gif }}" alt="{{ ex.name }}" loading="lazy">
+          {% endif %}
+          <p>{{ ex.instructions }}</p>
+        </div>
+      </details>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>setupLibraryFilter();</script>
+{% endblock %}

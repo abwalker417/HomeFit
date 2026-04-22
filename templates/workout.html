@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ day.name }} — HomeFit{% endblock %}
+
+{% block content %}
+<section class="workout-header">
+  <a href="{{ url_for('index') }}" class="back-link">← Back</a>
+  <p class="eyebrow">Day {{ day.day_number }}</p>
+  <h1>{{ day.name }}</h1>
+  <p class="subtle">{{ day.exercises|length }} exercises · tap any exercise to see the demo</p>
+</section>
+
+<section id="workout-body"
+         data-day-number="{{ day.day_number }}"
+         data-day-name="{{ day.name }}">
+  <ol class="exercise-list">
+    {% for ex in day.exercises %}
+    <li class="exercise-item" data-exercise-id="{{ ex.id }}">
+      <details>
+        <summary>
+          <div class="ex-head">
+            <span class="ex-num">{{ loop.index }}</span>
+            <div class="ex-title">
+              <strong>{{ ex.name }}</strong>
+              <span class="ex-meta">
+                {{ ex.sets }} sets ×
+                {% if ex.unit == 'seconds' %}{{ ex.reps }}s{% else %}{{ ex.reps }} reps{% endif %}
+                · {{ ex.rest }}s rest
+              </span>
+            </div>
+            <input type="checkbox" class="ex-done" aria-label="Mark complete">
+          </div>
+        </summary>
+        <div class="ex-body">
+          {% if ex.gif %}
+          <img class="ex-gif" src="{{ ex.gif }}" alt="{{ ex.name }} demonstration" loading="lazy">
+          {% endif %}
+          <p>{{ ex.instructions }}</p>
+          <button type="button" class="btn btn-secondary rest-btn"
+                  data-rest="{{ ex.rest }}">
+            Start {{ ex.rest }}s rest timer
+          </button>
+        </div>
+      </details>
+    </li>
+    {% endfor %}
+  </ol>
+
+  <div class="workout-footer">
+    <div class="timer-box">
+      <span class="timer-label">Workout time</span>
+      <span id="workout-timer" class="timer-display">00:00</span>
+    </div>
+    <button id="finish-btn" class="btn btn-primary">Finish workout</button>
+  </div>
+</section>
+
+<div id="rest-overlay" class="rest-overlay hidden">
+  <div class="rest-inner">
+    <p class="rest-label">Rest</p>
+    <p id="rest-count" class="rest-count">00</p>
+    <button id="rest-skip" class="btn btn-secondary">Skip</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  startWorkout();
+</script>
+{% endblock %}

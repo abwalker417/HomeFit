@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HomeFit">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <title>{% block title %}HomeFit{% endblock %}</title>
+</head>
+<body>
+  <header class="app-header">
+    <a href="{{ url_for('index') }}" class="brand">
+      <span class="brand-mark">HF</span>
+      <span class="brand-name">HomeFit</span>
+    </a>
+    <nav class="top-nav">
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('exercises') }}">Exercises</a>
+      <a href="{{ url_for('progress') }}">Progress</a>
+    </nav>
+  </header>
+
+  <main class="app-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="{{ url_for('index') }}" class="nav-item">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </a>
+    <a href="{{ url_for('exercises') }}" class="nav-item">
+      <span class="nav-icon">💪</span>
+      <span class="nav-label">Exercises</span>
+    </a>
+    <a href="{{ url_for('progress') }}" class="nav-item">
+      <span class="nav-icon">📈</span>
+      <span class="nav-label">Progress</span>
+    </a>
+    <a href="{{ url_for('onboarding') }}" class="nav-item">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Settings</span>
+    </a>
+  </nav>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
