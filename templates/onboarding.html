@@ -60,6 +60,31 @@
       </label>
     </fieldset>
 
+    <fieldset class="field">
+      <legend>Equipment you own? (optional — unlocks more exercises)</legend>
+      {% set eq = profile.equipment or [] %}
+      <label class="checkbox">
+        <input type="checkbox" name="equipment" value="dumbbells"
+               {% if "dumbbells" in eq %}checked{% endif %}>
+        🏋️ Dumbbells
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="equipment" value="resistance_bands"
+               {% if "resistance_bands" in eq %}checked{% endif %}>
+        🔁 Resistance bands
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="equipment" value="pull_up_bar"
+               {% if "pull_up_bar" in eq %}checked{% endif %}>
+        🚪 Pull-up bar
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="equipment" value="kettlebell"
+               {% if "kettlebell" in eq %}checked{% endif %}>
+        🫙 Kettlebell
+      </label>
+    </fieldset>
+
     <button type="submit" class="btn btn-primary">Save and build plan</button>
   </form>
 </section>

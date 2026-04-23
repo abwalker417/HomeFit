@@ -21,6 +21,7 @@ LIMITATION_MAP = {
 }
 
 VALID_LIMITATIONS = set(LIMITATION_MAP.keys())
+VALID_EQUIPMENT = {"bodyweight", "dumbbells", "resistance_bands", "pull_up_bar", "kettlebell"}
 
 
 def load_exercises() -> list[dict[str, Any]]:
@@ -31,10 +32,19 @@ def load_exercises() -> list[dict[str, Any]]:
 def filter_exercises(
     exercises: list[dict[str, Any]],
     limitations: list[str],
+    equipment: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Remove exercises contraindicated by any of the user's limitations."""
+    """Remove exercises contraindicated by limitations or missing equipment."""
     bad_tags = {LIMITATION_MAP[l] for l in limitations if l in VALID_LIMITATIONS}
-    return [e for e in exercises if not (set(e.get("contraindications", [])) & bad_tags)]
+    owned = {"bodyweight"} | {e for e in (equipment or []) if e in VALID_EQUIPMENT}
+    result = []
+    for e in exercises:
+        if set(e.get("contraindications", [])) & bad_tags:
+            continue
+        if e.get("equipment", "bodyweight") not in owned:
+            continue
+        result.append(e)
+    return result
 
 
 def determine_goal(current_weight: float, goal_weight: float) -> str:
@@ -97,6 +107,7 @@ def generate_plan(
     fitness_level: str = "beginner",
     limitations: list[str] | None = None,
     days_per_week: int = 4,
+    equipment: list[str] | None = None,
 ) -> dict[str, Any]:
     """Build a week-long home workout plan for the user.
 
@@ -106,7 +117,8 @@ def generate_plan(
       - days: list of {name, focus, exercises: [...]}  (len == days_per_week)
     """
     limitations = limitations or []
-    exercises = filter_exercises(load_exercises(), limitations)
+    equipment = equipment or []
+    exercises = filter_exercises(load_exercises(), limitations, equipment)
     cap = determine_difficulty_cap(fitness_level)
     exercises = [e for e in exercises if e.get("difficulty", 1) <= cap]
 
@@ -184,20 +196,24 @@ def generate_plan(
         "summary": summary,
         "fitness_level": fitness_level,
         "limitations": limitations,
+        "equipment": equipment,
         "days_per_week": days_per_week,
         "days": days,
     }
 
 
-def all_exercises_with_status(limitations: list[str]) -> list[dict[str, Any]]:
+def all_exercises_with_status(limitations: list[str], equipment: list[str] | None = None) -> list[dict[str, Any]]:
     """Return all exercises, each annotated with whether it's allowed for the user."""
     exercises = load_exercises()
     bad_tags = {LIMITATION_MAP[l] for l in limitations if l in VALID_LIMITATIONS}
+    owned = {"bodyweight"} | {e for e in (equipment or []) if e in VALID_EQUIPMENT}
     annotated = []
     for ex in exercises:
         blockers = list(set(ex.get("contraindications", [])) & bad_tags)
+        needed = ex.get("equipment", "bodyweight")
         ex_copy = dict(ex)
-        ex_copy["allowed"] = not blockers
+        ex_copy["allowed"] = not blockers and needed in owned
         ex_copy["blocked_by"] = blockers
+        ex_copy["blocked_by_equipment"] = needed if needed not in owned else None
         annotated.append(ex_copy)
     return annotated

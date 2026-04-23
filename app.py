@@ -35,7 +35,7 @@ from flask import (
 )
 
 import database
-from workout_logic import generate_plan, all_exercises_with_status, VALID_LIMITATIONS
+from workout_logic import generate_plan, all_exercises_with_status, VALID_LIMITATIONS, VALID_EQUIPMENT
 
 app = Flask(__name__)
 
@@ -311,7 +311,7 @@ def profile_edit(user_id):
                 error = "PINs don't match."
 
         if error:
-            return render_template("profile_edit.html", user=user, error=error)
+            return render_template("profile_edit.html", user=user, profile_data=database.get_profile(user_id) or {}, error=error)
 
         pin_param = False
         if pin_action == "clear":
@@ -349,6 +349,7 @@ def index():
         profile["fitness_level"],
         profile["limitations"],
         profile["days_per_week"],
+        profile.get("equipment", []),
     )
     stats = database.get_stats(uid)
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats)
@@ -363,10 +364,12 @@ def onboarding():
         fitness_level = request.form.get("fitness_level", "beginner")
         limitations = request.form.getlist("limitations")
         limitations = [l for l in limitations if l in VALID_LIMITATIONS]
+        equipment = request.form.getlist("equipment")
+        equipment = [e for e in equipment if e in VALID_EQUIPMENT]
         days_per_week = int(request.form.get("days_per_week", 4))
         database.save_profile(
             uid, current_weight, goal_weight, fitness_level,
-            limitations, days_per_week,
+            limitations, days_per_week, equipment,
         )
         return redirect(url_for("index"))
     profile = database.get_profile(uid) or {}
@@ -385,6 +388,7 @@ def workout(day_number):
         profile["fitness_level"],
         profile["limitations"],
         profile["days_per_week"],
+        profile.get("equipment", []),
     )
     day = next((d for d in plan["days"] if d["day_number"] == day_number), None)
     if not day:
@@ -423,7 +427,8 @@ def exercises():
     uid = session["user_id"]
     profile = database.get_profile(uid) or {}
     limitations = profile.get("limitations", [])
-    all_ex = all_exercises_with_status(limitations)
+    equipment = profile.get("equipment", [])
+    all_ex = all_exercises_with_status(limitations, equipment)
     return render_template("exercises.html", exercises=all_ex, profile=profile)
 
 

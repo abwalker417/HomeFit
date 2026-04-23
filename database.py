@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS profile (
     goal_weight    REAL    NOT NULL,
     fitness_level  TEXT    NOT NULL DEFAULT 'beginner',
     limitations    TEXT    NOT NULL DEFAULT '[]',
+    equipment      TEXT    NOT NULL DEFAULT '[]',
     days_per_week  INTEGER NOT NULL DEFAULT 4,
     updated_at     TEXT    NOT NULL
 );
@@ -98,6 +99,11 @@ def _has_table(conn, name):
     return row is not None
 
 
+def _has_column(conn, table, column):
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(r["name"] == column for r in rows)
+
+
 def init_db():
     """Create tables if missing; drop-and-recreate if migrating from v1."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -115,6 +121,9 @@ def init_db():
                         conn.execute(f"DROP TABLE IF EXISTS {tbl}")
 
         conn.executescript(SCHEMA_SQL)
+
+        if _has_table(conn, "profile") and not _has_column(conn, "profile", "equipment"):
+            conn.execute("ALTER TABLE profile ADD COLUMN equipment TEXT NOT NULL DEFAULT '[]'")
 
         # Stamp the schema version
         conn.execute("DELETE FROM schema_version")
@@ -226,27 +235,30 @@ def get_profile(user_id):
             return None
         p = dict(row)
         p["limitations"] = json.loads(p["limitations"])
+        p["equipment"] = json.loads(p.get("equipment") or "[]")
         return p
 
 
 def save_profile(user_id, current_weight, goal_weight,
-                 fitness_level, limitations, days_per_week):
+                 fitness_level, limitations, days_per_week, equipment=None):
     now = datetime.utcnow().isoformat()
     lim_json = json.dumps(limitations)
+    eq_json = json.dumps(equipment or [])
     with get_connection() as conn:
         conn.execute("""
             INSERT INTO profile (user_id, current_weight, goal_weight, fitness_level,
-                                 limitations, days_per_week, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                                 limitations, equipment, days_per_week, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
                 current_weight=excluded.current_weight,
                 goal_weight=excluded.goal_weight,
                 fitness_level=excluded.fitness_level,
                 limitations=excluded.limitations,
+                equipment=excluded.equipment,
                 days_per_week=excluded.days_per_week,
                 updated_at=excluded.updated_at
         """, (user_id, current_weight, goal_weight, fitness_level, lim_json,
-              days_per_week, now))
+              eq_json, days_per_week, now))
         # Log current weight if it's new for this user
         last = conn.execute(
             "SELECT weight FROM weight_log WHERE user_id = ? "

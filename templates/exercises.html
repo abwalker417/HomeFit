@@ -5,9 +5,9 @@
 <section>
   <h1>Exercise library</h1>
   <p class="subtle">
-    All bodyweight, no equipment.
+    Bodyweight exercises plus anything your equipment unlocks.
     {% if profile.limitations %}
-      Exercises that conflict with your limitations are marked and hidden from plans.
+      Exercises blocked by your limitations or missing equipment are marked and hidden from plans.
     {% endif %}
   </p>
 
@@ -26,7 +26,7 @@
     {% for ex in exercises %}
     <li class="exercise-item {% if not ex.allowed %}blocked{% endif %}"
         data-category="{{ ex.category }}"
-        data-name="{{ ex.name|lower }}">
+        data-name="{{ ex.name|lower }}" data-equipment="{{ ex.equipment|default('bodyweight') }}">
       <details>
         <summary>
           <div class="ex-head">
@@ -34,7 +34,7 @@
             <div class="ex-title">
               <strong>{{ ex.name }}</strong>
               <span class="ex-meta">
-                Difficulty {{ ex.difficulty }}/3
+                Difficulty {{ ex.difficulty }}/3{% if ex.equipment is defined and ex.equipment != "bodyweight" %} · <span class="eq-tag">{{ ex.equipment|replace("_", " ") }}</span>{% endif %}
                 {% if not ex.allowed %}
                   · <span class="warn">skipped: {{ ex.blocked_by|join(', ')|replace('bad_', '') }}</span>
                 {% endif %}

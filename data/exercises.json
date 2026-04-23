@@ -11,7 +11,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Stand with feet shoulder-width apart. Lower your hips back and down as if sitting in a chair, keeping your chest up and knees tracking over your toes. Drive through your heels to stand back up."
+    "instructions": "Stand with feet shoulder-width apart. Lower your hips back and down as if sitting in a chair, keeping your chest up and knees tracking over your toes. Drive through your heels to stand back up.",
+    "equipment": "bodyweight"
   },
   {
     "id": "wall_sit",
@@ -26,7 +27,8 @@
     "default_sets": 3,
     "rest_seconds": 45,
     "unit": "seconds",
-    "instructions": "Lean back against a wall and slide down until your knees are at a 90-degree angle. Hold the position with your back flat against the wall."
+    "instructions": "Lean back against a wall and slide down until your knees are at a 90-degree angle. Hold the position with your back flat against the wall.",
+    "equipment": "bodyweight"
   },
   {
     "id": "reverse_lunge",
@@ -40,7 +42,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Stand tall. Step one foot back and lower your hips until both knees form 90-degree angles. Push through the front heel to return to standing. Alternate legs."
+    "instructions": "Stand tall. Step one foot back and lower your hips until both knees form 90-degree angles. Push through the front heel to return to standing. Alternate legs.",
+    "equipment": "bodyweight"
   },
   {
     "id": "glute_bridge",
@@ -52,7 +55,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back with knees bent and feet flat on the floor. Squeeze your glutes and lift your hips toward the ceiling until your body forms a straight line from shoulders to knees. Lower slowly."
+    "instructions": "Lie on your back with knees bent and feet flat on the floor. Squeeze your glutes and lift your hips toward the ceiling until your body forms a straight line from shoulders to knees. Lower slowly.",
+    "equipment": "bodyweight"
   },
   {
     "id": "single_leg_glute_bridge",
@@ -64,7 +68,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back with one knee bent, the other leg extended. Press through the planted heel and lift hips up. Lower with control. Switch sides."
+    "instructions": "Lie on your back with one knee bent, the other leg extended. Press through the planted heel and lift hips up. Lower with control. Switch sides.",
+    "equipment": "bodyweight"
   },
   {
     "id": "calf_raise",
@@ -76,7 +81,8 @@
     "default_reps": 20,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand with feet hip-width apart. Rise up onto the balls of your feet as high as you can, then lower slowly. Hold a wall or chair for balance if needed."
+    "instructions": "Stand with feet hip-width apart. Rise up onto the balls of your feet as high as you can, then lower slowly. Hold a wall or chair for balance if needed.",
+    "equipment": "bodyweight"
   },
   {
     "id": "standing_march",
@@ -88,7 +94,8 @@
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand tall and march in place, lifting each knee to hip height. Pump your arms for a full-body movement."
+    "instructions": "Stand tall and march in place, lifting each knee to hip height. Pump your arms for a full-body movement.",
+    "equipment": "bodyweight"
   },
   {
     "id": "push_up",
@@ -103,7 +110,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Start in a plank position, hands shoulder-width apart. Lower your chest toward the floor while keeping your core tight. Press back to the starting position."
+    "instructions": "Start in a plank position, hands shoulder-width apart. Lower your chest toward the floor while keeping your core tight. Press back to the starting position.",
+    "equipment": "bodyweight"
   },
   {
     "id": "wall_push_up",
@@ -115,7 +123,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand arm's length from a wall. Place hands on the wall at shoulder height. Bend your elbows to bring your chest toward the wall, then push back."
+    "instructions": "Stand arm's length from a wall. Place hands on the wall at shoulder height. Bend your elbows to bring your chest toward the wall, then push back.",
+    "equipment": "bodyweight"
   },
   {
     "id": "incline_push_up",
@@ -129,7 +138,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Place your hands on a sturdy counter, table, or couch edge. Keep your body in a straight line. Lower your chest to the surface and press back up."
+    "instructions": "Place your hands on a sturdy counter, table, or couch edge. Keep your body in a straight line. Lower your chest to the surface and press back up.",
+    "equipment": "bodyweight"
   },
   {
     "id": "tricep_dip_chair",
@@ -144,7 +154,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Sit on the edge of a sturdy chair, hands gripping the edge beside your hips. Slide your butt off and lower yourself by bending your elbows to 90 degrees. Press back up."
+    "instructions": "Sit on the edge of a sturdy chair, hands gripping the edge beside your hips. Slide your butt off and lower yourself by bending your elbows to 90 degrees. Press back up.",
+    "equipment": "bodyweight"
   },
   {
     "id": "door_row",
@@ -156,7 +167,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Stand facing a sturdy door frame. Grip both sides, lean back with arms extended. Pull your chest toward the frame, squeezing your shoulder blades. Return with control."
+    "instructions": "Stand facing a sturdy door frame. Grip both sides, lean back with arms extended. Pull your chest toward the frame, squeezing your shoulder blades. Return with control.",
+    "equipment": "bodyweight"
   },
   {
     "id": "superman_hold",
@@ -171,7 +183,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "unit": "seconds",
-    "instructions": "Lie face down, arms extended overhead. Lift your arms, chest, and legs off the floor. Hold at the top, then lower."
+    "instructions": "Lie face down, arms extended overhead. Lift your arms, chest, and legs off the floor. Hold at the top, then lower.",
+    "equipment": "bodyweight"
   },
   {
     "id": "bird_dog",
@@ -183,7 +196,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Start on all fours. Extend your right arm forward and left leg back at the same time, keeping your hips square and back flat. Return and switch sides."
+    "instructions": "Start on all fours. Extend your right arm forward and left leg back at the same time, keeping your hips square and back flat. Return and switch sides.",
+    "equipment": "bodyweight"
   },
   {
     "id": "dead_bug",
@@ -195,7 +209,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back with arms up and knees bent 90 degrees. Slowly lower your right arm and left leg toward the floor without arching your back. Return and switch sides."
+    "instructions": "Lie on your back with arms up and knees bent 90 degrees. Slowly lower your right arm and left leg toward the floor without arching your back. Return and switch sides.",
+    "equipment": "bodyweight"
   },
   {
     "id": "plank",
@@ -210,7 +225,8 @@
     "default_sets": 3,
     "rest_seconds": 45,
     "unit": "seconds",
-    "instructions": "Rest on your forearms and toes with your body in a straight line from head to heels. Engage your core and glutes. Don't let your hips sag or pike up."
+    "instructions": "Rest on your forearms and toes with your body in a straight line from head to heels. Engage your core and glutes. Don't let your hips sag or pike up.",
+    "equipment": "bodyweight"
   },
   {
     "id": "side_plank",
@@ -225,7 +241,8 @@
     "default_sets": 2,
     "rest_seconds": 30,
     "unit": "seconds",
-    "instructions": "Lie on your side. Prop yourself up on your forearm with your elbow under your shoulder. Lift your hips so your body is in a straight line. Hold. Switch sides."
+    "instructions": "Lie on your side. Prop yourself up on your forearm with your elbow under your shoulder. Lift your hips so your body is in a straight line. Hold. Switch sides.",
+    "equipment": "bodyweight"
   },
   {
     "id": "bicycle_crunch",
@@ -239,7 +256,8 @@
     "default_reps": 20,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back, hands behind your head. Bring your right elbow toward your left knee while extending your right leg. Alternate sides."
+    "instructions": "Lie on your back, hands behind your head. Bring your right elbow toward your left knee while extending your right leg. Alternate sides.",
+    "equipment": "bodyweight"
   },
   {
     "id": "heel_tap",
@@ -251,7 +269,8 @@
     "default_reps": 20,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back, knees bent, feet flat. Crunch up slightly and reach your right hand to tap your right heel, then the left. Keep it controlled."
+    "instructions": "Lie on your back, knees bent, feet flat. Crunch up slightly and reach your right hand to tap your right heel, then the left. Keep it controlled.",
+    "equipment": "bodyweight"
   },
   {
     "id": "mountain_climbers",
@@ -267,7 +286,8 @@
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Start in a high plank. Drive one knee toward your chest, then quickly switch, as if running horizontally."
+    "instructions": "Start in a high plank. Drive one knee toward your chest, then quickly switch, as if running horizontally.",
+    "equipment": "bodyweight"
   },
   {
     "id": "jumping_jacks",
@@ -281,7 +301,8 @@
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand tall. Jump while spreading your legs wide and raising your arms overhead. Jump back to start."
+    "instructions": "Stand tall. Jump while spreading your legs wide and raising your arms overhead. Jump back to start.",
+    "equipment": "bodyweight"
   },
   {
     "id": "step_touch",
@@ -293,7 +314,8 @@
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Step your right foot out to the side, then bring your left to meet it and tap. Reverse. Add arm swings for intensity."
+    "instructions": "Step your right foot out to the side, then bring your left to meet it and tap. Reverse. Add arm swings for intensity.",
+    "equipment": "bodyweight"
   },
   {
     "id": "high_knees",
@@ -307,7 +329,8 @@
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Run in place, driving your knees up toward your chest as high and fast as you can."
+    "instructions": "Run in place, driving your knees up toward your chest as high and fast as you can.",
+    "equipment": "bodyweight"
   },
   {
     "id": "arm_circles",
@@ -321,7 +344,8 @@
     "default_reps": 20,
     "default_sets": 2,
     "rest_seconds": 20,
-    "instructions": "Extend arms out to the sides at shoulder height. Make small controlled circles forward, then reverse."
+    "instructions": "Extend arms out to the sides at shoulder height. Make small controlled circles forward, then reverse.",
+    "equipment": "bodyweight"
   },
   {
     "id": "good_morning",
@@ -335,6 +359,577 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand with feet hip-width, hands behind your head. Hinge at the hips, pushing your butt back while keeping your back flat. Return to standing by squeezing your glutes."
+    "instructions": "Stand with feet hip-width, hands behind your head. Hinge at the hips, pushing your butt back while keeping your back flat. Return to standing by squeezing your glutes.",
+    "equipment": "bodyweight"
+  },
+  {
+    "id": "db_bicep_curl",
+    "name": "Dumbbell Bicep Curl",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_wrists"
+    ],
+    "met": 3.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Stand holding a dumbbell in each hand at your sides, palms facing forward. Curl both dumbbells up toward your shoulders, squeezing your biceps at the top. Lower slowly."
+  },
+  {
+    "id": "db_hammer_curl",
+    "name": "Hammer Curl",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_wrists"
+    ],
+    "met": 3.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Hold dumbbells at your sides with palms facing your body. Curl up keeping the neutral grip throughout."
+  },
+  {
+    "id": "db_shoulder_press",
+    "name": "Dumbbell Shoulder Press",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 4.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Press dumbbells from shoulder height to overhead, then lower with control."
+  },
+  {
+    "id": "db_lateral_raise",
+    "name": "Dumbbell Lateral Raise",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 3.0,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 30,
+    "instructions": "Raise dumbbells out to your sides until shoulder height, then lower slowly."
+  },
+  {
+    "id": "db_bent_over_row",
+    "name": "Dumbbell Bent-Over Row",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 4.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Hinge at the hips and row dumbbells toward your torso, squeezing shoulder blades together."
+  },
+  {
+    "id": "db_goblet_squat",
+    "name": "Dumbbell Goblet Squat",
+    "category": "legs",
+    "difficulty": 1,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_knees"
+    ],
+    "met": 5.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Hold one dumbbell at chest height and squat with an upright torso."
+  },
+  {
+    "id": "db_romanian_deadlift",
+    "name": "Dumbbell Romanian Deadlift",
+    "category": "legs",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 5.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Hinge at the hips with dumbbells close to your legs, then drive hips forward to stand."
+  },
+  {
+    "id": "db_dumbbell_lunge",
+    "name": "Dumbbell Walking Lunge",
+    "category": "legs",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_knees"
+    ],
+    "met": 5.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Hold dumbbells at your sides and perform alternating forward lunges."
+  },
+  {
+    "id": "db_overhead_tricep",
+    "name": "Dumbbell Overhead Tricep Extension",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 3.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Hold one dumbbell overhead with both hands, lower behind head, then extend."
+  },
+  {
+    "id": "db_chest_fly",
+    "name": "Dumbbell Floor Fly",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 3.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Lie on the floor and open arms wide with dumbbells, then squeeze them back together."
+  },
+  {
+    "id": "band_pull_apart",
+    "name": "Band Pull-Apart",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "resistance_bands",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 2.5,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 30,
+    "instructions": "Pull the band apart at chest height, squeezing shoulder blades together."
+  },
+  {
+    "id": "band_bicep_curl",
+    "name": "Resistance Band Bicep Curl",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "resistance_bands",
+    "contraindications": [
+      "bad_wrists"
+    ],
+    "met": 3.0,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 30,
+    "instructions": "Stand on the band and curl the handles toward your shoulders."
+  },
+  {
+    "id": "band_squat",
+    "name": "Resistance Band Squat",
+    "category": "legs",
+    "difficulty": 1,
+    "equipment": "resistance_bands",
+    "contraindications": [
+      "bad_knees"
+    ],
+    "met": 5.0,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Stand on the band with handles at shoulders and squat with control."
+  },
+  {
+    "id": "band_glute_kickback",
+    "name": "Band Glute Kickback",
+    "category": "legs",
+    "difficulty": 1,
+    "equipment": "resistance_bands",
+    "contraindications": [],
+    "met": 3.5,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 30,
+    "instructions": "Kick one leg straight back against band resistance, squeezing the glute."
+  },
+  {
+    "id": "band_row",
+    "name": "Resistance Band Seated Row",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "resistance_bands",
+    "contraindications": [
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 3.5,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Loop the band around your feet and row handles toward your torso."
+  },
+  {
+    "id": "band_lat_pulldown",
+    "name": "Band Lat Pulldown",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "resistance_bands",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 3.5,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Anchor the band overhead and pull down toward your chest."
+  },
+  {
+    "id": "band_hip_thrust",
+    "name": "Band Hip Thrust",
+    "category": "legs",
+    "difficulty": 2,
+    "equipment": "resistance_bands",
+    "contraindications": [],
+    "met": 4.0,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Drive hips up against band resistance, squeezing glutes at the top."
+  },
+  {
+    "id": "band_face_pull",
+    "name": "Band Face Pull",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "resistance_bands",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 3.0,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 30,
+    "instructions": "Anchor the band at face height and pull toward your face with elbows high."
+  },
+  {
+    "id": "band_pallof_press",
+    "name": "Band Pallof Press",
+    "category": "core",
+    "difficulty": 2,
+    "equipment": "resistance_bands",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 3.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Press the band straight out from your chest and resist rotation."
+  },
+  {
+    "id": "band_clamshell",
+    "name": "Band Clamshell",
+    "category": "legs",
+    "difficulty": 1,
+    "equipment": "resistance_bands",
+    "contraindications": [],
+    "met": 2.5,
+    "default_reps": 20,
+    "default_sets": 3,
+    "rest_seconds": 30,
+    "instructions": "Open the top knee against a loop band while keeping feet together."
+  },
+  {
+    "id": "pullup",
+    "name": "Pull-Up",
+    "category": "upper",
+    "difficulty": 3,
+    "equipment": "pull_up_bar",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 8.0,
+    "default_reps": 5,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Pull your chin above the bar from a dead hang, then lower with control."
+  },
+  {
+    "id": "chinup",
+    "name": "Chin-Up",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "pull_up_bar",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 8.0,
+    "default_reps": 6,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Use an underhand grip and pull your chin above the bar."
+  },
+  {
+    "id": "dead_hang",
+    "name": "Dead Hang",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "pull_up_bar",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 2.5,
+    "default_reps": 30,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "unit": "seconds",
+    "instructions": "Hang from the bar with straight arms and a braced torso."
+  },
+  {
+    "id": "bar_hang_knee_raise",
+    "name": "Hanging Knee Raise",
+    "category": "core",
+    "difficulty": 2,
+    "equipment": "pull_up_bar",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 4.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Raise knees toward your chest while hanging from the bar."
+  },
+  {
+    "id": "scapular_pull",
+    "name": "Scapular Pull-Up",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "pull_up_bar",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 3.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "From a dead hang, pull shoulder blades down and back without bending elbows."
+  },
+  {
+    "id": "bar_inverted_row",
+    "name": "Inverted Row (low bar)",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "pull_up_bar",
+    "contraindications": [
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 5.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Pull your chest to a low bar while keeping your body straight."
+  },
+  {
+    "id": "typewriter_pullup",
+    "name": "Typewriter Pull-Up",
+    "category": "upper",
+    "difficulty": 3,
+    "equipment": "pull_up_bar",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 9.0,
+    "default_reps": 4,
+    "default_sets": 3,
+    "rest_seconds": 120,
+    "instructions": "Pull up, then shift side to side at the top before lowering."
+  },
+  {
+    "id": "kb_swing",
+    "name": "Kettlebell Swing",
+    "category": "cardio",
+    "difficulty": 2,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 9.0,
+    "default_reps": 20,
+    "default_sets": 4,
+    "rest_seconds": 60,
+    "instructions": "Hinge and swing the kettlebell to chest height using hip drive."
+  },
+  {
+    "id": "kb_goblet_squat",
+    "name": "Kettlebell Goblet Squat",
+    "category": "legs",
+    "difficulty": 1,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_knees"
+    ],
+    "met": 5.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Hold the kettlebell at your chest and squat with an upright torso."
+  },
+  {
+    "id": "kb_clean_press",
+    "name": "Kettlebell Clean and Press",
+    "category": "upper",
+    "difficulty": 3,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 8.0,
+    "default_reps": 6,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Clean the kettlebell to rack position and press it overhead."
+  },
+  {
+    "id": "kb_turkish_getup",
+    "name": "Kettlebell Turkish Get-Up",
+    "category": "core",
+    "difficulty": 3,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 6.0,
+    "default_reps": 3,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Move from lying to standing with the kettlebell locked out overhead."
+  },
+  {
+    "id": "kb_deadlift",
+    "name": "Kettlebell Deadlift",
+    "category": "legs",
+    "difficulty": 1,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 5.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Hinge to pick up the kettlebell and stand tall, then lower with control."
+  },
+  {
+    "id": "kb_row",
+    "name": "Single-Arm Kettlebell Row",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 4.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Row the kettlebell to your hip with one arm while bracing your torso."
+  },
+  {
+    "id": "kb_halo",
+    "name": "Kettlebell Halo",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 3.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 30,
+    "instructions": "Circle the kettlebell around your head while keeping your core tight."
+  },
+  {
+    "id": "kb_suitcase_carry",
+    "name": "Kettlebell Suitcase Carry",
+    "category": "core",
+    "difficulty": 1,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 4.0,
+    "default_reps": 30,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "unit": "seconds",
+    "instructions": "Carry a kettlebell at your side while resisting leaning toward it."
+  },
+  {
+    "id": "kb_figure_eight",
+    "name": "Kettlebell Figure-Eight",
+    "category": "core",
+    "difficulty": 2,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_back",
+      "bad_knees"
+    ],
+    "met": 5.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Pass the kettlebell in a figure-eight pattern between your legs."
+  },
+  {
+    "id": "kb_press",
+    "name": "Kettlebell Single-Arm Press",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "kettlebell",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 4.0,
+    "default_reps": 8,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Press the kettlebell overhead from the rack position with one arm."
   }
 ]
