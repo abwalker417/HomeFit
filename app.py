@@ -187,10 +187,10 @@ def profiles():
     users = database.list_users()
     can_create = on_trusted_network()
     if not users:
-        # First run — nobody exists yet.
+        # First run â€” nobody exists yet.
         if can_create:
             return redirect(url_for("profile_new"))
-        # Public access before setup — show a locked screen.
+        # Public access before setup â€” show a locked screen.
         return render_template("blocked.html",
                                reason="No profiles exist yet. Connect from the "
                                       "local network to set up the first profile.",
@@ -207,7 +207,7 @@ def profile_new():
                                client_ip=_client_ip()), 403
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        emoji = request.form.get("emoji", "💪").strip() or "💪"
+        emoji = request.form.get("emoji", "ðŸ’ª").strip() or "ðŸ’ª"
         pin = request.form.get("pin", "").strip()
         pin_confirm = request.form.get("pin_confirm", "").strip()
 
@@ -217,7 +217,7 @@ def profile_new():
         elif pin and not pin.isdigit():
             error = "PIN must be digits only."
         elif pin and not (4 <= len(pin) <= 8):
-            error = "PIN must be 4–8 digits."
+            error = "PIN must be 4â€“8 digits."
         elif pin != pin_confirm:
             error = "PINs don't match."
 
@@ -306,7 +306,7 @@ def profile_edit(user_id):
         error = None
         if pin_action == "set":
             if not new_pin.isdigit() or not (4 <= len(new_pin) <= 8):
-                error = "PIN must be 4–8 digits."
+                error = "PIN must be 4â€“8 digits."
             elif new_pin != confirm:
                 error = "PINs don't match."
 
