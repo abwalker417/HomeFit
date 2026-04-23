@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Unlock {{ user.name }} — HomeFit{% endblock %}
+
+{% block content %}
+<section class="unlock-page">
+  <a class="back-link" href="{{ url_for('profiles') }}">← Back</a>
+
+  <div class="unlock-hero">
+    <div class="unlock-emoji">{{ user.emoji }}</div>
+    <h1>{{ user.name }}</h1>
+    <p class="subtle">Enter your PIN to continue.</p>
+  </div>
+
+  {% if error %}
+    <div class="card warn-card">⚠ {{ error }}</div>
+  {% endif %}
+
+  <form method="post" class="form card" autocomplete="off">
+    <label class="field">
+      <span>PIN</span>
+      <input type="password" name="pin" inputmode="numeric"
+             pattern="[0-9]*" maxlength="8" autofocus required>
+    </label>
+    <button type="submit" class="btn btn-primary">Unlock</button>
+  </form>
+</section>
+{% endblock %}

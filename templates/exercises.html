@@ -43,10 +43,11 @@
           </div>
         </summary>
         <div class="ex-body">
-          {% if ex.gif %}
-          <img class="ex-gif" src="{{ ex.gif }}" alt="{{ ex.name }}" loading="lazy">
-          {% endif %}
           <p>{{ ex.instructions }}</p>
+          <a class="btn btn-secondary demo-link" target="_blank" rel="noopener"
+             href="https://www.youtube.com/results?search_query={{ ex.name|replace(' ', '+') }}+proper+form">
+            ▶ Watch demo on YouTube
+          </a>
         </div>
       </details>
     </li>

@@ -8,7 +8,9 @@
   <meta name="apple-mobile-web-app-title" content="HomeFit">
   <meta name="theme-color" content="#0f172a">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+  <link rel="apple-touch-icon" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <title>{% block title %}HomeFit{% endblock %}</title>
 </head>
@@ -23,12 +25,25 @@
       <a href="{{ url_for('exercises') }}">Exercises</a>
       <a href="{{ url_for('progress') }}">Progress</a>
     </nav>
+    {% if current_user %}
+    <div class="user-chip-wrap">
+      <a href="{{ url_for('profile_edit', user_id=current_user.id) }}" class="user-chip"
+         title="Edit profile">
+        <span class="user-chip-emoji">{{ current_user.emoji }}</span>
+        <span class="user-chip-name">{{ current_user.name }}</span>
+      </a>
+      <form method="post" action="{{ url_for('profile_switch_out') }}" class="switch-form">
+        <button type="submit" class="switch-btn" title="Switch profile">↺</button>
+      </form>
+    </div>
+    {% endif %}
   </header>
 
   <main class="app-main">
     {% block content %}{% endblock %}
   </main>
 
+  {% if current_user %}
   <nav class="bottom-nav">
     <a href="{{ url_for('index') }}" class="nav-item">
       <span class="nav-icon">🏠</span>
@@ -47,6 +62,7 @@
       <span class="nav-label">Settings</span>
     </a>
   </nav>
+  {% endif %}
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   {% block scripts %}{% endblock %}

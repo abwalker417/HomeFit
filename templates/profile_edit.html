@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Edit profile — HomeFit{% endblock %}
+
+{% block content %}
+<section>
+  <a class="back-link" href="{{ url_for('index') }}">← Back</a>
+  <h1>Edit profile</h1>
+
+  {% if error %}
+    <div class="card warn-card">⚠ {{ error }}</div>
+  {% endif %}
+
+  <form method="post" class="form card" id="edit-form">
+    <input type="hidden" name="action" value="save" id="edit-action">
+
+    <label class="field">
+      <span>Name</span>
+      <input type="text" name="name" maxlength="40" required
+             value="{{ user.name }}" autocomplete="off">
+    </label>
+
+    <label class="field">
+      <span>Emoji</span>
+      <input type="text" name="emoji" maxlength="4"
+             value="{{ user.emoji }}">
+    </label>
+
+    <fieldset class="field">
+      <legend>PIN</legend>
+      <label class="checkbox">
+        <input type="radio" name="pin_action" value="keep" checked>
+        <span>{% if user.has_pin %}Keep current PIN{% else %}No PIN (unchanged){% endif %}</span>
+      </label>
+      <label class="checkbox">
+        <input type="radio" name="pin_action" value="set">
+        <span>Set / change PIN</span>
+      </label>
+      {% if user.has_pin %}
+      <label class="checkbox">
+        <input type="radio" name="pin_action" value="clear">
+        <span>Remove PIN</span>
+      </label>
+      {% endif %}
+    </fieldset>
+
+    <label class="field">
+      <span>New PIN (4–8 digits)</span>
+      <input type="password" name="pin" inputmode="numeric"
+             pattern="[0-9]*" maxlength="8" autocomplete="new-password">
+    </label>
+    <label class="field">
+      <span>Confirm new PIN</span>
+      <input type="password" name="pin_confirm" inputmode="numeric"
+             pattern="[0-9]*" maxlength="8" autocomplete="new-password">
+    </label>
+
+    <button type="submit" class="btn btn-primary">Save changes</button>
+  </form>
+
+  <form method="post" class="form card danger-card"
+        onsubmit="return confirm('Delete this profile and all its data? This cannot be undone.');">
+    <input type="hidden" name="action" value="delete">
+    <p><strong>Danger zone</strong></p>
+    <p class="subtle">Delete this profile along with its plan, weight log, and workout history.</p>
+    <button type="submit" class="btn btn-danger">Delete profile</button>
+  </form>
+</section>
+{% endblock %}

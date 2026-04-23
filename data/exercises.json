@@ -4,40 +4,43 @@
     "name": "Bodyweight Squat",
     "category": "legs",
     "difficulty": 1,
-    "contraindications": ["bad_knees"],
+    "contraindications": [
+      "bad_knees"
+    ],
     "met": 5.0,
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Stand with feet shoulder-width apart. Lower your hips back and down as if sitting in a chair, keeping your chest up and knees tracking over your toes. Drive through your heels to stand back up.",
-    "gif": "https://media.tenor.com/s4-yW2L5r3UAAAAC/squat-exercise.gif"
+    "instructions": "Stand with feet shoulder-width apart. Lower your hips back and down as if sitting in a chair, keeping your chest up and knees tracking over your toes. Drive through your heels to stand back up."
   },
   {
     "id": "wall_sit",
     "name": "Wall Sit",
     "category": "legs",
     "difficulty": 1,
-    "contraindications": ["bad_knees"],
+    "contraindications": [
+      "bad_knees"
+    ],
     "met": 4.5,
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 45,
     "unit": "seconds",
-    "instructions": "Lean back against a wall and slide down until your knees are at a 90-degree angle. Hold the position with your back flat against the wall.",
-    "gif": "https://media.tenor.com/P0hJ8_m7Yc8AAAAC/wall-sit.gif"
+    "instructions": "Lean back against a wall and slide down until your knees are at a 90-degree angle. Hold the position with your back flat against the wall."
   },
   {
     "id": "reverse_lunge",
     "name": "Reverse Lunge",
     "category": "legs",
     "difficulty": 2,
-    "contraindications": ["bad_knees"],
+    "contraindications": [
+      "bad_knees"
+    ],
     "met": 5.5,
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Stand tall. Step one foot back and lower your hips until both knees form 90-degree angles. Push through the front heel to return to standing. Alternate legs.",
-    "gif": "https://media.tenor.com/j5FJXkRT8pEAAAAC/reverse-lunge.gif"
+    "instructions": "Stand tall. Step one foot back and lower your hips until both knees form 90-degree angles. Push through the front heel to return to standing. Alternate legs."
   },
   {
     "id": "glute_bridge",
@@ -49,8 +52,7 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back with knees bent and feet flat on the floor. Squeeze your glutes and lift your hips toward the ceiling until your body forms a straight line from shoulders to knees. Lower slowly.",
-    "gif": "https://media.tenor.com/pTj4LmxUp5kAAAAC/glute-bridge.gif"
+    "instructions": "Lie on your back with knees bent and feet flat on the floor. Squeeze your glutes and lift your hips toward the ceiling until your body forms a straight line from shoulders to knees. Lower slowly."
   },
   {
     "id": "single_leg_glute_bridge",
@@ -62,8 +64,7 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back with one knee bent, the other leg extended. Press through the planted heel and lift hips up. Lower with control. Switch sides.",
-    "gif": "https://media.tenor.com/J2v4v5OgWnEAAAAC/single-leg-bridge.gif"
+    "instructions": "Lie on your back with one knee bent, the other leg extended. Press through the planted heel and lift hips up. Lower with control. Switch sides."
   },
   {
     "id": "calf_raise",
@@ -75,8 +76,7 @@
     "default_reps": 20,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand with feet hip-width apart. Rise up onto the balls of your feet as high as you can, then lower slowly. Hold a wall or chair for balance if needed.",
-    "gif": "https://media.tenor.com/E8t0tG2rqB4AAAAC/calf-raise.gif"
+    "instructions": "Stand with feet hip-width apart. Rise up onto the balls of your feet as high as you can, then lower slowly. Hold a wall or chair for balance if needed."
   },
   {
     "id": "standing_march",
@@ -88,21 +88,22 @@
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand tall and march in place, lifting each knee to hip height. Pump your arms for a full-body movement.",
-    "gif": "https://media.tenor.com/X7H1zY3Q6G0AAAAC/march-in-place.gif"
+    "instructions": "Stand tall and march in place, lifting each knee to hip height. Pump your arms for a full-body movement."
   },
   {
     "id": "push_up",
     "name": "Push-Up",
     "category": "upper",
     "difficulty": 2,
-    "contraindications": ["bad_wrists", "bad_shoulders"],
+    "contraindications": [
+      "bad_wrists",
+      "bad_shoulders"
+    ],
     "met": 5.5,
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Start in a plank position, hands shoulder-width apart. Lower your chest toward the floor while keeping your core tight. Press back to the starting position.",
-    "gif": "https://media.tenor.com/ytsH3cTGLvMAAAAC/push-up.gif"
+    "instructions": "Start in a plank position, hands shoulder-width apart. Lower your chest toward the floor while keeping your core tight. Press back to the starting position."
   },
   {
     "id": "wall_push_up",
@@ -114,34 +115,36 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand arm's length from a wall. Place hands on the wall at shoulder height. Bend your elbows to bring your chest toward the wall, then push back.",
-    "gif": "https://media.tenor.com/MfhE7pI9tGsAAAAC/wall-pushup.gif"
+    "instructions": "Stand arm's length from a wall. Place hands on the wall at shoulder height. Bend your elbows to bring your chest toward the wall, then push back."
   },
   {
     "id": "incline_push_up",
     "name": "Incline Push-Up",
     "category": "upper",
     "difficulty": 1,
-    "contraindications": ["bad_wrists"],
+    "contraindications": [
+      "bad_wrists"
+    ],
     "met": 4.5,
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Place your hands on a sturdy counter, table, or couch edge. Keep your body in a straight line. Lower your chest to the surface and press back up.",
-    "gif": "https://media.tenor.com/vr5W2oTcIBsAAAAC/incline-pushup.gif"
+    "instructions": "Place your hands on a sturdy counter, table, or couch edge. Keep your body in a straight line. Lower your chest to the surface and press back up."
   },
   {
     "id": "tricep_dip_chair",
     "name": "Chair Tricep Dip",
     "category": "upper",
     "difficulty": 2,
-    "contraindications": ["bad_wrists", "bad_shoulders"],
+    "contraindications": [
+      "bad_wrists",
+      "bad_shoulders"
+    ],
     "met": 4.5,
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Sit on the edge of a sturdy chair, hands gripping the edge beside your hips. Slide your butt off and lower yourself by bending your elbows to 90 degrees. Press back up.",
-    "gif": "https://media.tenor.com/Q5nXQh_YwDsAAAAC/tricep-dip.gif"
+    "instructions": "Sit on the edge of a sturdy chair, hands gripping the edge beside your hips. Slide your butt off and lower yourself by bending your elbows to 90 degrees. Press back up."
   },
   {
     "id": "door_row",
@@ -153,22 +156,22 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Stand facing a sturdy door frame. Grip both sides, lean back with arms extended. Pull your chest toward the frame, squeezing your shoulder blades. Return with control.",
-    "gif": "https://media.tenor.com/B1Dw5w8yY7sAAAAC/bodyweight-row.gif"
+    "instructions": "Stand facing a sturdy door frame. Grip both sides, lean back with arms extended. Pull your chest toward the frame, squeezing your shoulder blades. Return with control."
   },
   {
     "id": "superman_hold",
     "name": "Superman Hold",
     "category": "core",
     "difficulty": 1,
-    "contraindications": ["bad_back"],
+    "contraindications": [
+      "bad_back"
+    ],
     "met": 3.0,
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
     "unit": "seconds",
-    "instructions": "Lie face down, arms extended overhead. Lift your arms, chest, and legs off the floor. Hold at the top, then lower.",
-    "gif": "https://media.tenor.com/uH3d8mW2V5UAAAAC/superman.gif"
+    "instructions": "Lie face down, arms extended overhead. Lift your arms, chest, and legs off the floor. Hold at the top, then lower."
   },
   {
     "id": "bird_dog",
@@ -180,8 +183,7 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Start on all fours. Extend your right arm forward and left leg back at the same time, keeping your hips square and back flat. Return and switch sides.",
-    "gif": "https://media.tenor.com/p8T0Jg4tNwAAAAAC/bird-dog.gif"
+    "instructions": "Start on all fours. Extend your right arm forward and left leg back at the same time, keeping your hips square and back flat. Return and switch sides."
   },
   {
     "id": "dead_bug",
@@ -193,49 +195,51 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back with arms up and knees bent 90 degrees. Slowly lower your right arm and left leg toward the floor without arching your back. Return and switch sides.",
-    "gif": "https://media.tenor.com/mCjQH-a_Lt4AAAAC/dead-bug.gif"
+    "instructions": "Lie on your back with arms up and knees bent 90 degrees. Slowly lower your right arm and left leg toward the floor without arching your back. Return and switch sides."
   },
   {
     "id": "plank",
     "name": "Forearm Plank",
     "category": "core",
     "difficulty": 2,
-    "contraindications": ["bad_shoulders"],
+    "contraindications": [
+      "bad_shoulders"
+    ],
     "met": 4.0,
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 45,
     "unit": "seconds",
-    "instructions": "Rest on your forearms and toes with your body in a straight line from head to heels. Engage your core and glutes. Don't let your hips sag or pike up.",
-    "gif": "https://media.tenor.com/M5V8t3eOBKIAAAAC/plank.gif"
+    "instructions": "Rest on your forearms and toes with your body in a straight line from head to heels. Engage your core and glutes. Don't let your hips sag or pike up."
   },
   {
     "id": "side_plank",
     "name": "Side Plank (Forearm)",
     "category": "core",
     "difficulty": 2,
-    "contraindications": ["bad_shoulders"],
+    "contraindications": [
+      "bad_shoulders"
+    ],
     "met": 4.0,
     "default_reps": 20,
     "default_sets": 2,
     "rest_seconds": 30,
     "unit": "seconds",
-    "instructions": "Lie on your side. Prop yourself up on your forearm with your elbow under your shoulder. Lift your hips so your body is in a straight line. Hold. Switch sides.",
-    "gif": "https://media.tenor.com/P9QeM2xkXtkAAAAC/side-plank.gif"
+    "instructions": "Lie on your side. Prop yourself up on your forearm with your elbow under your shoulder. Lift your hips so your body is in a straight line. Hold. Switch sides."
   },
   {
     "id": "bicycle_crunch",
     "name": "Bicycle Crunch",
     "category": "core",
     "difficulty": 2,
-    "contraindications": ["bad_back"],
+    "contraindications": [
+      "bad_back"
+    ],
     "met": 4.5,
     "default_reps": 20,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back, hands behind your head. Bring your right elbow toward your left knee while extending your right leg. Alternate sides.",
-    "gif": "https://media.tenor.com/YvZk_SKI3bYAAAAC/bicycle-crunch.gif"
+    "instructions": "Lie on your back, hands behind your head. Bring your right elbow toward your left knee while extending your right leg. Alternate sides."
   },
   {
     "id": "heel_tap",
@@ -247,34 +251,37 @@
     "default_reps": 20,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Lie on your back, knees bent, feet flat. Crunch up slightly and reach your right hand to tap your right heel, then the left. Keep it controlled.",
-    "gif": "https://media.tenor.com/3gS1j5YOeJkAAAAC/heel-tap.gif"
+    "instructions": "Lie on your back, knees bent, feet flat. Crunch up slightly and reach your right hand to tap your right heel, then the left. Keep it controlled."
   },
   {
     "id": "mountain_climbers",
     "name": "Mountain Climbers",
     "category": "cardio",
     "difficulty": 3,
-    "contraindications": ["bad_wrists", "bad_knees", "bad_back"],
+    "contraindications": [
+      "bad_wrists",
+      "bad_knees",
+      "bad_back"
+    ],
     "met": 8.0,
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Start in a high plank. Drive one knee toward your chest, then quickly switch, as if running horizontally.",
-    "gif": "https://media.tenor.com/KQ2rkh3LhrMAAAAC/mountain-climbers.gif"
+    "instructions": "Start in a high plank. Drive one knee toward your chest, then quickly switch, as if running horizontally."
   },
   {
     "id": "jumping_jacks",
     "name": "Jumping Jacks",
     "category": "cardio",
     "difficulty": 2,
-    "contraindications": ["bad_knees"],
+    "contraindications": [
+      "bad_knees"
+    ],
     "met": 7.0,
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand tall. Jump while spreading your legs wide and raising your arms overhead. Jump back to start.",
-    "gif": "https://media.tenor.com/Xy9uO8KcvJMAAAAC/jumping-jacks.gif"
+    "instructions": "Stand tall. Jump while spreading your legs wide and raising your arms overhead. Jump back to start."
   },
   {
     "id": "step_touch",
@@ -286,46 +293,48 @@
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Step your right foot out to the side, then bring your left to meet it and tap. Reverse. Add arm swings for intensity.",
-    "gif": "https://media.tenor.com/Cw9h8p0k8ZsAAAAC/step-touch.gif"
+    "instructions": "Step your right foot out to the side, then bring your left to meet it and tap. Reverse. Add arm swings for intensity."
   },
   {
     "id": "high_knees",
     "name": "High Knees",
     "category": "cardio",
     "difficulty": 2,
-    "contraindications": ["bad_knees"],
+    "contraindications": [
+      "bad_knees"
+    ],
     "met": 8.0,
     "default_reps": 30,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Run in place, driving your knees up toward your chest as high and fast as you can.",
-    "gif": "https://media.tenor.com/nO-QUJ6dYBkAAAAC/high-knees.gif"
+    "instructions": "Run in place, driving your knees up toward your chest as high and fast as you can."
   },
   {
     "id": "arm_circles",
     "name": "Arm Circles",
     "category": "upper",
     "difficulty": 1,
-    "contraindications": ["bad_shoulders"],
+    "contraindications": [
+      "bad_shoulders"
+    ],
     "met": 2.5,
     "default_reps": 20,
     "default_sets": 2,
     "rest_seconds": 20,
-    "instructions": "Extend arms out to the sides at shoulder height. Make small controlled circles forward, then reverse.",
-    "gif": "https://media.tenor.com/V5nTbNPz0K0AAAAC/arm-circles.gif"
+    "instructions": "Extend arms out to the sides at shoulder height. Make small controlled circles forward, then reverse."
   },
   {
     "id": "good_morning",
     "name": "Bodyweight Good Morning",
     "category": "legs",
     "difficulty": 1,
-    "contraindications": ["bad_back"],
+    "contraindications": [
+      "bad_back"
+    ],
     "met": 3.0,
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand with feet hip-width, hands behind your head. Hinge at the hips, pushing your butt back while keeping your back flat. Return to standing by squeezing your glutes.",
-    "gif": "https://media.tenor.com/wD5vYjnU7n4AAAAC/good-morning-exercise.gif"
+    "instructions": "Stand with feet hip-width, hands behind your head. Hinge at the hips, pushing your butt back while keeping your back flat. Return to standing by squeezing your glutes."
   }
 ]

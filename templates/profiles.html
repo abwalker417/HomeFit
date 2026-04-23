@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Who's working out? — HomeFit{% endblock %}
+
+{% block content %}
+<section class="profiles-page">
+  <h1>Who's working out?</h1>
+  <p class="subtle">Pick a profile to continue.</p>
+
+  <div class="profile-grid">
+    {% for u in users %}
+    <form method="post" action="{{ url_for('profile_switch', user_id=u.id) }}" class="profile-form">
+      <button type="submit" class="profile-tile">
+        <span class="profile-emoji">{{ u.emoji }}</span>
+        <span class="profile-name">{{ u.name }}</span>
+        {% if u.has_pin %}
+          <span class="profile-lock">🔒</span>
+        {% endif %}
+      </button>
+    </form>
+    {% endfor %}
+
+    <a href="{{ url_for('profile_new') }}" class="profile-tile profile-add">
+      <span class="profile-emoji">➕</span>
+      <span class="profile-name">Add profile</span>
+    </a>
+  </div>
+</section>
+{% endblock %}

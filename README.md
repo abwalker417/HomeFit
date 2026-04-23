@@ -6,12 +6,16 @@ bodyweight-only — no special equipment required.
 
 ## What it does
 
+- **Multiple profiles** — share the app with a partner or household. Each
+  profile has its own plan, weight log, and workout history. Optional 4–8
+  digit PIN per profile.
 - Takes your current weight, goal weight, fitness level, and physical
   limitations (bad back / knees / shoulders / wrists) and builds a weekly
   workout plan.
 - Filters exercises that conflict with your limitations so you never see
   push-ups with wrist issues or jumping jacks with bad knees.
-- Tracks weight over time and completed workouts.
+- Tracks weight over time and completed workouts per user.
+- Exercise demos open as YouTube "proper form" searches in a new tab.
 - Installable on iPhone as a standalone app (Add to Home Screen).
 
 ## Requirements
@@ -112,7 +116,7 @@ root password, to avoid putting it on the command line).
 From the Proxmox host:
 
 ```bash
-pct exec <CTID> -- sudo -u homefit bash -c \
+pct exec <CTID> -- runuser -u homefit -- bash -c \
   'cd ~/workout-app && git pull && .venv/bin/pip install -r requirements.txt'
 pct exec <CTID> -- systemctl restart homefit
 ```
@@ -193,8 +197,7 @@ changes. Fields:
   "default_sets": 3,
   "rest_seconds": 45,
   "unit": "seconds",               // optional — omit for reps
-  "instructions": "...",
-  "gif": "https://..."
+  "instructions": "..."
 }
 ```
 
@@ -211,8 +214,47 @@ changes. Fields:
 
 No API keys, no outside calls — it runs fully offline after install.
 
+## Profiles & PIN
+
+The first launch sends you straight to "Create your profile". After that, the
+home screen shows a picker (Netflix-style) where anyone in the household taps
+their name to jump in.
+
+- A profile can optionally set a 4–8 digit PIN. PINs are hashed (werkzeug's
+  `generate_password_hash`) before storage — the raw PIN is never written to
+  the database.
+- Without a PIN, tapping a profile logs you straight in.
+- The header shows the current user's emoji + name; tap the ↺ button to
+  switch.
+- Tap your name in the header to rename, change emoji, set/clear your PIN, or
+  delete the profile.
+
+Profiles are not "auth" in a strong security sense — anyone with network
+access can try any profile. Use PINs as a friendly "don't poke my data" gate.
+If you need actual security, put the app behind a reverse proxy (Caddy,
+nginx, Tailscale) with real auth on top.
+
+## Upgrading from a single-user install
+
+The multi-user release bumps the SQLite schema from v1 to v2. On first run
+with the new code, HomeFit detects the old `profile` table (which had no
+`user_id` column) and drops it along with `weight_log` and `workout_log`, then
+recreates everything as v2. **Your weight log and workout history from the v1
+install will be lost** — the new release was built assuming a fresh start.
+
+To upgrade a running LXC install:
+
+```bash
+# On the Proxmox host:
+CTID=<your ct>
+pct exec "$CTID" -- runuser -u homefit -- bash -c \
+  'cd ~/workout-app && git pull && .venv/bin/pip install -r requirements.txt'
+pct exec "$CTID" -- systemctl restart homefit
+```
+
+Then open the app — it'll show the "Create your profile" screen.
+
 ## Privacy
 
-Single-user app with no auth. Only run it on a network you trust. If you expose
-it to the internet, put it behind a reverse proxy (Caddy, nginx, Tailscale) and
-add basic auth.
+Everything stays on the box you host this on. No outbound calls except the
+YouTube demo links you choose to tap.
