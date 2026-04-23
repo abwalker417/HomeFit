@@ -322,10 +322,10 @@ def profile_edit(user_id):
         try:
             database.update_user(user_id, name=name, emoji=emoji, pin=pin_param)
         except Exception as e:
-            return render_template("profile_edit.html", user=user, error=str(e))
+            return render_template("profile_edit.html", user=user, profile_data=database.get_profile(user_id) or {}, error=str(e))
         return redirect(url_for("index"))
 
-    return render_template("profile_edit.html", user=user)
+    return render_template("profile_edit.html", user=user, profile_data=database.get_profile(user_id) or {}, error=None)
 
 
 @app.route("/profiles/switch", methods=["POST", "GET"])
