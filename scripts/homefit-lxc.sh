@@ -90,12 +90,35 @@ fi
 REPO=$(ask_input "Git repo" "Git URL of your HomeFit repo:" "$APP_REPO")
 BRANCH=$(ask_input "Branch" "Git branch:" "$APP_BRANCH")
 PORT=$(ask_input "App port" "Port HomeFit will listen on:" "$APP_PORT")
+
+# -- security: LAN gate for profile creation ---------------------------------
+TRUSTED_NETS_DEFAULT="${HOMEFIT_TRUSTED_NETS:-192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,127.0.0.0/8}"
+TRUSTED_NETS=$(ask_input "Trusted LAN CIDRs" \
+  "Comma-separated CIDRs allowed to CREATE new profiles. Everyone else can still log in. Lock this to your home subnet (e.g. 192.168.68.0/24) when exposing HomeFit through a reverse proxy:" \
+  "$TRUSTED_NETS_DEFAULT")
+
+TRUSTED_PROXIES_DEFAULT="${HOMEFIT_TRUSTED_PROXIES:-}"
+TRUSTED_PROXIES=$(ask_input "Reverse-proxy IPs" \
+  "Comma-separated IPs/CIDRs of trusted reverse proxies (e.g. NGINX Proxy Manager). HomeFit will read X-Forwarded-For only from these. Leave blank if no proxy:" \
+  "$TRUSTED_PROXIES_DEFAULT")
+
+SESSION_SECURE_DEFAULT="0"
+if [[ -n "$TRUSTED_PROXIES" ]]; then SESSION_SECURE_DEFAULT="1"; fi
+if whiptail --title "Session cookie" \
+    --yesno "Mark the session cookie 'Secure' (HTTPS only)?\n\nTurn this ON when your reverse proxy serves HTTPS.\nTurn it OFF if you'll hit HomeFit over plain HTTP." \
+    12 70 \
+    $( [[ "$SESSION_SECURE_DEFAULT" == "1" ]] || echo --defaultno ); then
+  SESSION_SECURE="1"
+else
+  SESSION_SECURE="0"
+fi
+
 ROOT_PW=$(ask_password "Set the container's root password (needed only to enter it later):")
 [[ -n "$ROOT_PW" ]] || die "Root password cannot be empty."
 
 whiptail --title "Review" --yesno \
-  "Create CT $CTID ($CT_HOST) with:\n  $CPU vCPU, ${RAM}MB RAM, ${DISK}GB disk\n  bridge $BRIDGE, ip $IP\n  repo: $REPO ($BRANCH)\n  port: $PORT\n\nProceed?" \
-  16 70 || die "Aborted."
+  "Create CT $CTID ($CT_HOST) with:\n  $CPU vCPU, ${RAM}MB RAM, ${DISK}GB disk\n  bridge $BRIDGE, ip $IP\n  repo: $REPO ($BRANCH)\n  port: $PORT\n  trusted LAN: $TRUSTED_NETS\n  trusted proxies: ${TRUSTED_PROXIES:-(none)}\n  secure cookie: $SESSION_SECURE\n\nProceed?" \
+  18 78 || die "Aborted."
 
 # ---------- download template if needed ------------------------------------
 msg_info "Checking CT template"
@@ -200,8 +223,17 @@ runuser -u homefit -- bash -c '
 INNER
 msg_ok "Dependencies installed"
 
-msg_info "Writing systemd unit"
+msg_info "Writing environment file and systemd unit"
 pct exec "$CTID" -- bash -Eeuo pipefail -c "
+install -d -o root -g root -m 0755 /etc/homefit
+cat > /etc/homefit/homefit.env <<EOF
+HOMEFIT_DB=/home/homefit/workout-app/data/workout.db
+HOMEFIT_TRUSTED_NETS=${TRUSTED_NETS}
+HOMEFIT_TRUSTED_PROXIES=${TRUSTED_PROXIES}
+HOMEFIT_SESSION_SECURE=${SESSION_SECURE}
+EOF
+chmod 0644 /etc/homefit/homefit.env
+
 cat > /etc/systemd/system/${APP_NAME}.service <<EOF
 [Unit]
 Description=HomeFit
@@ -212,7 +244,7 @@ Type=simple
 User=homefit
 Group=homefit
 WorkingDirectory=/home/homefit/workout-app
-Environment=\"HOMEFIT_DB=/home/homefit/workout-app/data/workout.db\"
+EnvironmentFile=/etc/homefit/homefit.env
 ExecStart=/home/homefit/workout-app/.venv/bin/gunicorn --workers 2 --bind 0.0.0.0:${PORT} app:app
 Restart=on-failure
 RestartSec=3

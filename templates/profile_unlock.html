@@ -19,9 +19,12 @@
     <label class="field">
       <span>PIN</span>
       <input type="password" name="pin" inputmode="numeric"
-             pattern="[0-9]*" maxlength="8" autofocus required>
+             pattern="[0-9]*" maxlength="8"
+             {% if locked %}disabled{% else %}autofocus required{% endif %}>
     </label>
-    <button type="submit" class="btn btn-primary">Unlock</button>
+    <button type="submit" class="btn btn-primary" {% if locked %}disabled{% endif %}>
+      {% if locked %}Locked{% else %}Unlock{% endif %}
+    </button>
   </form>
 </section>
 {% endblock %}

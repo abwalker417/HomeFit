@@ -19,10 +19,18 @@
     </form>
     {% endfor %}
 
+    {% if can_create %}
     <a href="{{ url_for('profile_new') }}" class="profile-tile profile-add">
       <span class="profile-emoji">➕</span>
       <span class="profile-name">Add profile</span>
     </a>
+    {% endif %}
   </div>
+
+  {% if not can_create %}
+  <p class="subtle" style="text-align:center; margin-top: 8px;">
+    🔒 New profiles can only be added from the local network.
+  </p>
+  {% endif %}
 </section>
 {% endblock %}

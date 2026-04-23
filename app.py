@@ -6,7 +6,29 @@ Run locally:
 
 Each user has their own profile, plan, weight log, and workout history.
 Open the site -> pick a profile (or create one) -> train.
+
+Security env vars (all optional, suitable defaults for home-LAN use):
+    HOMEFIT_TRUSTED_NETS
+        Comma-separated CIDRs allowed to CREATE new profiles.
+        Default: 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,127.0.0.0/8
+        Lock this down when exposing HomeFit through a reverse proxy, e.g.
+        HOMEFIT_TRUSTED_NETS=192.168.68.0/24
+
+    HOMEFIT_TRUSTED_PROXIES
+        Comma-separated CIDRs whose X-Forwarded-For header we trust. Set this
+        to the IP of your reverse proxy (e.g. NGINX Proxy Manager). Leave
+        empty when there is no proxy in front.
+
+    HOMEFIT_SESSION_SECURE
+        Set to "1" to mark the session cookie Secure (HTTPS only). Use when
+        the proxy serves HTTPS.
 """
+
+import ipaddress
+import os
+from collections import defaultdict
+from threading import Lock
+from time import time
 
 from flask import (
     Flask, render_template, request, jsonify, redirect, url_for, session, abort,
@@ -21,11 +43,112 @@ app = Flask(__name__)
 database.init_db()
 app.secret_key = database.load_or_create_secret_key()
 
+# Harden the session cookie. SameSite=Lax is always safe; Secure only when
+# explicitly opted in (setting it on plain-HTTP breaks the cookie).
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("HOMEFIT_SESSION_SECURE", "0") == "1",
+)
+
 PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out",
     "manifest", "service_worker", "static",
 }
+
+
+# ---------- trusted-network gate -------------------------------------------
+
+def _parse_net_list(raw):
+    nets = []
+    if not raw:
+        return nets
+    for item in raw.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            nets.append(ipaddress.ip_network(item, strict=False))
+        except ValueError:
+            app.logger.warning("Ignoring invalid CIDR in trust list: %r", item)
+    return nets
+
+
+TRUSTED_NETS = _parse_net_list(os.environ.get(
+    "HOMEFIT_TRUSTED_NETS",
+    "192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,127.0.0.0/8",
+))
+TRUSTED_PROXIES = _parse_net_list(os.environ.get("HOMEFIT_TRUSTED_PROXIES", ""))
+
+
+def _ip_in(ip_str, networks):
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except (ValueError, TypeError):
+        return False
+    return any(ip in n for n in networks)
+
+
+def _client_ip():
+    """Return the client's real IP.
+
+    If the request arrived from a trusted proxy (per HOMEFIT_TRUSTED_PROXIES),
+    honour the left-most entry of X-Forwarded-For. Otherwise trust only the
+    direct peer address so an attacker can't spoof the header.
+    """
+    remote = request.remote_addr or ""
+    if TRUSTED_PROXIES and _ip_in(remote, TRUSTED_PROXIES):
+        fwd = request.headers.get("X-Forwarded-For", "")
+        if fwd:
+            return fwd.split(",")[0].strip()
+    return remote
+
+
+def on_trusted_network():
+    return _ip_in(_client_ip(), TRUSTED_NETS)
+
+
+# ---------- PIN rate-limit (in-memory, per-process) ------------------------
+
+PIN_FAIL_WINDOW_SEC = 15 * 60   # how long a failed attempt is remembered
+PIN_FAIL_THRESHOLD = 5          # fails within the window trigger lockout
+PIN_LOCKOUT_SEC = 10 * 60       # length of the lockout
+
+_pin_fails = defaultdict(list)
+_pin_fails_lock = Lock()
+
+
+def _prune_and_count(user_id, now):
+    fails = [t for t in _pin_fails[user_id] if now - t < PIN_FAIL_WINDOW_SEC]
+    _pin_fails[user_id] = fails
+    return fails
+
+
+def pin_lockout_remaining(user_id):
+    """Seconds left on a PIN lockout for this user, or 0 if not locked."""
+    now = time()
+    with _pin_fails_lock:
+        fails = _prune_and_count(user_id, now)
+        if len(fails) >= PIN_FAIL_THRESHOLD:
+            latest = max(fails)
+            return max(0, int(PIN_LOCKOUT_SEC - (now - latest)))
+        return 0
+
+
+def record_pin_fail(user_id):
+    with _pin_fails_lock:
+        _pin_fails[user_id].append(time())
+
+
+def clear_pin_fails(user_id):
+    with _pin_fails_lock:
+        _pin_fails.pop(user_id, None)
+
+
+def _lockout_message(seconds):
+    minutes = max(1, (seconds + 59) // 60)
+    return f"Too many wrong PINs. Try again in {minutes} minute{'s' if minutes != 1 else ''}."
 
 
 @app.before_request
@@ -62,14 +185,26 @@ def inject_user():
 @app.route("/profiles")
 def profiles():
     users = database.list_users()
+    can_create = on_trusted_network()
     if not users:
-        # First run — skip the picker and go straight to creating the first profile
-        return redirect(url_for("profile_new"))
-    return render_template("profiles.html", users=users)
+        # First run — nobody exists yet.
+        if can_create:
+            return redirect(url_for("profile_new"))
+        # Public access before setup — show a locked screen.
+        return render_template("blocked.html",
+                               reason="No profiles exist yet. Connect from the "
+                                      "local network to set up the first profile.",
+                               client_ip=_client_ip()), 403
+    return render_template("profiles.html", users=users, can_create=can_create)
 
 
 @app.route("/profiles/new", methods=["GET", "POST"])
 def profile_new():
+    if not on_trusted_network():
+        return render_template("blocked.html",
+                               reason="Creating profiles is only allowed from "
+                                      "the local network.",
+                               client_ip=_client_ip()), 403
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         emoji = request.form.get("emoji", "💪").strip() or "💪"
@@ -126,13 +261,25 @@ def profile_unlock(user_id):
         return redirect(url_for("index"))
 
     error = None
+    lockout = pin_lockout_remaining(user_id)
     if request.method == "POST":
-        pin = request.form.get("pin", "").strip()
-        if database.verify_pin(user_id, pin):
-            session["user_id"] = user_id
-            return redirect(url_for("index"))
-        error = "Wrong PIN."
-    return render_template("profile_unlock.html", user=user, error=error)
+        if lockout > 0:
+            error = _lockout_message(lockout)
+        else:
+            pin = request.form.get("pin", "").strip()
+            if database.verify_pin(user_id, pin):
+                clear_pin_fails(user_id)
+                session["user_id"] = user_id
+                return redirect(url_for("index"))
+            record_pin_fail(user_id)
+            lockout = pin_lockout_remaining(user_id)
+            error = _lockout_message(lockout) if lockout > 0 else "Wrong PIN."
+    elif lockout > 0:
+        error = _lockout_message(lockout)
+    return render_template(
+        "profile_unlock.html", user=user, error=error,
+        locked=lockout > 0,
+    )
 
 
 @app.route("/profiles/<int:user_id>/edit", methods=["GET", "POST"])

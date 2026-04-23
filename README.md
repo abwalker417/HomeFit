@@ -214,6 +214,100 @@ changes. Fields:
 
 No API keys, no outside calls — it runs fully offline after install.
 
+## Going public: NGINX Proxy Manager
+
+HomeFit has two security knobs designed specifically for exposing it through
+a reverse proxy like NGINX Proxy Manager (NPM), Caddy, or nginx directly:
+
+- **`HOMEFIT_TRUSTED_NETS`** — comma-separated CIDRs allowed to CREATE new
+  profiles. Anyone else sees a "🔒 Nothing to see here" page and the `+ Add
+  profile` tile is hidden. **Everybody can still sign in to an existing
+  profile**, so the app remains usable from the internet; only onboarding is
+  gated.
+  Default: `192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,127.0.0.0/8`
+  Typical override: `HOMEFIT_TRUSTED_NETS=192.168.68.0/24`
+
+- **`HOMEFIT_TRUSTED_PROXIES`** — comma-separated IPs/CIDRs of the reverse
+  proxies you trust. HomeFit reads the `X-Forwarded-For` header only when
+  the TCP connection came from one of these. If you skip this, HomeFit
+  treats every request as originating from its direct peer — which, behind
+  NPM, means every request looks like it came from NPM (an internal IP) and
+  the LAN gate effectively disappears. **Set this to the IP of your proxy.**
+
+- **`HOMEFIT_SESSION_SECURE`** — set to `1` when your proxy serves HTTPS so
+  the session cookie is marked `Secure`.
+
+### NPM proxy host config
+
+In NGINX Proxy Manager, add a new Proxy Host:
+
+- **Domain names**: e.g. `homefit.example.com`
+- **Scheme**: `http`
+- **Forward hostname / IP**: your LXC's IP (e.g. `192.168.68.15`)
+- **Forward port**: `5000`
+- **Websockets support**: off (HomeFit doesn't use them)
+- **Block common exploits**: on
+
+Under **Custom Nginx Configuration** (optional but recommended — NPM's
+defaults already forward most of these, but being explicit is clearer):
+
+```nginx
+proxy_set_header Host              $host;
+proxy_set_header X-Real-IP         $remote_addr;
+proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+```
+
+On the **SSL** tab, request a Let's Encrypt certificate and enable:
+
+- Force SSL
+- HTTP/2 Support
+- HSTS Enabled
+
+### Configure HomeFit for the proxy
+
+Find NPM's IP (the container or host running Proxy Manager). On the Proxmox
+host:
+
+```bash
+# If NPM is another LXC on the same node:
+pct list                                  # find its CTID
+pct exec <npm-ctid> -- hostname -I        # its IP
+```
+
+Then edit `/etc/homefit/homefit.env` inside the HomeFit LXC:
+
+```bash
+pct exec 115 -- bash -c 'cat > /etc/homefit/homefit.env <<EOF
+HOMEFIT_DB=/home/homefit/workout-app/data/workout.db
+HOMEFIT_TRUSTED_NETS=192.168.68.0/24
+HOMEFIT_TRUSTED_PROXIES=192.168.68.20
+HOMEFIT_SESSION_SECURE=1
+EOF'
+pct exec 115 -- systemctl restart homefit
+```
+
+(Substitute `192.168.68.20` with your actual NPM IP.)
+
+### What this gets you
+
+- **From outside (`73.x.x.x`)**: you can sign into your profile and use the
+  app normally. You cannot create new profiles — `/profiles/new` returns
+  403 with a locked-screen page.
+- **From your home Wi-Fi**: everything works, including `+ Add profile`.
+- **Brute-force attempts against a PIN**: 5 wrong PINs in 15 minutes locks
+  that profile for 10 minutes. The in-memory counter resets on service
+  restart.
+
+### What this does NOT protect against
+
+- Anyone on your home LAN can still create a profile without a PIN.
+- Someone who guesses a profile's PIN before hitting the rate limit gets
+  in. Use 6–8 digit PINs if you care.
+- The rate limit is in-memory and per-gunicorn-process. Two workers means an
+  attacker effectively gets 2× the budget. Acceptable for a family app; not
+  for a bank.
+
 ## Profiles & PIN
 
 The first launch sends you straight to "Create your profile". After that, the

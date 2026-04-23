@@ -459,3 +459,21 @@ fieldset.field { border: none; padding: 0; }
   color: #300;
 }
 
+/* ---------- Blocked page ---------- */
+.blocked-page { max-width: 480px; margin: 0 auto; }
+.blocked-hero {
+  text-align: center;
+  padding: 30px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+.blocked-emoji { font-size: 64px; line-height: 1; margin-bottom: 10px; }
+.blocked-hero h1 { margin: 6px 0; }
+.blocked-hero code {
+  background: var(--bg-2);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+

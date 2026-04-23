@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Locked — HomeFit{% endblock %}
+
+{% block content %}
+<section class="blocked-page">
+  <div class="blocked-hero">
+    <div class="blocked-emoji">🔒</div>
+    <h1>Nothing to see here</h1>
+    <p>{{ reason }}</p>
+    {% if client_ip %}
+      <p class="subtle">You are connecting from <code>{{ client_ip }}</code>.</p>
+    {% endif %}
+  </div>
+
+  {% if users is defined and users %}
+  <p class="subtle" style="text-align:center;">
+    If you already have a profile, you can still sign in:
+  </p>
+  <div style="text-align:center;">
+    <a class="btn btn-secondary" href="{{ url_for('profiles') }}">Go to profile picker</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
