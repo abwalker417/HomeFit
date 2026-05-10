@@ -34,7 +34,7 @@
             <div class="ex-title">
               <strong>{{ ex.name }}</strong>
               <span class="ex-meta">
-                Difficulty {{ ex.difficulty }}/3{% if ex.equipment is defined and ex.equipment != "bodyweight" %} · <span class="eq-tag">{{ ex.equipment|replace("_", " ") }}</span>{% endif %}
+                Difficulty {{ ex.difficulty }}/3{% if ex.equipment is defined and ex.equipment != "bodyweight" %} · <span class="eq-tag">{{ ex.equipment|replace("_", " ") }}</span>{% endif %}{% if ex.equipment is defined and ex.equipment != "bodyweight" %} · <span class="eq-tag">{{ ex.equipment|replace("_", " ") }}</span>{% endif %}
                 {% if not ex.allowed %}
                   · <span class="warn">skipped: {{ ex.blocked_by|join(', ')|replace('bad_', '') }}</span>
                 {% endif %}

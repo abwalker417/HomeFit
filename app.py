@@ -35,7 +35,7 @@ from flask import (
 )
 
 import database
-from workout_logic import generate_plan, all_exercises_with_status, VALID_LIMITATIONS, VALID_EQUIPMENT
+from workout_logic import generate_plan, all_exercises_with_status, VALID_LIMITATIONS, VALID_EQUIPMENT, VALID_EQUIPMENT
 
 app = Flask(__name__)
 

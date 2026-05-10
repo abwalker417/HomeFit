@@ -931,5 +931,350 @@
     "default_sets": 3,
     "rest_seconds": 60,
     "instructions": "Press the kettlebell overhead from the rack position with one arm."
+  },
+  {
+    "id": "rack_back_squat",
+    "name": "Back Squat (Rack)",
+    "category": "legs",
+    "difficulty": 2,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_back",
+      "bad_knees"
+    ],
+    "met": 6.0,
+    "default_reps": 8,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Set J-hooks just below shoulder height and safeties just below your lowest squat depth. Unrack the bar, brace your core, sit down and back, keep your chest up, then drive through mid-foot to stand."
+  },
+  {
+    "id": "rack_bench_press",
+    "name": "Bench Press (Rack)",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 5.5,
+    "default_reps": 8,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Set the bench centered under the bar with safeties slightly below chest level. Keep feet planted, upper back tight, wrists stacked, lower the bar with control to the lower chest, then press up without bouncing."
+  },
+  {
+    "id": "rack_overhead_press",
+    "name": "Overhead Press (Rack)",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 5.0,
+    "default_reps": 8,
+    "default_sets": 3,
+    "rest_seconds": 75,
+    "instructions": "Start with the bar at upper-chest height. Brace your core, squeeze glutes, press the bar straight overhead, and finish with biceps near ears. Lower under control."
+  },
+  {
+    "id": "rack_pullup",
+    "name": "Pull-Up (Power Cage)",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 8.0,
+    "default_reps": 6,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Hang from the pull-up bar with a controlled shoulder position. Pull elbows down and back until chin clears the bar, then lower to a dead hang without kipping."
+  },
+  {
+    "id": "rack_dip",
+    "name": "Dip (Dip Bars)",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 6.0,
+    "default_reps": 8,
+    "default_sets": 3,
+    "rest_seconds": 75,
+    "instructions": "Support yourself on the dip handles with shoulders down. Bend elbows to lower until upper arms are near parallel, then press back up while keeping the torso controlled."
+  },
+  {
+    "id": "lat_pulldown_cage",
+    "name": "Lat Pulldown",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 4.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Sit tall with chest up and slight lean back. Pull the bar toward your upper chest by driving elbows down. Avoid yanking or pulling behind the neck."
+  },
+  {
+    "id": "seated_cable_row_cage",
+    "name": "Seated Cable Row",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 4.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Sit tall with feet braced, keep your torso steady, and pull the handle to your lower ribs. Squeeze shoulder blades together, then return under control."
+  },
+  {
+    "id": "cable_chest_fly_cage",
+    "name": "Cable Chest Fly",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 3.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Set handles around shoulder height, step into a split stance, keep a slight bend in the elbows, and bring the handles together in an arc. Keep shoulders down and avoid turning it into a press."
+  },
+  {
+    "id": "face_pull_cage",
+    "name": "Face Pull",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 3.0,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Set the cable at face height. Pull the rope toward your forehead with elbows high, then separate the hands at the end to target rear delts and upper back."
+  },
+  {
+    "id": "tricep_pushdown_cage",
+    "name": "Tricep Pushdown",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_wrists"
+    ],
+    "met": 3.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Keep elbows tucked near your sides and press the handle or rope down until arms are straight. Avoid swinging shoulders or leaning over the weight."
+  },
+  {
+    "id": "cable_bicep_curl_cage",
+    "name": "Cable Bicep Curl",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_wrists"
+    ],
+    "met": 3.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Stand upright, keep elbows near your torso, curl the cable attachment toward your shoulders, and lower slowly without letting elbows drift forward."
+  },
+  {
+    "id": "landmine_press_cage",
+    "name": "Landmine Press",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 4.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Hold the bar sleeve at shoulder level, brace your core, and press up and slightly forward along the landmine arc. Lower back with control."
+  },
+  {
+    "id": "landmine_row_cage",
+    "name": "Landmine Row",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 5.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Hinge at the hips with a flat back and row the loaded bar toward your torso. Keep the core braced and avoid jerking the weight."
+  },
+  {
+    "id": "landmine_squat_cage",
+    "name": "Landmine Squat",
+    "category": "legs",
+    "difficulty": 1,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_knees",
+      "bad_back"
+    ],
+    "met": 5.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Hold the end of the bar close to your chest, keep elbows tucked, squat down under control, then drive up while staying upright."
+  },
+  {
+    "id": "landmine_rotation_cage",
+    "name": "Landmine Rotation",
+    "category": "core",
+    "difficulty": 2,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 4.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Hold the bar end with both hands and rotate from one hip to the other in a controlled arc. Keep ribs down and move through the torso, not just the arms."
+  },
+  {
+    "id": "bench_supported_row",
+    "name": "Bench-Supported Row",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "bench_or_chair",
+    "contraindications": [
+      "bad_wrists"
+    ],
+    "met": 4.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Place one knee and hand on the bench or chair for support, keep your back flat, and row the weight toward your hip. Lower slowly."
+  },
+  {
+    "id": "bulgarian_split_squat_bench",
+    "name": "Bulgarian Split Squat",
+    "category": "legs",
+    "difficulty": 2,
+    "equipment": "bench_or_chair",
+    "contraindications": [
+      "bad_knees"
+    ],
+    "met": 5.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Place your back foot on the bench or chair, keep most of your weight in the front leg, lower straight down, then drive through the front foot to stand."
+  },
+  {
+    "id": "bench_step_up",
+    "name": "Step-Up",
+    "category": "legs",
+    "difficulty": 1,
+    "equipment": "bench_or_chair",
+    "contraindications": [
+      "bad_knees"
+    ],
+    "met": 5.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Place one foot firmly on the bench or chair, lean slightly forward, and drive through that foot to stand up. Lower under control."
+  },
+  {
+    "id": "hip_thrust_bench",
+    "name": "Hip Thrust (Bench)",
+    "category": "legs",
+    "difficulty": 1,
+    "equipment": "bench_or_chair",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 4.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Rest your upper back on the bench, keep feet flat, tuck the chin slightly, and drive hips up until knees, hips, and shoulders form a line. Squeeze glutes at the top."
+  },
+  {
+    "id": "bench_incline_press",
+    "name": "Incline Press (Bench)",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "bench_or_chair",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 4.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Set the bench to an incline if adjustable. Press weights from upper chest level while keeping shoulder blades pulled back and wrists stacked over elbows."
+  },
+  {
+    "id": "seated_press_chair",
+    "name": "Seated Press (Chair)",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "bench_or_chair",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 4.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Sit tall on a sturdy chair, brace your core, and press weights overhead without arching your lower back."
+  },
+  {
+    "id": "cable_fly_bench_combo",
+    "name": "Cable Fly (Bench Supported)",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 4.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Set a bench inside the cage if your setup allows it, keep chest lifted, and perform cable flys with a small elbow bend and slow return."
   }
 ]

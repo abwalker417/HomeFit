@@ -21,7 +21,7 @@ LIMITATION_MAP = {
 }
 
 VALID_LIMITATIONS = set(LIMITATION_MAP.keys())
-VALID_EQUIPMENT = {"bodyweight", "dumbbells", "resistance_bands", "pull_up_bar", "kettlebell"}
+VALID_EQUIPMENT = {"bodyweight", "dumbbells", "resistance_bands", "pull_up_bar", "kettlebell", "power_cage_cable", "bench_or_chair"}
 
 
 def load_exercises() -> list[dict[str, Any]]:
