@@ -12,7 +12,8 @@
     "default_sets": 3,
     "rest_seconds": 45,
     "instructions": "Stand with feet shoulder-width apart. Lower your hips back and down as if sitting in a chair, keeping your chest up and knees tracking over your toes. Drive through your heels to stand back up.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "wall_sit",
@@ -28,7 +29,8 @@
     "rest_seconds": 45,
     "unit": "seconds",
     "instructions": "Lean back against a wall and slide down until your knees are at a 90-degree angle. Hold the position with your back flat against the wall.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "reverse_lunge",
@@ -43,7 +45,8 @@
     "default_sets": 3,
     "rest_seconds": 45,
     "instructions": "Stand tall. Step one foot back and lower your hips until both knees form 90-degree angles. Push through the front heel to return to standing. Alternate legs.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "glute_bridge",
@@ -56,7 +59,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Lie on your back with knees bent and feet flat on the floor. Squeeze your glutes and lift your hips toward the ceiling until your body forms a straight line from shoulders to knees. Lower slowly.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "single_leg_glute_bridge",
@@ -69,7 +73,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Lie on your back with one knee bent, the other leg extended. Press through the planted heel and lift hips up. Lower with control. Switch sides.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "calf_raise",
@@ -82,7 +87,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Stand with feet hip-width apart. Rise up onto the balls of your feet as high as you can, then lower slowly. Hold a wall or chair for balance if needed.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "standing_march",
@@ -95,7 +101,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Stand tall and march in place, lifting each knee to hip height. Pump your arms for a full-body movement.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "push_up",
@@ -111,7 +118,8 @@
     "default_sets": 3,
     "rest_seconds": 45,
     "instructions": "Start in a plank position, hands shoulder-width apart. Lower your chest toward the floor while keeping your core tight. Press back to the starting position.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "wall_push_up",
@@ -124,7 +132,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Stand arm's length from a wall. Place hands on the wall at shoulder height. Bend your elbows to bring your chest toward the wall, then push back.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "incline_push_up",
@@ -139,7 +148,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Place your hands on a sturdy counter, table, or couch edge. Keep your body in a straight line. Lower your chest to the surface and press back up.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "tricep_dip_chair",
@@ -155,7 +165,8 @@
     "default_sets": 3,
     "rest_seconds": 45,
     "instructions": "Sit on the edge of a sturdy chair, hands gripping the edge beside your hips. Slide your butt off and lower yourself by bending your elbows to 90 degrees. Press back up.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "door_row",
@@ -168,7 +179,8 @@
     "default_sets": 3,
     "rest_seconds": 45,
     "instructions": "Stand facing a sturdy door frame. Grip both sides, lean back with arms extended. Pull your chest toward the frame, squeezing your shoulder blades. Return with control.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "superman_hold",
@@ -184,7 +196,8 @@
     "rest_seconds": 30,
     "unit": "seconds",
     "instructions": "Lie face down, arms extended overhead. Lift your arms, chest, and legs off the floor. Hold at the top, then lower.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "bird_dog",
@@ -197,7 +210,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Start on all fours. Extend your right arm forward and left leg back at the same time, keeping your hips square and back flat. Return and switch sides.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "dead_bug",
@@ -210,7 +224,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Lie on your back with arms up and knees bent 90 degrees. Slowly lower your right arm and left leg toward the floor without arching your back. Return and switch sides.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "plank",
@@ -226,7 +241,8 @@
     "rest_seconds": 45,
     "unit": "seconds",
     "instructions": "Rest on your forearms and toes with your body in a straight line from head to heels. Engage your core and glutes. Don't let your hips sag or pike up.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "side_plank",
@@ -242,7 +258,8 @@
     "rest_seconds": 30,
     "unit": "seconds",
     "instructions": "Lie on your side. Prop yourself up on your forearm with your elbow under your shoulder. Lift your hips so your body is in a straight line. Hold. Switch sides.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "bicycle_crunch",
@@ -257,7 +274,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Lie on your back, hands behind your head. Bring your right elbow toward your left knee while extending your right leg. Alternate sides.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "heel_tap",
@@ -270,7 +288,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Lie on your back, knees bent, feet flat. Crunch up slightly and reach your right hand to tap your right heel, then the left. Keep it controlled.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "mountain_climbers",
@@ -287,7 +306,8 @@
     "default_sets": 3,
     "rest_seconds": 45,
     "instructions": "Start in a high plank. Drive one knee toward your chest, then quickly switch, as if running horizontally.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "jumping_jacks",
@@ -302,7 +322,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Stand tall. Jump while spreading your legs wide and raising your arms overhead. Jump back to start.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "step_touch",
@@ -315,7 +336,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Step your right foot out to the side, then bring your left to meet it and tap. Reverse. Add arm swings for intensity.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "high_knees",
@@ -330,7 +352,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Run in place, driving your knees up toward your chest as high and fast as you can.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "arm_circles",
@@ -345,7 +368,8 @@
     "default_sets": 2,
     "rest_seconds": 20,
     "instructions": "Extend arms out to the sides at shoulder height. Make small controlled circles forward, then reverse.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "good_morning",
@@ -360,7 +384,8 @@
     "default_sets": 3,
     "rest_seconds": 30,
     "instructions": "Stand with feet hip-width, hands behind your head. Hinge at the hips, pushing your butt back while keeping your back flat. Return to standing by squeezing your glutes.",
-    "equipment": "bodyweight"
+    "equipment": "bodyweight",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_bicep_curl",
@@ -375,7 +400,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Stand holding a dumbbell in each hand at your sides, palms facing forward. Curl both dumbbells up toward your shoulders, squeezing your biceps at the top. Lower slowly."
+    "instructions": "Stand holding a dumbbell in each hand at your sides, palms facing forward. Curl both dumbbells up toward your shoulders, squeezing your biceps at the top. Lower slowly.",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_hammer_curl",
@@ -390,7 +416,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Hold dumbbells at your sides with palms facing your body. Curl up keeping the neutral grip throughout."
+    "instructions": "Hold dumbbells at your sides with palms facing your body. Curl up keeping the neutral grip throughout.",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_shoulder_press",
@@ -406,7 +433,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Press dumbbells from shoulder height to overhead, then lower with control."
+    "instructions": "Press dumbbells from shoulder height to overhead, then lower with control.",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_lateral_raise",
@@ -421,7 +449,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Raise dumbbells out to your sides until shoulder height, then lower slowly."
+    "instructions": "Raise dumbbells out to your sides until shoulder height, then lower slowly.",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_bent_over_row",
@@ -437,7 +466,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Hinge at the hips and row dumbbells toward your torso, squeezing shoulder blades together."
+    "instructions": "Hinge at the hips and row dumbbells toward your torso, squeezing shoulder blades together.",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_goblet_squat",
@@ -452,7 +482,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Hold one dumbbell at chest height and squat with an upright torso."
+    "instructions": "Hold one dumbbell at chest height and squat with an upright torso.",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_romanian_deadlift",
@@ -467,7 +498,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Hinge at the hips with dumbbells close to your legs, then drive hips forward to stand."
+    "instructions": "Hinge at the hips with dumbbells close to your legs, then drive hips forward to stand.",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_dumbbell_lunge",
@@ -482,7 +514,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Hold dumbbells at your sides and perform alternating forward lunges."
+    "instructions": "Hold dumbbells at your sides and perform alternating forward lunges.",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_overhead_tricep",
@@ -498,7 +531,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Hold one dumbbell overhead with both hands, lower behind head, then extend."
+    "instructions": "Hold one dumbbell overhead with both hands, lower behind head, then extend.",
+    "muscle_group": "full_body"
   },
   {
     "id": "db_chest_fly",
@@ -514,7 +548,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Lie on the floor and open arms wide with dumbbells, then squeeze them back together."
+    "instructions": "Lie on the floor and open arms wide with dumbbells, then squeeze them back together.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_pull_apart",
@@ -529,7 +564,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Pull the band apart at chest height, squeezing shoulder blades together."
+    "instructions": "Pull the band apart at chest height, squeezing shoulder blades together.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_bicep_curl",
@@ -544,7 +580,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Stand on the band and curl the handles toward your shoulders."
+    "instructions": "Stand on the band and curl the handles toward your shoulders.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_squat",
@@ -559,7 +596,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Stand on the band with handles at shoulders and squat with control."
+    "instructions": "Stand on the band with handles at shoulders and squat with control.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_glute_kickback",
@@ -572,7 +610,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Kick one leg straight back against band resistance, squeezing the glute."
+    "instructions": "Kick one leg straight back against band resistance, squeezing the glute.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_row",
@@ -588,7 +627,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Loop the band around your feet and row handles toward your torso."
+    "instructions": "Loop the band around your feet and row handles toward your torso.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_lat_pulldown",
@@ -603,7 +643,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Anchor the band overhead and pull down toward your chest."
+    "instructions": "Anchor the band overhead and pull down toward your chest.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_hip_thrust",
@@ -616,7 +657,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Drive hips up against band resistance, squeezing glutes at the top."
+    "instructions": "Drive hips up against band resistance, squeezing glutes at the top.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_face_pull",
@@ -631,7 +673,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Anchor the band at face height and pull toward your face with elbows high."
+    "instructions": "Anchor the band at face height and pull toward your face with elbows high.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_pallof_press",
@@ -646,7 +689,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Press the band straight out from your chest and resist rotation."
+    "instructions": "Press the band straight out from your chest and resist rotation.",
+    "muscle_group": "full_body"
   },
   {
     "id": "band_clamshell",
@@ -659,7 +703,8 @@
     "default_reps": 20,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Open the top knee against a loop band while keeping feet together."
+    "instructions": "Open the top knee against a loop band while keeping feet together.",
+    "muscle_group": "full_body"
   },
   {
     "id": "pullup",
@@ -675,7 +720,8 @@
     "default_reps": 5,
     "default_sets": 3,
     "rest_seconds": 90,
-    "instructions": "Pull your chin above the bar from a dead hang, then lower with control."
+    "instructions": "Pull your chin above the bar from a dead hang, then lower with control.",
+    "muscle_group": "full_body"
   },
   {
     "id": "chinup",
@@ -691,7 +737,8 @@
     "default_reps": 6,
     "default_sets": 3,
     "rest_seconds": 90,
-    "instructions": "Use an underhand grip and pull your chin above the bar."
+    "instructions": "Use an underhand grip and pull your chin above the bar.",
+    "muscle_group": "full_body"
   },
   {
     "id": "dead_hang",
@@ -708,7 +755,8 @@
     "default_sets": 3,
     "rest_seconds": 60,
     "unit": "seconds",
-    "instructions": "Hang from the bar with straight arms and a braced torso."
+    "instructions": "Hang from the bar with straight arms and a braced torso.",
+    "muscle_group": "full_body"
   },
   {
     "id": "bar_hang_knee_raise",
@@ -724,7 +772,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Raise knees toward your chest while hanging from the bar."
+    "instructions": "Raise knees toward your chest while hanging from the bar.",
+    "muscle_group": "full_body"
   },
   {
     "id": "scapular_pull",
@@ -739,7 +788,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "From a dead hang, pull shoulder blades down and back without bending elbows."
+    "instructions": "From a dead hang, pull shoulder blades down and back without bending elbows.",
+    "muscle_group": "full_body"
   },
   {
     "id": "bar_inverted_row",
@@ -755,7 +805,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Pull your chest to a low bar while keeping your body straight."
+    "instructions": "Pull your chest to a low bar while keeping your body straight.",
+    "muscle_group": "full_body"
   },
   {
     "id": "typewriter_pullup",
@@ -771,7 +822,8 @@
     "default_reps": 4,
     "default_sets": 3,
     "rest_seconds": 120,
-    "instructions": "Pull up, then shift side to side at the top before lowering."
+    "instructions": "Pull up, then shift side to side at the top before lowering.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_swing",
@@ -787,7 +839,8 @@
     "default_reps": 20,
     "default_sets": 4,
     "rest_seconds": 60,
-    "instructions": "Hinge and swing the kettlebell to chest height using hip drive."
+    "instructions": "Hinge and swing the kettlebell to chest height using hip drive.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_goblet_squat",
@@ -802,7 +855,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Hold the kettlebell at your chest and squat with an upright torso."
+    "instructions": "Hold the kettlebell at your chest and squat with an upright torso.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_clean_press",
@@ -819,7 +873,8 @@
     "default_reps": 6,
     "default_sets": 3,
     "rest_seconds": 90,
-    "instructions": "Clean the kettlebell to rack position and press it overhead."
+    "instructions": "Clean the kettlebell to rack position and press it overhead.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_turkish_getup",
@@ -835,7 +890,8 @@
     "default_reps": 3,
     "default_sets": 3,
     "rest_seconds": 90,
-    "instructions": "Move from lying to standing with the kettlebell locked out overhead."
+    "instructions": "Move from lying to standing with the kettlebell locked out overhead.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_deadlift",
@@ -850,7 +906,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Hinge to pick up the kettlebell and stand tall, then lower with control."
+    "instructions": "Hinge to pick up the kettlebell and stand tall, then lower with control.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_row",
@@ -866,7 +923,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Row the kettlebell to your hip with one arm while bracing your torso."
+    "instructions": "Row the kettlebell to your hip with one arm while bracing your torso.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_halo",
@@ -882,7 +940,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 30,
-    "instructions": "Circle the kettlebell around your head while keeping your core tight."
+    "instructions": "Circle the kettlebell around your head while keeping your core tight.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_suitcase_carry",
@@ -898,7 +957,8 @@
     "default_sets": 3,
     "rest_seconds": 60,
     "unit": "seconds",
-    "instructions": "Carry a kettlebell at your side while resisting leaning toward it."
+    "instructions": "Carry a kettlebell at your side while resisting leaning toward it.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_figure_eight",
@@ -914,7 +974,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Pass the kettlebell in a figure-eight pattern between your legs."
+    "instructions": "Pass the kettlebell in a figure-eight pattern between your legs.",
+    "muscle_group": "full_body"
   },
   {
     "id": "kb_press",
@@ -930,7 +991,8 @@
     "default_reps": 8,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Press the kettlebell overhead from the rack position with one arm."
+    "instructions": "Press the kettlebell overhead from the rack position with one arm.",
+    "muscle_group": "full_body"
   },
   {
     "id": "rack_back_squat",
@@ -946,7 +1008,8 @@
     "default_reps": 8,
     "default_sets": 3,
     "rest_seconds": 90,
-    "instructions": "Set J-hooks just below shoulder height and safeties just below your lowest squat depth. Unrack the bar, brace your core, sit down and back, keep your chest up, then drive through mid-foot to stand."
+    "instructions": "Set J-hooks just below shoulder height and safeties just below your lowest squat depth. Unrack the bar, brace your core, sit down and back, keep your chest up, then drive through mid-foot to stand.",
+    "muscle_group": "full_body"
   },
   {
     "id": "rack_bench_press",
@@ -962,7 +1025,8 @@
     "default_reps": 8,
     "default_sets": 3,
     "rest_seconds": 90,
-    "instructions": "Set the bench centered under the bar with safeties slightly below chest level. Keep feet planted, upper back tight, wrists stacked, lower the bar with control to the lower chest, then press up without bouncing."
+    "instructions": "Set the bench centered under the bar with safeties slightly below chest level. Keep feet planted, upper back tight, wrists stacked, lower the bar with control to the lower chest, then press up without bouncing.",
+    "muscle_group": "full_body"
   },
   {
     "id": "rack_overhead_press",
@@ -979,7 +1043,8 @@
     "default_reps": 8,
     "default_sets": 3,
     "rest_seconds": 75,
-    "instructions": "Start with the bar at upper-chest height. Brace your core, squeeze glutes, press the bar straight overhead, and finish with biceps near ears. Lower under control."
+    "instructions": "Start with the bar at upper-chest height. Brace your core, squeeze glutes, press the bar straight overhead, and finish with biceps near ears. Lower under control.",
+    "muscle_group": "full_body"
   },
   {
     "id": "rack_pullup",
@@ -995,7 +1060,8 @@
     "default_reps": 6,
     "default_sets": 3,
     "rest_seconds": 90,
-    "instructions": "Hang from the pull-up bar with a controlled shoulder position. Pull elbows down and back until chin clears the bar, then lower to a dead hang without kipping."
+    "instructions": "Hang from the pull-up bar with a controlled shoulder position. Pull elbows down and back until chin clears the bar, then lower to a dead hang without kipping.",
+    "muscle_group": "full_body"
   },
   {
     "id": "rack_dip",
@@ -1011,7 +1077,8 @@
     "default_reps": 8,
     "default_sets": 3,
     "rest_seconds": 75,
-    "instructions": "Support yourself on the dip handles with shoulders down. Bend elbows to lower until upper arms are near parallel, then press back up while keeping the torso controlled."
+    "instructions": "Support yourself on the dip handles with shoulders down. Bend elbows to lower until upper arms are near parallel, then press back up while keeping the torso controlled.",
+    "muscle_group": "full_body"
   },
   {
     "id": "lat_pulldown_cage",
@@ -1027,7 +1094,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Sit tall with chest up and slight lean back. Pull the bar toward your upper chest by driving elbows down. Avoid yanking or pulling behind the neck."
+    "instructions": "Sit tall with chest up and slight lean back. Pull the bar toward your upper chest by driving elbows down. Avoid yanking or pulling behind the neck.",
+    "muscle_group": "full_body"
   },
   {
     "id": "seated_cable_row_cage",
@@ -1043,7 +1111,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Sit tall with feet braced, keep your torso steady, and pull the handle to your lower ribs. Squeeze shoulder blades together, then return under control."
+    "instructions": "Sit tall with feet braced, keep your torso steady, and pull the handle to your lower ribs. Squeeze shoulder blades together, then return under control.",
+    "muscle_group": "full_body"
   },
   {
     "id": "cable_chest_fly_cage",
@@ -1058,7 +1127,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Set handles around shoulder height, step into a split stance, keep a slight bend in the elbows, and bring the handles together in an arc. Keep shoulders down and avoid turning it into a press."
+    "instructions": "Set handles around shoulder height, step into a split stance, keep a slight bend in the elbows, and bring the handles together in an arc. Keep shoulders down and avoid turning it into a press.",
+    "muscle_group": "full_body"
   },
   {
     "id": "face_pull_cage",
@@ -1073,7 +1143,8 @@
     "default_reps": 15,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Set the cable at face height. Pull the rope toward your forehead with elbows high, then separate the hands at the end to target rear delts and upper back."
+    "instructions": "Set the cable at face height. Pull the rope toward your forehead with elbows high, then separate the hands at the end to target rear delts and upper back.",
+    "muscle_group": "full_body"
   },
   {
     "id": "tricep_pushdown_cage",
@@ -1088,7 +1159,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Keep elbows tucked near your sides and press the handle or rope down until arms are straight. Avoid swinging shoulders or leaning over the weight."
+    "instructions": "Keep elbows tucked near your sides and press the handle or rope down until arms are straight. Avoid swinging shoulders or leaning over the weight.",
+    "muscle_group": "full_body"
   },
   {
     "id": "cable_bicep_curl_cage",
@@ -1103,7 +1175,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Stand upright, keep elbows near your torso, curl the cable attachment toward your shoulders, and lower slowly without letting elbows drift forward."
+    "instructions": "Stand upright, keep elbows near your torso, curl the cable attachment toward your shoulders, and lower slowly without letting elbows drift forward.",
+    "muscle_group": "full_body"
   },
   {
     "id": "landmine_press_cage",
@@ -1120,7 +1193,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Hold the bar sleeve at shoulder level, brace your core, and press up and slightly forward along the landmine arc. Lower back with control."
+    "instructions": "Hold the bar sleeve at shoulder level, brace your core, and press up and slightly forward along the landmine arc. Lower back with control.",
+    "muscle_group": "full_body"
   },
   {
     "id": "landmine_row_cage",
@@ -1136,7 +1210,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Hinge at the hips with a flat back and row the loaded bar toward your torso. Keep the core braced and avoid jerking the weight."
+    "instructions": "Hinge at the hips with a flat back and row the loaded bar toward your torso. Keep the core braced and avoid jerking the weight.",
+    "muscle_group": "full_body"
   },
   {
     "id": "landmine_squat_cage",
@@ -1152,7 +1227,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Hold the end of the bar close to your chest, keep elbows tucked, squat down under control, then drive up while staying upright."
+    "instructions": "Hold the end of the bar close to your chest, keep elbows tucked, squat down under control, then drive up while staying upright.",
+    "muscle_group": "full_body"
   },
   {
     "id": "landmine_rotation_cage",
@@ -1167,7 +1243,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Hold the bar end with both hands and rotate from one hip to the other in a controlled arc. Keep ribs down and move through the torso, not just the arms."
+    "instructions": "Hold the bar end with both hands and rotate from one hip to the other in a controlled arc. Keep ribs down and move through the torso, not just the arms.",
+    "muscle_group": "full_body"
   },
   {
     "id": "bench_supported_row",
@@ -1182,7 +1259,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Place one knee and hand on the bench or chair for support, keep your back flat, and row the weight toward your hip. Lower slowly."
+    "instructions": "Place one knee and hand on the bench or chair for support, keep your back flat, and row the weight toward your hip. Lower slowly.",
+    "muscle_group": "full_body"
   },
   {
     "id": "bulgarian_split_squat_bench",
@@ -1197,7 +1275,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Place your back foot on the bench or chair, keep most of your weight in the front leg, lower straight down, then drive through the front foot to stand."
+    "instructions": "Place your back foot on the bench or chair, keep most of your weight in the front leg, lower straight down, then drive through the front foot to stand.",
+    "muscle_group": "full_body"
   },
   {
     "id": "bench_step_up",
@@ -1212,7 +1291,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Place one foot firmly on the bench or chair, lean slightly forward, and drive through that foot to stand up. Lower under control."
+    "instructions": "Place one foot firmly on the bench or chair, lean slightly forward, and drive through that foot to stand up. Lower under control.",
+    "muscle_group": "full_body"
   },
   {
     "id": "hip_thrust_bench",
@@ -1227,7 +1307,8 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Rest your upper back on the bench, keep feet flat, tuck the chin slightly, and drive hips up until knees, hips, and shoulders form a line. Squeeze glutes at the top."
+    "instructions": "Rest your upper back on the bench, keep feet flat, tuck the chin slightly, and drive hips up until knees, hips, and shoulders form a line. Squeeze glutes at the top.",
+    "muscle_group": "full_body"
   },
   {
     "id": "bench_incline_press",
@@ -1243,7 +1324,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Set the bench to an incline if adjustable. Press weights from upper chest level while keeping shoulder blades pulled back and wrists stacked over elbows."
+    "instructions": "Set the bench to an incline if adjustable. Press weights from upper chest level while keeping shoulder blades pulled back and wrists stacked over elbows.",
+    "muscle_group": "full_body"
   },
   {
     "id": "seated_press_chair",
@@ -1260,7 +1342,8 @@
     "default_reps": 10,
     "default_sets": 3,
     "rest_seconds": 60,
-    "instructions": "Sit tall on a sturdy chair, brace your core, and press weights overhead without arching your lower back."
+    "instructions": "Sit tall on a sturdy chair, brace your core, and press weights overhead without arching your lower back.",
+    "muscle_group": "full_body"
   },
   {
     "id": "cable_fly_bench_combo",
@@ -1275,6 +1358,39 @@
     "default_reps": 12,
     "default_sets": 3,
     "rest_seconds": 45,
-    "instructions": "Set a bench inside the cage if your setup allows it, keep chest lifted, and perform cable flys with a small elbow bend and slow return."
+    "instructions": "Set a bench inside the cage if your setup allows it, keep chest lifted, and perform cable flys with a small elbow bend and slow return.",
+    "muscle_group": "full_body"
+  },
+  {
+    "id": "ab_machine_crunch",
+    "name": "Ab Machine Crunch",
+    "category": "core",
+    "muscle_group": "core",
+    "difficulty": 1,
+    "equipment": "ab_machine",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 3.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Set the pads according to the manual, brace your core, and pull your ribs toward your hips in a smooth arc. Avoid jerking and keep tension in the abs throughout."
+  },
+  {
+    "id": "ab_machine_oblique",
+    "name": "Ab Machine Oblique Crunch",
+    "category": "core",
+    "muscle_group": "core",
+    "difficulty": 2,
+    "equipment": "ab_machine",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 3.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "From the starting position, rotate slightly toward one side as you crunch, focusing on shortening the side of your waist. Move slowly and stay within a comfortable range."
   }
 ]

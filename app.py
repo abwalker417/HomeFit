@@ -35,7 +35,7 @@ from flask import (
 )
 
 import database
-from workout_logic import generate_plan, all_exercises_with_status, VALID_LIMITATIONS, VALID_EQUIPMENT, VALID_EQUIPMENT
+from workout_logic import generate_plan, all_exercises_with_status, VALID_LIMITATIONS, VALID_EQUIPMENT, VALID_MUSCLE_GROUPS, pick_random_muscle_group, VALID_EQUIPMENT, VALID_MUSCLE_GROUPS, pick_random_muscle_group
 
 app = Flask(__name__)
 
@@ -365,7 +365,7 @@ def onboarding():
         limitations = request.form.getlist("limitations")
         limitations = [l for l in limitations if l in VALID_LIMITATIONS]
         equipment = request.form.getlist("equipment")
-        equipment = [e for e in equipment if e in VALID_EQUIPMENT]
+        equipment = [e for e in equipment if e in VALID_EQUIPMENT, VALID_MUSCLE_GROUPS, pick_random_muscle_group]
         days_per_week = int(request.form.get("days_per_week", 4))
         database.save_profile(
             uid, current_weight, goal_weight, fitness_level,

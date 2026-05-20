@@ -217,3 +217,17 @@ def all_exercises_with_status(limitations: list[str], equipment: list[str] | Non
         ex_copy["blocked_by_equipment"] = needed if needed not in owned else None
         annotated.append(ex_copy)
     return annotated
+
+
+VALID_MUSCLE_GROUPS = ["arms", "chest", "back", "legs", "shoulders", "core", "full_body"]
+
+
+import random as _random
+
+def pick_random_muscle_group(owned_equipment=None):
+    """Pick a random muscle group for daily focus.
+    Currently just chooses from VALID_MUSCLE_GROUPS except full_body;
+    filtering by equipment can be added later if needed.
+    """
+    pool = [m for m in VALID_MUSCLE_GROUPS if m != "full_body"]
+    return _random.choice(pool) if pool else "full_body"
