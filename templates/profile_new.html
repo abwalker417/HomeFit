@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}New profile — HomeFit{% endblock %}
+
+{% block content %}
+<section>
+  <a class="back-link" href="{{ url_for('profiles') }}">← Back</a>
+  <h1>New profile</h1>
+  <p class="subtle">Add yourself so your plan and progress stay separate.</p>
+
+  {% if error %}
+    <div class="card warn-card">⚠ {{ error }}</div>
+  {% endif %}
+
+  <form method="post" class="form card">
+    <label class="field">
+      <span>Name</span>
+      <input type="text" name="name" maxlength="40" required
+             value="{{ name or '' }}" autocomplete="off">
+    </label>
+
+    <label class="field">
+      <span>Emoji (optional)</span>
+      <input type="text" name="emoji" maxlength="4"
+             value="{{ emoji or '💪' }}"
+             placeholder="💪">
+    </label>
+
+    <label class="field">
+      <span>PIN (optional, 4–8 digits)</span>
+      <input type="password" name="pin" inputmode="numeric"
+             pattern="[0-9]*" maxlength="8" autocomplete="new-password"
+             placeholder="Leave blank for no PIN">
+    </label>
+
+    <label class="field">
+      <span>Confirm PIN</span>
+      <input type="password" name="pin_confirm" inputmode="numeric"
+             pattern="[0-9]*" maxlength="8" autocomplete="new-password">
+    </label>
+
+    <button type="submit" class="btn btn-primary">Create profile</button>
+  </form>
+</section>
+{% endblock %}

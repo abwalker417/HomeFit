@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Progress — HomeFit{% endblock %}
+
+{% block content %}
+<section>
+  <h1>Progress</h1>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <strong>{{ stats.total_workouts }}</strong>
+      <span>Workouts</span>
+    </div>
+    <div class="stat-card">
+      <strong>{{ stats.last_7_days }}</strong>
+      <span>Last 7 days</span>
+    </div>
+    <div class="stat-card">
+      <strong>{{ stats.total_minutes }}</strong>
+      <span>Minutes</span>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Weight over time</h2>
+  {% if weights %}
+    <canvas id="weight-chart" width="600" height="220"
+            data-points='{{ weights | tojson }}'></canvas>
+  {% else %}
+    <p class="subtle">No weight logged yet. Log one from the home screen.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2 class="section-title">Workout history</h2>
+  {% if history %}
+    <ul class="history-list">
+      {% for w in history %}
+      <li class="history-item">
+        <div>
+          <strong>{{ w.day_name }}</strong>
+          <span class="subtle">Day {{ w.day_number }} · {{ w.exercises|length }} exercises</span>
+        </div>
+        <div class="history-meta">
+          <span>{{ (w.duration_seconds or 0) // 60 }} min</span>
+          <span class="subtle">{{ w.completed_at[:10] }}</span>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="subtle">No workouts logged yet. Finish one to see it here.</p>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>drawWeightChart();</script>
+{% endblock %}
