@@ -2,9 +2,24 @@
 
 import os
 import random
+import subprocess
 from collections import defaultdict
 from threading import Lock
 from time import time
+
+
+def _git_version():
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+    except Exception:
+        return "0"
+
+
+STATIC_VERSION = _git_version()
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 
@@ -191,6 +206,7 @@ def inject_globals():
         "current_user": user,
         "can_manage_profiles": can_manage_profiles(),
         "is_owner": session.get("is_owner") is True,
+        "static_version": STATIC_VERSION,
     }
 
 
