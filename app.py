@@ -263,13 +263,26 @@ def profile_edit(user_id):
     profile = database.get_profile(user_id)
     error = None
     if request.method == "POST":
+        action = request.form.get("action", "save")
         try:
+            if action == "delete":
+                database.delete_user(user_id)
+                if session.get("user_id") == user_id:
+                    session.pop("user_id", None)
+                    session.pop("is_owner", None)
+                return redirect(url_for("profiles"))
+
+            pin_action = request.form.get("pin_action", "keep")
+            new_pin = request.form.get("pin", "").strip() if pin_action == "set" else None
             database.update_user(
                 user_id,
                 request.form.get("name", user["name"]),
                 request.form.get("emoji", user["emoji"]),
-                request.form.get("pin", "").strip() or None,
+                new_pin,
             )
+            if pin_action == "clear":
+                database.clear_pin(user_id)
+
             payload = _parse_profile_form(request.form)
             database.save_profile(user_id=user_id, **payload)
             return redirect(url_for("index"))

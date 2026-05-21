@@ -198,6 +198,11 @@ def delete_user(user_id: int):
         conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
 
+def clear_pin(user_id: int):
+    with get_connection() as conn:
+        conn.execute("UPDATE users SET pin_hash = NULL WHERE id = ?", (user_id,))
+
+
 def verify_pin(user_id: int, pin: str) -> bool:
     with get_connection() as conn:
         row = conn.execute("SELECT pin_hash FROM users WHERE id = ?", (user_id,)).fetchone()

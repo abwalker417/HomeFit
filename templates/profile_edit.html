@@ -2,101 +2,80 @@
 {% block title %}Edit profile — HomeFit{% endblock %}
 
 {% block content %}
-<section>
+<section class="card">
   <a class="back-link" href="{{ url_for('index') }}">← Back</a>
   <h1>Edit profile</h1>
 
   {% if error %}
-    <div class="card warn-card">⚠ {{ error }}</div>
+    <p class="warn">⚠ {{ error }}</p>
   {% endif %}
 
-  <form method="post" class="form card" id="edit-form">
-    <input type="hidden" name="action" value="save" id="edit-action">
+  <form method="post" class="form">
+    <input type="hidden" name="action" value="save">
 
-    <label class="field">
-      <span>Name</span>
-      <input type="text" name="name" maxlength="40" required
-             value="{{ user.name }}" autocomplete="off">
-    </label>
+    <div class="grid-two">
+      <label>Name
+        <input type="text" name="name" maxlength="40" required
+               value="{{ user.name }}" autocomplete="off">
+      </label>
+      <label>Emoji
+        <input type="text" name="emoji" maxlength="4"
+               value="{{ user.emoji }}">
+      </label>
+    </div>
 
-    <label class="field">
-      <span>Emoji</span>
-      <input type="text" name="emoji" maxlength="4"
-             value="{{ user.emoji }}">
-    </label>
-
-    <fieldset class="field">
+    <fieldset>
       <legend>PIN</legend>
-      <label class="checkbox">
-        <input type="radio" name="pin_action" value="keep" checked>
-        <span>{% if user.has_pin %}Keep current PIN{% else %}No PIN (unchanged){% endif %}</span>
-      </label>
-      <label class="checkbox">
-        <input type="radio" name="pin_action" value="set">
-        <span>Set / change PIN</span>
-      </label>
-      {% if user.has_pin %}
-      <label class="checkbox">
-        <input type="radio" name="pin_action" value="clear">
-        <span>Remove PIN</span>
-      </label>
-      {% endif %}
+      <div class="pill-grid">
+        <label class="pill-option">
+          <input type="radio" name="pin_action" value="keep" checked>
+          <span>{% if user.has_pin %}Keep current PIN{% else %}No PIN{% endif %}</span>
+        </label>
+        <label class="pill-option">
+          <input type="radio" name="pin_action" value="set">
+          <span>Set / change PIN</span>
+        </label>
+        {% if user.has_pin %}
+        <label class="pill-option">
+          <input type="radio" name="pin_action" value="clear">
+          <span>Remove PIN</span>
+        </label>
+        {% endif %}
+      </div>
+      <div id="pin-field" style="display:none; margin-top:12px;">
+        <label>New PIN (4–8 digits)
+          <input type="password" name="pin" inputmode="numeric"
+                 pattern="[0-9]{4,8}" maxlength="8" autocomplete="new-password">
+        </label>
+      </div>
     </fieldset>
 
-    <label class="field">
-      <span>New PIN (4–8 digits)</span>
-      <input type="password" name="pin" inputmode="numeric"
-             pattern="[0-9]*" maxlength="8" autocomplete="new-password">
-    </label>
-    <label class="field">
-      <span>Confirm new PIN</span>
-      <input type="password" name="pin_confirm" inputmode="numeric"
-             pattern="[0-9]*" maxlength="8" autocomplete="new-password">
-    </label>
-
-    <fieldset class="field">
-      <legend>Equipment you own</legend>
-      {% set eq = profile_data.equipment or [] %}
-      <label class="checkbox">
-        <input type="checkbox" name="equipment" value="dumbbells" {% if "dumbbells" in eq %}checked{% endif %}>
-        🏋️ Dumbbells
-      </label>
-      <label class="checkbox">
-        <input type="checkbox" name="equipment" value="resistance_bands" {% if "resistance_bands" in eq %}checked{% endif %}>
-        🔁 Resistance bands
-      </label>
-      <label class="checkbox">
-        <input type="checkbox" name="equipment" value="pull_up_bar" {% if "pull_up_bar" in eq %}checked{% endif %}>
-        🚪 Pull-up bar
-      </label>
-      <label class="checkbox">
-        <input type="checkbox" name="equipment" value="kettlebell" {% if "kettlebell" in eq %}checked{% endif %}>
-        🫙 Kettlebell
-      </label>
-    </fieldset>
-
-    <fieldset class="field">
-      <legend>Equipment you own</legend>
-      {% set eq = profile_data.equipment or [] %}
-      <label class="checkbox"><input type="checkbox" name="equipment" value="dumbbells" {% if "dumbbells" in eq %}checked{% endif %}> 🏋️ Dumbbells</label>
-      <label class="checkbox"><input type="checkbox" name="equipment" value="resistance_bands" {% if "resistance_bands" in eq %}checked{% endif %}> 🔁 Resistance bands</label>
-      <label class="checkbox"><input type="checkbox" name="equipment" value="pull_up_bar" {% if "pull_up_bar" in eq %}checked{% endif %}> 🚪 Pull-up bar</label>
-      <label class="checkbox"><input type="checkbox" name="equipment" value="kettlebell" {% if "kettlebell" in eq %}checked{% endif %}> 🫙 Kettlebell</label>
-      <label class="checkbox"><input type="checkbox" name="equipment" value="power_cage_cable" {% if "power_cage_cable" in eq %}checked{% endif %}> 🟥 Power cage with cable system</label>
-      <label class="checkbox"><input type="checkbox" name="equipment" value="barbell" {% if "barbell" in eq %}checked{% endif %}> 🏋️ Barbell</label>
-      <label class="checkbox"><input type="checkbox" name="equipment" value="ab_machine" {% if "ab_machine" in eq %}checked{% endif %}> 💠 Ab machine</label>
-      <label class="checkbox"><input type="checkbox" name="equipment" value="bench_or_chair" {% if "bench_or_chair" in eq %}checked{% endif %}> 🪑 Weight bench</label>
-    </fieldset>
+    {% include "profile_form_fields.html" %}
 
     <button type="submit" class="btn btn-primary">Save changes</button>
   </form>
+</section>
 
-  <form method="post" class="form card danger-card"
-        onsubmit="return confirm('Delete this profile and all its data? This cannot be undone.');">
+{% if can_manage_profiles %}
+<section class="card danger-card">
+  <h2>Danger zone</h2>
+  <p class="subtle">Permanently deletes this profile and all workout history.</p>
+  <form method="post"
+        onsubmit="return confirm('Delete {{ user.name }}\'s profile? This cannot be undone.');">
     <input type="hidden" name="action" value="delete">
-    <p><strong>Danger zone</strong></p>
-    <p class="subtle">Delete this profile along with its plan, weight log, and workout history.</p>
     <button type="submit" class="btn btn-danger">Delete profile</button>
   </form>
 </section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('input[name="pin_action"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('pin-field').style.display =
+        r.value === 'set' ? 'block' : 'none';
+    });
+  });
+</script>
 {% endblock %}

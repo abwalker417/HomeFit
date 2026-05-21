@@ -277,6 +277,14 @@ fieldset.field { border: none; padding: 0; }
   color: var(--text);
   border: 1px solid var(--border);
 }
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.danger-card {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
+}
 
 .inline-form { display: flex; gap: 8px; }
 .inline-form input { flex: 1; min-width: 0; }
