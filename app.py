@@ -151,7 +151,7 @@ _LABEL_TO_MUSCLES = {
 
 
 def _dashboard_plan(profile):
-    labels = ["Upper body", "Lower body", "Core & cardio", "Recovery"]
+    labels = ["Upper body", "Lower body", "Core & Cardio", "Recovery"]
     days = []
     for index in range(max(1, int(profile.get("days_per_week", 4)))):
         label = labels[index % len(labels)]
