@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Start workout — HomeFit{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">Today's workout</p>
+  <h1>Choose your focus</h1>
+  <p class="subtle">Pick one area to train, or let HomeFit decide for you.</p>
+</section>
+
+<section class="card">
+  <form method="post" class="form">
+    <input type="hidden" name="focus_mode" value="pick">
+
+    <fieldset>
+      <legend>Workout focus</legend>
+      <div class="pill-grid">
+        {% for item in valid_muscles %}
+        {% if item != 'full body' %}
+        <label class="pill-option">
+          <input type="radio" name="focus" value="{{ item }}" {% if loop.first %}checked{% endif %}>
+          <span>{{ item.title() }}</span>
+        </label>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary">Build my workout</button>
+  </form>
+</section>
+
+<section class="card">
+  <div class="section-row">
+    <div>
+      <h2>Not sure what to do?</h2>
+      <p class="subtle">HomeFit will pick a random focus based on your profile and available equipment.</p>
+    </div>
+    <form method="post">
+      <input type="hidden" name="focus_mode" value="surprise">
+      <button type="submit" class="btn btn-secondary">Pick one for me</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,41 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="HomeFit">
-  <meta name="theme-color" content="#0f172a">
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
-  <link rel="apple-touch-icon" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}HomeFit{% endblock %}</title>
+  <link rel="manifest" href="{{ url_for('manifest') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <header class="app-header">
-    <a href="{{ url_for('index') }}" class="brand">
+    <a class="brand" href="{{ url_for('index') }}">
       <span class="brand-mark">HF</span>
-      <span class="brand-name">HomeFit</span>
+      <span>
+        <span class="brand-name">HomeFit</span>
+        {% if current_user %}<span class="subtitle">{{ current_user.emoji }} {{ current_user.name }}</span>{% endif %}
+      </span>
     </a>
+    {% if current_user %}
     <nav class="top-nav">
-      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('index') }}">Dashboard</a>
       <a href="{{ url_for('exercises') }}">Exercises</a>
       <a href="{{ url_for('progress') }}">Progress</a>
+      <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
+      <a href="{{ url_for('profile_switch_out') }}">Switch</a>
     </nav>
-    {% if current_user %}
-    <div class="user-chip-wrap">
-      <a href="{{ url_for('profile_edit', user_id=current_user.id) }}" class="user-chip"
-         title="Edit profile">
-        <span class="user-chip-emoji">{{ current_user.emoji }}</span>
-        <span class="user-chip-name">{{ current_user.name }}</span>
-      </a>
-      <form method="post" action="{{ url_for('profile_switch_out') }}" class="switch-form">
-        <button type="submit" class="switch-btn" title="Switch profile">↺</button>
-      </form>
-    </div>
     {% endif %}
   </header>
 
@@ -43,28 +32,6 @@
     {% block content %}{% endblock %}
   </main>
 
-  {% if current_user %}
-  <nav class="bottom-nav">
-    <a href="{{ url_for('index') }}" class="nav-item">
-      <span class="nav-icon">🏠</span>
-      <span class="nav-label">Home</span>
-    </a>
-    <a href="{{ url_for('exercises') }}" class="nav-item">
-      <span class="nav-icon">💪</span>
-      <span class="nav-label">Exercises</span>
-    </a>
-    <a href="{{ url_for('progress') }}" class="nav-item">
-      <span class="nav-icon">📈</span>
-      <span class="nav-label">Progress</span>
-    </a>
-    <a href="{{ url_for('onboarding') }}" class="nav-item">
-      <span class="nav-icon">⚙️</span>
-      <span class="nav-label">Settings</span>
-    </a>
-  </nav>
-  {% endif %}
-
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-  {% block scripts %}{% endblock %}
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </body>
 </html>

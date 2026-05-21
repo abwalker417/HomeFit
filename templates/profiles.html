@@ -27,9 +27,9 @@
     {% endif %}
   </div>
 
-  {% if not can_create %}
+  {% if owner_exists and not can_create %}
   <p class="subtle" style="text-align:center; margin-top: 8px;">
-    🔒 New profiles can only be added from the local network.
+    🔒 Only the owner can add new profiles.
   </p>
   {% endif %}
 </section>

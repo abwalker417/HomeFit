@@ -1,50 +1,26 @@
-"""Flask entrypoint for HomeFit (multi-user v2).
+"""Flask entrypoint for HomeFit (multi-user v2)."""
 
-Run locally:
-    pip install -r requirements.txt
-    python app.py
-
-Each user has their own profile, plan, weight log, and workout history.
-Open the site -> pick a profile (or create one) -> train.
-
-Security env vars (all optional, suitable defaults for home-LAN use):
-    HOMEFIT_TRUSTED_NETS
-        Comma-separated CIDRs allowed to CREATE new profiles.
-        Default: 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,127.0.0.0/8
-        Lock this down when exposing HomeFit through a reverse proxy, e.g.
-        HOMEFIT_TRUSTED_NETS=192.168.68.0/24
-
-    HOMEFIT_TRUSTED_PROXIES
-        Comma-separated CIDRs whose X-Forwarded-For header we trust. Set this
-        to the IP of your reverse proxy (e.g. NGINX Proxy Manager). Leave
-        empty when there is no proxy in front.
-
-    HOMEFIT_SESSION_SECURE
-        Set to "1" to mark the session cookie Secure (HTTPS only). Use when
-        the proxy serves HTTPS.
-"""
-
-import ipaddress
 import os
+import random
 from collections import defaultdict
 from threading import Lock
 from time import time
 
-from flask import (
-    Flask, render_template, request, jsonify, redirect, url_for, session, abort,
-)
+from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 
 import database
-from workout_logic import generate_plan, all_exercises_with_status, VALID_LIMITATIONS, VALID_EQUIPMENT, VALID_MUSCLE_GROUPS, pick_random_muscle_group, VALID_EQUIPMENT, VALID_MUSCLE_GROUPS, pick_random_muscle_group
+from workout_logic import (
+    VALID_EQUIPMENT,
+    VALID_LIMITATIONS,
+    VALID_MUSCLE_GROUPS,
+    all_exercises_with_status,
+    build_workout,
+    pick_random_muscle_group,
+)
 
 app = Flask(__name__)
-
-# Init DB and persistent session secret
 database.init_db()
 app.secret_key = database.load_or_create_secret_key()
-
-# Harden the session cookie. SameSite=Lax is always safe; Secure only when
-# explicitly opted in (setting it on plain-HTTP breaks the cookie).
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
@@ -53,70 +29,70 @@ app.config.update(
 
 PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
-    "profile_switch_out",
-    "manifest", "service_worker", "static",
+    "profile_switch_out", "manifest", "service_worker", "static",
 }
 
-
-# ---------- trusted-network gate -------------------------------------------
-
-def _parse_net_list(raw):
-    nets = []
-    if not raw:
-        return nets
-    for item in raw.split(","):
-        item = item.strip()
-        if not item:
-            continue
-        try:
-            nets.append(ipaddress.ip_network(item, strict=False))
-        except ValueError:
-            app.logger.warning("Ignoring invalid CIDR in trust list: %r", item)
-    return nets
-
-
-TRUSTED_NETS = _parse_net_list(os.environ.get(
-    "HOMEFIT_TRUSTED_NETS",
-    "192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,127.0.0.0/8",
-))
-TRUSTED_PROXIES = _parse_net_list(os.environ.get("HOMEFIT_TRUSTED_PROXIES", ""))
-
-
-def _ip_in(ip_str, networks):
-    try:
-        ip = ipaddress.ip_address(ip_str)
-    except (ValueError, TypeError):
-        return False
-    return any(ip in n for n in networks)
-
-
-def _client_ip():
-    """Return the client's real IP.
-
-    If the request arrived from a trusted proxy (per HOMEFIT_TRUSTED_PROXIES),
-    honour the left-most entry of X-Forwarded-For. Otherwise trust only the
-    direct peer address so an attacker can't spoof the header.
-    """
-    remote = request.remote_addr or ""
-    if TRUSTED_PROXIES and _ip_in(remote, TRUSTED_PROXIES):
-        fwd = request.headers.get("X-Forwarded-For", "")
-        if fwd:
-            return fwd.split(",")[0].strip()
-    return remote
-
-
-def on_trusted_network():
-    return _ip_in(_client_ip(), TRUSTED_NETS)
-
-
-# ---------- PIN rate-limit (in-memory, per-process) ------------------------
-
-PIN_FAIL_WINDOW_SEC = 15 * 60   # how long a failed attempt is remembered
-PIN_FAIL_THRESHOLD = 5          # fails within the window trigger lockout
-PIN_LOCKOUT_SEC = 10 * 60       # length of the lockout
-
+PIN_FAIL_WINDOW_SEC = 15 * 60
+PIN_FAIL_THRESHOLD = 5
+PIN_LOCKOUT_SEC = 10 * 60
 _pin_fails = defaultdict(list)
 _pin_fails_lock = Lock()
+
+
+def _clean_list(values):
+    seen = set()
+    clean = []
+    for value in values or []:
+        item = (value or "").strip()
+        if not item:
+            continue
+        key = item.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        clean.append(item)
+    return clean
+
+
+def _parse_custom_equipment(raw):
+    items = []
+    seen = set()
+    for piece in (raw or "").replace("\n", ",").split(","):
+        item = piece.strip()
+        if not item:
+            continue
+        key = item.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        items.append(item)
+    return items
+
+
+def _parse_profile_form(form):
+    custom_equipment = _parse_custom_equipment(form.get("custom_equipment", ""))
+    return {
+        "current_weight": float(form.get("current_weight", 0) or 0),
+        "goal_weight": float(form.get("goal_weight", 0) or 0),
+        "fitness_level": (form.get("fitness_level") or "beginner").lower(),
+        "limitations": _clean_list(form.getlist("limitations")),
+        "equipment": _clean_list(form.getlist("equipment")),
+        "custom_equipment": custom_equipment,
+        "target_muscles": [],
+        "preferred_equipment": [],
+        "days_per_week": int(form.get("days_per_week", 4) or 4),
+    }
+
+
+def owner_exists():
+    users = database.list_users()
+    return len(users) > 0
+
+
+def can_manage_profiles():
+    if not owner_exists():
+        return True
+    return session.get("is_owner") is True
 
 
 def _prune_and_count(user_id, now):
@@ -126,7 +102,6 @@ def _prune_and_count(user_id, now):
 
 
 def pin_lockout_remaining(user_id):
-    """Seconds left on a PIN lockout for this user, or 0 if not locked."""
     now = time()
     with _pin_fails_lock:
         fails = _prune_and_count(user_id, now)
@@ -151,93 +126,96 @@ def _lockout_message(seconds):
     return f"Too many wrong PINs. Try again in {minutes} minute{'s' if minutes != 1 else ''}."
 
 
+def _dashboard_plan(profile):
+    labels = ["Upper body", "Lower body", "Core & cardio", "Recovery"]
+    days = []
+    for index in range(max(1, int(profile.get("days_per_week", 4)))):
+        label = labels[index % len(labels)]
+        days.append({
+            "day_number": index + 1,
+            "name": label,
+            "summary": "Built fresh when you start today's workout.",
+        })
+    goal = "maintain"
+    if profile.get("goal_weight", 0) < profile.get("current_weight", 0) - 5:
+        goal = "lose"
+    elif profile.get("goal_weight", 0) > profile.get("current_weight", 0) + 5:
+        goal = "gain"
+    return {
+        "goal": goal,
+        "summary": "Choose a focus each day and HomeFit will build a matching workout from your available equipment.",
+        "days": days,
+    }
+
+
+def _progress_stats(user_id):
+    stats = database.get_stats(user_id)
+    stats.setdefault("total_workouts", 0)
+    stats.setdefault("last_workout", None)
+    stats.setdefault("weight_change", None)
+    stats["last_7_days"] = stats.get("total_workouts", 0)
+    history = database.get_workout_history(user_id)
+    stats["total_minutes"] = sum((item.get("duration_seconds") or 0) // 60 for item in history)
+    return stats
+
+
+def _weight_chart_points(history):
+    return [
+        {"date": item["logged_at"][:10], "weight": item["weight"]}
+        for item in history
+    ]
+
+
 @app.before_request
 def require_profile():
-    """Redirect to profile picker if no user is selected in the session."""
-    if request.endpoint in PUBLIC_ENDPOINTS:
+    if request.endpoint in PUBLIC_ENDPOINTS or request.path.startswith("/static/"):
         return None
-    if request.path.startswith("/static/"):
-        return None
-
-    uid = session.get("user_id")
-    if not uid:
-        return redirect(url_for("profiles"))
-    # Defence: if the user was deleted, kick them back to the picker
-    if not database.get_user(uid):
-        session.pop("user_id", None)
+    if "user_id" not in session:
         return redirect(url_for("profiles"))
     return None
 
 
-def current_user():
-    uid = session.get("user_id")
-    return database.get_user(uid) if uid else None
-
-
 @app.context_processor
-def inject_user():
-    """Make current_user available in every template."""
-    return {"current_user": current_user()}
+def inject_globals():
+    uid = session.get("user_id")
+    user = database.get_user(uid) if uid else None
+    return {
+        "current_user": user,
+        "can_manage_profiles": can_manage_profiles(),
+        "is_owner": session.get("is_owner") is True,
+    }
 
-
-# ---------- profile picker / auth ------------------------------------------
 
 @app.route("/profiles")
 def profiles():
     users = database.list_users()
-    can_create = on_trusted_network()
-    if not users:
-        # First run â€” nobody exists yet.
-        if can_create:
-            return redirect(url_for("profile_new"))
-        # Public access before setup â€” show a locked screen.
-        return render_template("blocked.html",
-                               reason="No profiles exist yet. Connect from the "
-                                      "local network to set up the first profile.",
-                               client_ip=_client_ip()), 403
-    return render_template("profiles.html", users=users, can_create=can_create)
+    return render_template(
+        "profiles.html",
+        users=users,
+        can_create=can_manage_profiles(),
+        owner_exists=owner_exists(),
+    )
 
 
 @app.route("/profiles/new", methods=["GET", "POST"])
 def profile_new():
-    if not on_trusted_network():
-        return render_template("blocked.html",
-                               reason="Creating profiles is only allowed from "
-                                      "the local network.",
-                               client_ip=_client_ip()), 403
+    if not can_manage_profiles():
+        return render_template("blocked.html"), 403
+    error = None
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        emoji = request.form.get("emoji", "ðŸ’ª").strip() or "ðŸ’ª"
-        pin = request.form.get("pin", "").strip()
-        pin_confirm = request.form.get("pin_confirm", "").strip()
-
-        error = None
-        if not name:
-            error = "Please enter a name."
-        elif pin and not pin.isdigit():
-            error = "PIN must be digits only."
-        elif pin and not (4 <= len(pin) <= 8):
-            error = "PIN must be 4â€“8 digits."
-        elif pin != pin_confirm:
-            error = "PINs don't match."
-
-        if error:
-            return render_template(
-                "profile_new.html",
-                error=error, name=name, emoji=emoji,
-            )
-
         try:
-            uid = database.create_user(name, emoji=emoji, pin=pin or None)
-        except ValueError as e:
-            return render_template("profile_new.html", error=str(e),
-                                   name=name, emoji=emoji)
-
-        # Auto-sign-in after creation
-        session["user_id"] = uid
-        return redirect(url_for("onboarding"))
-
-    return render_template("profile_new.html")
+            user_id = database.create_user(
+                request.form.get("name", ""),
+                request.form.get("emoji", "💪"),
+                request.form.get("pin", "").strip() or None,
+            )
+            if not owner_exists() or len(database.list_users()) == 1:
+                session["is_owner"] = True
+            session["user_id"] = user_id
+            return redirect(url_for("onboarding"))
+        except Exception as exc:
+            error = str(exc)
+    return render_template("profile_new.html", error=error)
 
 
 @app.route("/profiles/<int:user_id>/switch", methods=["POST"])
@@ -245,7 +223,7 @@ def profile_switch(user_id):
     user = database.get_user(user_id)
     if not user:
         abort(404)
-    if user["has_pin"]:
+    if user.get("has_pin"):
         return redirect(url_for("profile_unlock", user_id=user_id))
     session["user_id"] = user_id
     return redirect(url_for("index"))
@@ -256,86 +234,63 @@ def profile_unlock(user_id):
     user = database.get_user(user_id)
     if not user:
         abort(404)
-    if not user["has_pin"]:
-        session["user_id"] = user_id
-        return redirect(url_for("index"))
-
     error = None
-    lockout = pin_lockout_remaining(user_id)
     if request.method == "POST":
-        if lockout > 0:
-            error = _lockout_message(lockout)
+        remaining = pin_lockout_remaining(user_id)
+        if remaining > 0:
+            error = _lockout_message(remaining)
+        elif database.verify_pin(user_id, request.form.get("pin", "")):
+            clear_pin_fails(user_id)
+            session["user_id"] = user_id
+            if user_id == 1:
+                session["is_owner"] = True
+            return redirect(url_for("index"))
         else:
-            pin = request.form.get("pin", "").strip()
-            if database.verify_pin(user_id, pin):
-                clear_pin_fails(user_id)
-                session["user_id"] = user_id
-                return redirect(url_for("index"))
             record_pin_fail(user_id)
-            lockout = pin_lockout_remaining(user_id)
-            error = _lockout_message(lockout) if lockout > 0 else "Wrong PIN."
-    elif lockout > 0:
-        error = _lockout_message(lockout)
-    return render_template(
-        "profile_unlock.html", user=user, error=error,
-        locked=lockout > 0,
-    )
+            remaining = pin_lockout_remaining(user_id)
+            error = _lockout_message(remaining) if remaining > 0 else "Wrong PIN."
+    return render_template("profile_unlock.html", user=user, error=error)
 
 
 @app.route("/profiles/<int:user_id>/edit", methods=["GET", "POST"])
 def profile_edit(user_id):
-    # Only the logged-in user can edit their own profile
-    if session.get("user_id") != user_id:
+    current_id = session.get("user_id")
+    if current_id != user_id and not can_manage_profiles():
         abort(403)
     user = database.get_user(user_id)
     if not user:
         abort(404)
+    profile = database.get_profile(user_id)
+    error = None
     if request.method == "POST":
-        action = request.form.get("action", "save")
-        if action == "delete":
-            database.delete_user(user_id)
-            session.pop("user_id", None)
-            return redirect(url_for("profiles"))
-
-        name = request.form.get("name", "").strip() or user["name"]
-        emoji = request.form.get("emoji", "").strip() or user["emoji"]
-        pin_action = request.form.get("pin_action", "keep")
-        new_pin = request.form.get("pin", "").strip()
-        confirm = request.form.get("pin_confirm", "").strip()
-
-        error = None
-        if pin_action == "set":
-            if not new_pin.isdigit() or not (4 <= len(new_pin) <= 8):
-                error = "PIN must be 4â€“8 digits."
-            elif new_pin != confirm:
-                error = "PINs don't match."
-
-        if error:
-            return render_template("profile_edit.html", user=user, profile_data=database.get_profile(user_id) or {}, error=error)
-
-        pin_param = False
-        if pin_action == "clear":
-            pin_param = None
-        elif pin_action == "set":
-            pin_param = new_pin
-
         try:
-            database.update_user(user_id, name=name, emoji=emoji, pin=pin_param)
-        except Exception as e:
-            return render_template("profile_edit.html", user=user, profile_data=database.get_profile(user_id) or {}, error=str(e))
-        return redirect(url_for("index"))
-
-    return render_template("profile_edit.html", user=user, profile_data=database.get_profile(user_id) or {}, error=None)
+            database.update_user(
+                user_id,
+                request.form.get("name", user["name"]),
+                request.form.get("emoji", user["emoji"]),
+                request.form.get("pin", "").strip() or None,
+            )
+            payload = _parse_profile_form(request.form)
+            database.save_profile(user_id=user_id, **payload)
+            return redirect(url_for("index"))
+        except Exception as exc:
+            error = str(exc)
+    return render_template(
+        "profile_edit.html",
+        user=user,
+        profile=profile,
+        error=error,
+        valid_equipment=VALID_EQUIPMENT,
+        valid_limitations=VALID_LIMITATIONS,
+        valid_muscles=VALID_MUSCLE_GROUPS,
+    )
 
 
 @app.route("/profiles/switch", methods=["POST", "GET"])
 def profile_switch_out():
-    """Log out of the current profile and go back to the picker."""
     session.pop("user_id", None)
     return redirect(url_for("profiles"))
 
-
-# ---------- main app --------------------------------------------------------
 
 @app.route("/")
 def index():
@@ -343,69 +298,83 @@ def index():
     profile = database.get_profile(uid)
     if not profile:
         return redirect(url_for("onboarding"))
-    plan = generate_plan(
-        profile["current_weight"],
-        profile["goal_weight"],
-        profile["fitness_level"],
-        profile["limitations"],
-        profile["days_per_week"],
-        profile.get("equipment", []),
-    )
-    stats = database.get_stats(uid)
+    plan = _dashboard_plan(profile)
+    stats = _progress_stats(uid)
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats)
 
 
 @app.route("/onboarding", methods=["GET", "POST"])
 def onboarding():
     uid = session["user_id"]
+    error = None
+    profile = database.get_profile(uid)
     if request.method == "POST":
-        current_weight = float(request.form["current_weight"])
-        goal_weight = float(request.form["goal_weight"])
-        fitness_level = request.form.get("fitness_level", "beginner")
-        limitations = request.form.getlist("limitations")
-        limitations = [l for l in limitations if l in VALID_LIMITATIONS]
-        equipment = request.form.getlist("equipment")
-        equipment = [e for e in equipment if e in VALID_EQUIPMENT, VALID_MUSCLE_GROUPS, pick_random_muscle_group]
-        days_per_week = int(request.form.get("days_per_week", 4))
-        database.save_profile(
-            uid, current_weight, goal_weight, fitness_level,
-            limitations, days_per_week, equipment,
-        )
-        return redirect(url_for("index"))
-    profile = database.get_profile(uid) or {}
-    return render_template("onboarding.html", profile=profile)
+        try:
+            payload = _parse_profile_form(request.form)
+            database.save_profile(user_id=uid, **payload)
+            return redirect(url_for("index"))
+        except Exception as exc:
+            error = str(exc)
+    return render_template(
+        "onboarding.html",
+        error=error,
+        profile=profile,
+        valid_limitations=VALID_LIMITATIONS,
+        valid_equipment=VALID_EQUIPMENT,
+        valid_muscles=VALID_MUSCLE_GROUPS,
+    )
 
 
-@app.route("/workout/<int:day_number>")
-def workout(day_number):
+@app.route("/start-workout", methods=["GET", "POST"])
+def start_workout():
     uid = session["user_id"]
     profile = database.get_profile(uid)
     if not profile:
         return redirect(url_for("onboarding"))
-    plan = generate_plan(
-        profile["current_weight"],
-        profile["goal_weight"],
-        profile["fitness_level"],
-        profile["limitations"],
-        profile["days_per_week"],
-        profile.get("equipment", []),
-    )
-    day = next((d for d in plan["days"] if d["day_number"] == day_number), None)
-    if not day:
-        return redirect(url_for("index"))
-    return render_template("workout.html", day=day, profile=profile)
+
+    if request.method == "POST":
+        focus_mode = request.form.get("focus_mode", "pick")
+        selected = _clean_list(request.form.getlist("focus"))
+        if focus_mode == "surprise" or not selected:
+            selected = [pick_random_muscle_group()]
+        workout = build_workout(profile, "Today's Workout", selected, [])
+        session["today_workout"] = workout
+        return redirect(url_for("today_workout"))
+
+    return render_template("start_workout.html", valid_muscles=VALID_MUSCLE_GROUPS)
+
+
+@app.route("/today-workout")
+def today_workout():
+    workout = session.get("today_workout")
+    if not workout:
+        return redirect(url_for("start_workout"))
+    focus_list = workout.get("focus", [])
+    focus_label = ", ".join(f.title() for f in focus_list) if focus_list else ""
+    day = {
+        "day_number": 1,
+        "name": workout.get("label", "Today's Workout"),
+        "focus": focus_label,
+        "exercises": workout.get("exercises", []),
+    }
+    return render_template("workout.html", day=day, profile=database.get_profile(session["user_id"]))
+
+
+@app.route("/workout/<int:day_number>")
+def workout(day_number):
+    return redirect(url_for("start_workout"))
 
 
 @app.route("/api/complete_workout", methods=["POST"])
 def complete_workout():
     uid = session["user_id"]
-    data = request.get_json() or {}
+    data = request.get_json(force=True)
     database.log_workout(
-        user_id=uid,
-        day_name=data.get("day_name", "Workout"),
-        day_number=int(data.get("day_number", 0)),
-        exercises=data.get("exercises", []),
-        duration_seconds=int(data.get("duration_seconds", 0)),
+        uid,
+        data.get("day_name", "Workout"),
+        int(data.get("day_number", 1)),
+        data.get("exercises", []),
+        data.get("duration_seconds"),
     )
     return jsonify({"ok": True})
 
@@ -413,39 +382,31 @@ def complete_workout():
 @app.route("/api/log_weight", methods=["POST"])
 def log_weight():
     uid = session["user_id"]
-    data = request.get_json() or {}
-    try:
-        weight = float(data.get("weight"))
-    except (TypeError, ValueError):
-        return jsonify({"ok": False, "error": "invalid weight"}), 400
-    database.log_weight(uid, weight)
+    data = request.get_json(force=True)
+    database.log_weight(uid, float(data.get("weight", 0)))
     return jsonify({"ok": True})
 
 
 @app.route("/exercises")
 def exercises():
     uid = session["user_id"]
-    profile = database.get_profile(uid) or {}
-    limitations = profile.get("limitations", [])
-    equipment = profile.get("equipment", [])
-    all_ex = all_exercises_with_status(limitations, equipment)
-    return render_template("exercises.html", exercises=all_ex, profile=profile)
+    profile = database.get_profile(uid)
+    if not profile:
+        return redirect(url_for("onboarding"))
+    items = all_exercises_with_status(profile)
+    return render_template("exercises.html", exercises=items, profile=profile)
 
 
 @app.route("/progress")
 def progress():
     uid = session["user_id"]
-    profile = database.get_profile(uid) or {}
-    weights = database.get_weight_history(uid)
-    history = database.get_workout_history(uid)
-    stats = database.get_stats(uid)
-    return render_template(
-        "progress.html",
-        profile=profile, weights=weights, history=history, stats=stats,
-    )
+    profile = database.get_profile(uid)
+    history = database.get_weight_history(uid)
+    workouts = database.get_workout_history(uid)
+    stats = _progress_stats(uid)
+    weights = _weight_chart_points(history)
+    return render_template("progress.html", profile=profile, weights=weights, history=workouts, stats=stats)
 
-
-# ---------- PWA assets -----------------------------------------------------
 
 @app.route("/manifest.json")
 def manifest():
@@ -456,9 +417,11 @@ def manifest():
 def service_worker():
     response = app.send_static_file("js/sw.js")
     response.headers["Service-Worker-Allowed"] = "/"
-    response.headers["Cache-Control"] = "no-cache"
     return response
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    host = os.environ.get("HOMEFIT_HOST", "0.0.0.0")
+    port = int(os.environ.get("HOMEFIT_PORT", "5000"))
+    debug = os.environ.get("HOMEFIT_DEBUG", "0") == "1"
+    app.run(host=host, port=port, debug=debug)

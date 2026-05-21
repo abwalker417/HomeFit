@@ -138,6 +138,88 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
 
 /* Forms */
 .form { display: flex; flex-direction: column; gap: 12px; }
+.form label:not(.pill-option) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--subtle);
+}
+.form input:not([type="checkbox"]):not([type="radio"]),
+.form select,
+.form textarea {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.form input:focus,
+.form select:focus,
+.form textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.form fieldset {
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0;
+}
+.form legend {
+  padding: 0 4px;
+  color: var(--subtle);
+  font-size: 13px;
+}
+.grid-two {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.pill-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.pill-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--text);
+  min-height: 48px;
+}
+.pill-option:has(:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+.pill-option input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+.pill-option span {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.35;
+}
+.hint {
+  margin: 8px 0 0;
+  color: var(--subtle);
+  font-size: 13px;
+}
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > span, .field > legend { font-size: 13px; color: var(--subtle); }
 .field input:not([type="checkbox"]):not([type="radio"]),
@@ -167,6 +249,14 @@ fieldset.field { border: none; padding: 0; }
   cursor: pointer;
 }
 .checkbox input { width: 18px; height: 18px; accent-color: var(--accent); }
+@media (min-width: 640px) {
+  .grid-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pill-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
 .btn {
   appearance: none;
@@ -444,19 +534,91 @@ fieldset.field { border: none; padding: 0; }
 .unlock-emoji { font-size: 72px; line-height: 1; margin-bottom: 8px; }
 .unlock-hero h1 { margin: 4px 0; }
 
-/* ---------- Warn / danger cards ---------- */
-.warn-card {
-  background: rgba(245, 158, 11, 0.08);
-  border-color: rgba(245, 158, 11, 0.4);
-  color: var(--warn);
+/* Workout selection + mobile nav fixes */
+.hero-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 16px;
 }
-.danger-card {
-  background: rgba(248, 113, 113, 0.05);
-  border-color: rgba(248, 113, 113, 0.3);
+.hero-actions .btn {
+  width: 100%;
+  text-align: center;
 }
-.btn-danger {
-  background: var(--danger);
-  color: #300;
+.section-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+.subtitle {
+  display: block;
+  color: var(--subtle);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.bottom-nav {
+  grid-template-columns: repeat(5, 1fr);
+}
+.bottom-nav a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 10px 4px;
+  color: var(--subtle);
+  font-size: 12px;
+  text-align: center;
+}
+.bottom-nav a:hover,
+.bottom-nav a:focus {
+  color: var(--text);
+}
+@media (max-width: 640px) {
+  .app-main {
+    padding: 12px 12px 110px;
+  }
+  .hero,
+  .card {
+    padding: 14px;
+  }
+  .hero-top {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .hero-top .pill {
+    align-self: flex-start;
+  }
+  .hero-stats {
+    grid-template-columns: 1fr;
+  }
+  .inline-form {
+    flex-direction: column;
+  }
+  .inline-form button,
+  .inline-form input {
+    width: 100%;
+  }
+  .day-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .top-nav {
+    display: none !important;
+  }
+}
+@media (min-width: 720px) {
+  .hero-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .section-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .bottom-nav {
+    display: none;
+  }
 }
 
 /* ---------- Blocked page ---------- */

@@ -1,233 +1,281 @@
-"""Rule-based workout plan generator.
-
-Given a user profile (current weight, goal weight, fitness level, limitations),
-produces a weekly plan of home, bodyweight-only workouts and filters out
-exercises that conflict with the user's physical limitations.
-"""
-
 import json
 import random
 from pathlib import Path
-from typing import Any
 
-EXERCISES_FILE = Path(__file__).parent / "data" / "exercises.json"
+EXERCISE_PATH = Path(__file__).parent / "data" / "exercises.json"
 
-# Map UI-friendly limitation keys to contraindication tags in exercises.json
-LIMITATION_MAP = {
-    "bad_back": "bad_back",
-    "bad_knees": "bad_knees",
-    "bad_shoulders": "bad_shoulders",
-    "bad_wrists": "bad_wrists",
+VALID_LIMITATIONS = ["knee pain", "back pain", "shoulder pain", "low impact", "wrist pain"]
+VALID_EQUIPMENT = [
+    "none",
+    "dumbbells",
+    "kettlebell",
+    "resistance bands",
+    "bench",
+    "barbell",
+    "power cage",
+    "ab machine",
+    "pull-up bar",
+    "exercise bike",
+    "treadmill",
+    "jump rope",
+    "yoga mat",
+]
+VALID_MUSCLE_GROUPS = [
+    "full body",
+    "arms",
+    "back",
+    "chest",
+    "core",
+    "glutes",
+    "legs",
+    "shoulders",
+]
+
+DAY_SPLITS = {
+    1: ["full body"],
+    2: ["upper body", "lower body"],
+    3: ["push", "pull", "legs"],
+    4: ["chest", "back", "legs", "arms"],
+    5: ["chest", "back", "legs", "shoulders", "core"],
 }
 
-VALID_LIMITATIONS = set(LIMITATION_MAP.keys())
-VALID_EQUIPMENT = {"bodyweight", "dumbbells", "resistance_bands", "pull_up_bar", "kettlebell", "power_cage_cable", "bench_or_chair"}
+# JSON equipment names (after underscore→space) that map to VALID_EQUIPMENT names
+_EQUIPMENT_ALIASES = {
+    "bench or chair": "bench",
+    "power cage cable": "power cage",
+}
+
+# JSON contraindication keys → VALID_LIMITATIONS values
+_CONTRAINDICATION_TO_LIMITATION = {
+    "bad_knees": "knee pain",
+    "bad_back": "back pain",
+    "bad_shoulders": "shoulder pain",
+    "bad_wrists": "wrist pain",
+}
+
+CATEGORY_TO_MUSCLES = {
+    "upper": {"arms", "back", "chest", "shoulders"},
+    "legs": {"legs", "glutes"},
+    "core": {"core"},
+    "cardio": {"full body"},
+}
 
 
-def load_exercises() -> list[dict[str, Any]]:
-    with open(EXERCISES_FILE) as f:
+def load_exercises():
+    with open(EXERCISE_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def filter_exercises(
-    exercises: list[dict[str, Any]],
-    limitations: list[str],
-    equipment: list[str] | None = None,
-) -> list[dict[str, Any]]:
-    """Remove exercises contraindicated by limitations or missing equipment."""
-    bad_tags = {LIMITATION_MAP[l] for l in limitations if l in VALID_LIMITATIONS}
-    owned = {"bodyweight"} | {e for e in (equipment or []) if e in VALID_EQUIPMENT}
+def _norm(s):
+    """Lowercase + normalize underscores and dashes to spaces."""
+    return s.strip().lower().replace("_", " ").replace("-", " ")
+
+
+def _normalize_values(values):
+    if isinstance(values, str):
+        values = [values]
+    return [_norm(v) for v in (values or []) if isinstance(v, str) and v.strip()]
+
+
+def _exercise_equipment(exercise):
+    eq = exercise.get("equipment") or exercise.get("equipment_needed", "none")
+    if isinstance(eq, str):
+        eq = [eq]
     result = []
-    for e in exercises:
-        if set(e.get("contraindications", [])) & bad_tags:
-            continue
-        if e.get("equipment", "bodyweight") not in owned:
-            continue
-        result.append(e)
+    for e in eq:
+        n = _norm(e)
+        result.append(_EQUIPMENT_ALIASES.get(n, n))
     return result
 
 
-def determine_goal(current_weight: float, goal_weight: float) -> str:
-    """Return 'lose', 'gain', or 'maintain' based on weight delta."""
-    delta = goal_weight - current_weight
-    if delta < -2:
+def _exercise_limitations(exercise):
+    result = []
+    for c in (exercise.get("contraindications") or []):
+        mapped = _CONTRAINDICATION_TO_LIMITATION.get(c)
+        if mapped:
+            result.append(mapped)
+    return result
+
+
+def _exercise_muscles(exercise):
+    muscles = exercise.get("muscle_groups") or [exercise.get("muscle_group", "full body")]
+    return _normalize_values(muscles)
+
+
+def _exercise_targets_selected_muscles(exercise, target_muscles):
+    if not target_muscles:
+        return True
+    normalized_targets = set(_normalize_values(list(target_muscles)))
+    if "full body" in normalized_targets:
+        return True
+    ex_muscles = set(_exercise_muscles(exercise))
+    if ex_muscles & normalized_targets:
+        return True
+    category = (exercise.get("category") or "").strip().lower()
+    mapped = CATEGORY_TO_MUSCLES.get(category, set())
+    return bool(mapped & normalized_targets)
+
+
+def filter_exercises(exercises, profile, selected_muscles=None, preferred_equipment=None):
+    limitations = set(_normalize_values(profile.get("limitations") or []))
+    available_equipment = set(_normalize_values(profile.get("equipment") or []))
+    available_equipment.update(_normalize_values(profile.get("custom_equipment") or []))
+    preferred_equipment = set(_normalize_values(preferred_equipment or profile.get("preferred_equipment") or []))
+    target_muscles = set(_normalize_values(selected_muscles or profile.get("target_muscles") or []))
+
+    if "full body" in target_muscles and len(target_muscles) > 1:
+        target_muscles.discard("full body")
+
+    filtered = []
+    for ex in exercises:
+        if limitations & set(_exercise_limitations(ex)):
+            continue
+
+        ex_equipment = set(_exercise_equipment(ex))
+        # bodyweight and "none" exercises are always available
+        needs_equipment = (
+            ex_equipment
+            and "none" not in ex_equipment
+            and "bodyweight" not in ex_equipment
+        )
+        if needs_equipment:
+            if available_equipment and not ex_equipment & available_equipment:
+                continue
+            if preferred_equipment and not (ex_equipment & preferred_equipment):
+                continue
+
+        if target_muscles and not _exercise_targets_selected_muscles(ex, target_muscles):
+            continue
+
+        filtered.append(ex)
+    return filtered
+
+
+def determine_goal(current_weight, goal_weight):
+    if goal_weight < current_weight - 5:
         return "lose"
-    if delta > 2:
+    if goal_weight > current_weight + 5:
         return "gain"
     return "maintain"
 
 
-def determine_difficulty_cap(fitness_level: str) -> int:
-    """Max exercise difficulty (1-3) allowed for the user's fitness level."""
-    return {"beginner": 1, "intermediate": 2, "advanced": 3}.get(fitness_level, 2)
+def determine_difficulty_cap(fitness_level):
+    fitness_level = str(fitness_level or "beginner").lower()
+    if fitness_level == "beginner":
+        return {1}
+    if fitness_level == "intermediate":
+        return {1, 2}
+    return {1, 2, 3}
 
 
-def _pick(pool: list[dict[str, Any]], n: int, seed: int) -> list[dict[str, Any]]:
-    """Deterministic sample helper so the same profile yields the same plan."""
-    if not pool:
-        return []
-    rng = random.Random(seed)
-    if len(pool) <= n:
-        return list(pool)
-    return rng.sample(pool, n)
-
-
-def build_workout(
-    category_pools: dict[str, list[dict[str, Any]]],
-    composition: dict[str, int],
-    goal: str,
-    seed: int,
-) -> list[dict[str, Any]]:
-    """Assemble a single workout from the per-category exercise pools."""
-    workout = []
-    for category, count in composition.items():
-        picks = _pick(category_pools.get(category, []), count, seed + hash(category))
-        for ex in picks:
-            ex = dict(ex)  # copy so we don't mutate the source
-            # Tune volume for goal
-            if goal == "lose":
-                ex["sets"] = ex.get("default_sets", 3)
-                ex["reps"] = int(ex.get("default_reps", 10) * 1.2)
-                ex["rest"] = max(20, ex.get("rest_seconds", 45) - 15)
-            elif goal == "gain":
-                ex["sets"] = ex.get("default_sets", 3) + 1
-                ex["reps"] = max(6, int(ex.get("default_reps", 10) * 0.8))
-                ex["rest"] = ex.get("rest_seconds", 45) + 15
-            else:  # maintain
-                ex["sets"] = ex.get("default_sets", 3)
-                ex["reps"] = ex.get("default_reps", 10)
-                ex["rest"] = ex.get("rest_seconds", 45)
-            workout.append(ex)
-    return workout
-
-
-def generate_plan(
-    current_weight: float,
-    goal_weight: float,
-    fitness_level: str = "beginner",
-    limitations: list[str] | None = None,
-    days_per_week: int = 4,
-    equipment: list[str] | None = None,
-) -> dict[str, Any]:
-    """Build a week-long home workout plan for the user.
-
-    Returns a dict with:
-      - goal: 'lose' | 'gain' | 'maintain'
-      - summary: human-readable description
-      - days: list of {name, focus, exercises: [...]}  (len == days_per_week)
-    """
-    limitations = limitations or []
-    equipment = equipment or []
-    exercises = filter_exercises(load_exercises(), limitations, equipment)
-    cap = determine_difficulty_cap(fitness_level)
-    exercises = [e for e in exercises if e.get("difficulty", 1) <= cap]
-
-    # Bucket the available exercises by category
-    pools: dict[str, list[dict[str, Any]]] = {}
+def _pick(exercises, count, difficulty_cap):
+    pool = []
+    used_names = set()
     for ex in exercises:
-        pools.setdefault(ex["category"], []).append(ex)
+        difficulty = ex.get("difficulty", 1)
+        try:
+            difficulty = int(difficulty)
+        except (TypeError, ValueError):
+            difficulty = 1
+        if difficulty not in difficulty_cap:
+            continue
+        name = ex.get("name")
+        if name in used_names:
+            continue
+        pool.append(ex)
+        used_names.add(name)
+    random.shuffle(pool)
+    return pool[:count]
 
-    goal = determine_goal(current_weight, goal_weight)
 
-    # Pick a weekly split pattern based on goal + frequency
-    if goal == "lose":
-        # More cardio, circuit-style days
-        templates = [
-            ("Full Body + Cardio", {"legs": 2, "upper": 1, "core": 1, "cardio": 2}),
-            ("Lower + Cardio",     {"legs": 3, "cardio": 2, "core": 1}),
-            ("Upper + Core",       {"upper": 3, "core": 2, "cardio": 1}),
-            ("HIIT Circuit",       {"cardio": 3, "legs": 1, "upper": 1, "core": 1}),
-            ("Full Body",          {"legs": 2, "upper": 2, "core": 1, "cardio": 1}),
-            ("Core + Cardio",      {"core": 3, "cardio": 2}),
-            ("Active Recovery",    {"core": 2, "legs": 1}),
-        ]
-    elif goal == "gain":
-        # Strength-leaning with more volume per muscle group
-        templates = [
-            ("Lower Body Strength", {"legs": 4, "core": 1}),
-            ("Upper Body Strength", {"upper": 4, "core": 1}),
-            ("Full Body",           {"legs": 2, "upper": 2, "core": 1}),
-            ("Core Focus",          {"core": 3, "legs": 1, "upper": 1}),
-            ("Lower + Core",        {"legs": 3, "core": 2}),
-            ("Upper + Core",        {"upper": 3, "core": 2}),
-            ("Full Body",           {"legs": 2, "upper": 2, "core": 1}),
-        ]
-    else:  # maintain
-        templates = [
-            ("Full Body",        {"legs": 2, "upper": 2, "core": 1, "cardio": 1}),
-            ("Cardio + Core",    {"cardio": 2, "core": 2, "legs": 1}),
-            ("Upper Body",       {"upper": 3, "core": 2}),
-            ("Lower Body",       {"legs": 3, "core": 2}),
-            ("Full Body",        {"legs": 2, "upper": 2, "core": 1, "cardio": 1}),
-            ("Mobility + Core",  {"core": 3, "upper": 1, "cardio": 1}),
-            ("Active Recovery",  {"core": 1, "legs": 1, "cardio": 1}),
-        ]
+def build_workout(profile, day_label, selected_muscles=None, preferred_equipment=None):
+    exercises = load_exercises()
+    filtered = filter_exercises(exercises, profile, selected_muscles, preferred_equipment)
+    difficulty_cap = determine_difficulty_cap(profile.get("fitness_level"))
+    goal = determine_goal(profile.get("current_weight", 0), profile.get("goal_weight", 0))
 
-    days_per_week = max(1, min(7, days_per_week))
-    seed = int((current_weight * 31 + goal_weight * 7 + len(limitations) * 13))
+    target_count = 6 if goal == "lose" else 5
+    chosen = _pick(filtered, target_count, difficulty_cap)
+    if len(chosen) < 3:
+        chosen = _pick(filtered, max(3, target_count), {1, 2, 3})
+    if len(chosen) < 3 and not selected_muscles:
+        chosen = _pick(exercises, target_count, difficulty_cap)
 
-    days = []
-    for i in range(days_per_week):
-        name, composition = templates[i % len(templates)]
-        workout = build_workout(pools, composition, goal, seed + i)
-        days.append({
-            "day_number": i + 1,
-            "name": name,
-            "exercises": workout,
+    workout = []
+    for ex in chosen:
+        workout.append({
+            "id": ex.get("id", ""),
+            "name": ex.get("name"),
+            "muscles": _exercise_muscles(ex),
+            "equipment": _exercise_equipment(ex),
+            "difficulty": ex.get("difficulty", 1),
+            "instructions": ex.get("instructions", ""),
+            "sets": ex.get("default_sets", 3),
+            "reps": ex.get("default_reps", 10),
+            "rest": ex.get("rest_seconds", 45),
+            "unit": ex.get("unit", "reps"),
         })
-
-    # Summary
-    delta = goal_weight - current_weight
-    if goal == "lose":
-        summary = (
-            f"Plan to lose {abs(delta):.1f} lbs. Higher-rep, shorter-rest circuits "
-            f"with more cardio to build a calorie deficit."
-        )
-    elif goal == "gain":
-        summary = (
-            f"Plan to gain {delta:.1f} lbs. Lower reps, extra sets, longer rest "
-            f"to prioritize strength. Pair with a calorie surplus."
-        )
-    else:
-        summary = "Maintenance plan. Balanced volume across strength, core, and cardio."
-
     return {
+        "label": day_label,
         "goal": goal,
-        "summary": summary,
-        "fitness_level": fitness_level,
-        "limitations": limitations,
-        "equipment": equipment,
-        "days_per_week": days_per_week,
-        "days": days,
+        "focus": list(selected_muscles or profile.get("target_muscles") or []),
+        "equipment_focus": list(preferred_equipment or profile.get("preferred_equipment") or []),
+        "exercises": workout,
     }
 
 
-def all_exercises_with_status(limitations: list[str], equipment: list[str] | None = None) -> list[dict[str, Any]]:
-    """Return all exercises, each annotated with whether it's allowed for the user."""
+def generate_plan(profile):
+    days = max(1, min(int(profile.get("days_per_week", 4)), 5))
+    split = DAY_SPLITS.get(days, DAY_SPLITS[4])
+    selected_muscles = profile.get("target_muscles") or []
+    preferred_equipment = profile.get("preferred_equipment") or []
+    plan = []
+    for idx in range(days):
+        label = split[idx % len(split)]
+        day_focus = selected_muscles or [label]
+        plan.append({
+            "day_number": idx + 1,
+            "day_name": f"Day {idx + 1}",
+            "label": label.title(),
+            "workout": build_workout(profile, label.title(), day_focus, preferred_equipment),
+        })
+    return plan
+
+
+def all_exercises_with_status(profile):
     exercises = load_exercises()
-    bad_tags = {LIMITATION_MAP[l] for l in limitations if l in VALID_LIMITATIONS}
-    owned = {"bodyweight"} | {e for e in (equipment or []) if e in VALID_EQUIPMENT}
-    annotated = []
+    available_equipment = set(_normalize_values(profile.get("equipment") or []))
+    available_equipment.update(_normalize_values(profile.get("custom_equipment") or []))
+    blocked_limitations = set(_normalize_values(profile.get("limitations") or []))
+    out = []
     for ex in exercises:
-        blockers = list(set(ex.get("contraindications", [])) & bad_tags)
-        needed = ex.get("equipment", "bodyweight")
-        ex_copy = dict(ex)
-        ex_copy["allowed"] = not blockers and needed in owned
-        ex_copy["blocked_by"] = blockers
-        ex_copy["blocked_by_equipment"] = needed if needed not in owned else None
-        annotated.append(ex_copy)
-    return annotated
+        ex_limitations = set(_exercise_limitations(ex))
+        ex_equipment = set(_exercise_equipment(ex))
+        needs_equipment = (
+            ex_equipment
+            and "none" not in ex_equipment
+            and "bodyweight" not in ex_equipment
+        )
+        is_blocked = False
+        reasons = []
+        if blocked_limitations & ex_limitations:
+            is_blocked = True
+            reasons.append("blocked by limitation")
+        if needs_equipment and available_equipment and not (ex_equipment & available_equipment):
+            is_blocked = True
+            reasons.append("missing equipment")
+        out.append({
+            "name": ex.get("name"),
+            "category": ex.get("category", ""),
+            "muscles": _exercise_muscles(ex),
+            "equipment": sorted(ex_equipment) or ["none"],
+            "difficulty": ex.get("difficulty", 1),
+            "instructions": ex.get("instructions", ""),
+            "available": not is_blocked,
+            "reason": ", ".join(reasons),
+        })
+    return out
 
 
-VALID_MUSCLE_GROUPS = ["arms", "chest", "back", "legs", "shoulders", "core", "full_body"]
-
-
-import random as _random
-
-def pick_random_muscle_group(owned_equipment=None):
-    """Pick a random muscle group for daily focus.
-    Currently just chooses from VALID_MUSCLE_GROUPS except full_body;
-    filtering by equipment can be added later if needed.
-    """
-    pool = [m for m in VALID_MUSCLE_GROUPS if m != "full_body"]
-    return _random.choice(pool) if pool else "full_body"
+def pick_random_muscle_group():
+    return random.choice(["arms", "back", "chest", "core", "glutes", "legs", "shoulders"])

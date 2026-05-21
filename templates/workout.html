@@ -4,9 +4,9 @@
 {% block content %}
 <section class="workout-header">
   <a href="{{ url_for('index') }}" class="back-link">← Back</a>
-  <p class="eyebrow">Day {{ day.day_number }}</p>
+  <p class="eyebrow">Day {{ day.day_number }}{% if day.focus %} · Focus: {{ day.focus }}{% endif %}</p>
   <h1>{{ day.name }}</h1>
-  <p class="subtle">{{ day.exercises|length }} exercises · tap any exercise to see the demo</p>
+  <p class="subtle">{{ day.exercises|length }} exercise{{ 's' if day.exercises|length != 1 else '' }} · tap any to expand</p>
 </section>
 
 <section id="workout-body"

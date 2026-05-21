@@ -1,0 +1,45 @@
+{% set p = profile or {} %}
+<div class="grid-two">
+  <label>Current weight
+    <input type="number" name="current_weight" step="0.1" required value="{{ p.current_weight or '' }}">
+  </label>
+  <label>Goal weight
+    <input type="number" name="goal_weight" step="0.1" required value="{{ p.goal_weight or '' }}">
+  </label>
+</div>
+<div class="grid-two">
+  <label>Fitness level
+    <select name="fitness_level">
+      {% for level in ['beginner','intermediate','advanced'] %}
+      <option value="{{ level }}" {% if (p.fitness_level or 'beginner') == level %}selected{% endif %}>{{ level.title() }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Days per week
+    <select name="days_per_week">
+      {% for days in [2,3,4,5] %}
+      <option value="{{ days }}" {% if (p.days_per_week or 4) == days %}selected{% endif %}>{{ days }}</option>
+      {% endfor %}
+    </select>
+  </label>
+</div>
+<fieldset>
+  <legend>Limitations</legend>
+  <div class="pill-grid">
+    {% for item in valid_limitations %}
+    <label class="pill-option"><input type="checkbox" name="limitations" value="{{ item }}" {% if item in (p.limitations or []) %}checked{% endif %}> <span>{{ item.title() }}</span></label>
+    {% endfor %}
+  </div>
+</fieldset>
+<fieldset>
+  <legend>Available equipment</legend>
+  <div class="pill-grid">
+    {% for item in valid_equipment %}
+    <label class="pill-option"><input type="checkbox" name="equipment" value="{{ item }}" {% if item in (p.equipment or []) %}checked{% endif %}> <span>{{ item.title() }}</span></label>
+    {% endfor %}
+  </div>
+  <label>Custom equipment
+    <textarea name="custom_equipment" rows="3">{{ (p.custom_equipment or [])|join(', ') }}</textarea>
+  </label>
+  <p class="hint">Similar gear is okay. HomeFit only removes exact duplicates.</p>
+</fieldset>

@@ -5,16 +5,18 @@ detected, we drop it and recreate as v2. Users selected 'start fresh' during
 the multi-user upgrade, so no data is preserved from v1.
 """
 
-import os
-import sqlite3
 import json
+import os
 import secrets
-from pathlib import Path
+import sqlite3
 from datetime import datetime
+from pathlib import Path
 
-from werkzeug.security import generate_password_hash, check_password_hash
+from typing import Optional
 
-SCHEMA_VERSION = 2
+from werkzeug.security import check_password_hash, generate_password_hash
+
+SCHEMA_VERSION = 3
 
 DB_PATH = Path(os.environ.get(
     "HOMEFIT_DB",
@@ -34,8 +36,6 @@ def get_connection():
     return conn
 
 
-# ---------- schema / migration ---------------------------------------------
-
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER PRIMARY KEY
@@ -50,14 +50,17 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS profile (
-    user_id        INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    current_weight REAL    NOT NULL,
-    goal_weight    REAL    NOT NULL,
-    fitness_level  TEXT    NOT NULL DEFAULT 'beginner',
-    limitations    TEXT    NOT NULL DEFAULT '[]',
-    equipment      TEXT    NOT NULL DEFAULT '[]',
-    days_per_week  INTEGER NOT NULL DEFAULT 4,
-    updated_at     TEXT    NOT NULL
+    user_id             INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    current_weight      REAL    NOT NULL,
+    goal_weight         REAL    NOT NULL,
+    fitness_level       TEXT    NOT NULL DEFAULT 'beginner',
+    limitations         TEXT    NOT NULL DEFAULT '[]',
+    equipment           TEXT    NOT NULL DEFAULT '[]',
+    custom_equipment    TEXT    NOT NULL DEFAULT '[]',
+    target_muscles      TEXT    NOT NULL DEFAULT '[]',
+    preferred_equipment TEXT    NOT NULL DEFAULT '[]',
+    days_per_week       INTEGER NOT NULL DEFAULT 4,
+    updated_at          TEXT    NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS weight_log (
@@ -83,12 +86,10 @@ CREATE INDEX IF NOT EXISTS ix_workout_user ON workout_log (user_id, completed_at
 
 
 def _current_version(conn):
-    """Return the schema version stored in the DB, or 0 if unknown."""
     try:
         row = conn.execute("SELECT version FROM schema_version").fetchone()
         return row["version"] if row else 0
     except sqlite3.OperationalError:
-        # Table doesn't exist yet
         return 0
 
 
@@ -104,34 +105,34 @@ def _has_column(conn, table, column):
     return any(r["name"] == column for r in rows)
 
 
+def _ensure_column(conn, table, column, definition):
+    if not _has_column(conn, table, column):
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def init_db():
-    """Create tables if missing; drop-and-recreate if migrating from v1."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     with get_connection() as conn:
         version = _current_version(conn)
 
-        if version < 2:
-            # v1 had a 'profile' table without a user_id column. Detect by
-            # looking for the column's absence and wipe if present.
-            if _has_table(conn, "profile"):
-                cols = [r["name"] for r in conn.execute("PRAGMA table_info(profile)")]
-                if "user_id" not in cols:
-                    for tbl in ("workout_log", "weight_log", "profile"):
-                        conn.execute(f"DROP TABLE IF EXISTS {tbl}")
+        if version < 2 and _has_table(conn, "profile"):
+            cols = [r["name"] for r in conn.execute("PRAGMA table_info(profile)")]
+            if "user_id" not in cols:
+                for tbl in ("workout_log", "weight_log", "profile"):
+                    conn.execute(f"DROP TABLE IF EXISTS {tbl}")
 
         conn.executescript(SCHEMA_SQL)
+        _ensure_column(conn, "profile", "equipment", "TEXT NOT NULL DEFAULT '[]'")
+        _ensure_column(conn, "profile", "custom_equipment", "TEXT NOT NULL DEFAULT '[]'")
+        _ensure_column(conn, "profile", "target_muscles", "TEXT NOT NULL DEFAULT '[]'")
+        _ensure_column(conn, "profile", "preferred_equipment", "TEXT NOT NULL DEFAULT '[]'")
 
-        if _has_table(conn, "profile") and not _has_column(conn, "profile", "equipment"):
-            conn.execute("ALTER TABLE profile ADD COLUMN equipment TEXT NOT NULL DEFAULT '[]'")
-
-        # Stamp the schema version
         conn.execute("DELETE FROM schema_version")
         conn.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
 
 
 def load_or_create_secret_key() -> bytes:
-    """Persist a Flask session key across restarts."""
     SECRET_KEY_PATH.parent.mkdir(parents=True, exist_ok=True)
     if SECRET_KEY_PATH.exists():
         return SECRET_KEY_PATH.read_bytes()
@@ -144,13 +145,10 @@ def load_or_create_secret_key() -> bytes:
     return key
 
 
-# ---------- users -----------------------------------------------------------
-
 def list_users():
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT id, name, emoji, (pin_hash IS NOT NULL) AS has_pin "
-            "FROM users ORDER BY id"
+            "SELECT id, name, emoji, (pin_hash IS NOT NULL) AS has_pin FROM users ORDER BY id"
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -158,55 +156,41 @@ def list_users():
 def get_user(user_id):
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT id, name, emoji, (pin_hash IS NOT NULL) AS has_pin "
-            "FROM users WHERE id = ?",
+            "SELECT id, name, emoji, created_at, (pin_hash IS NOT NULL) AS has_pin FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
         return dict(row) if row else None
 
 
-def create_user(name: str, emoji: str = "💪", pin: str | None = None) -> int:
-    name = name.strip()
+def create_user(name: str, emoji: str = "💪", pin: Optional[str] = None):
+    name = (name or "").strip()
     if not name:
-        raise ValueError("Name required")
-    if len(name) > 40:
-        raise ValueError("Name too long")
+        raise ValueError("Name is required")
     pin_hash = generate_password_hash(pin) if pin else None
     now = datetime.utcnow().isoformat()
     with get_connection() as conn:
-        try:
-            cur = conn.execute(
-                "INSERT INTO users (name, pin_hash, emoji, created_at) "
-                "VALUES (?, ?, ?, ?)",
-                (name, pin_hash, emoji or "💪", now),
-            )
-            return cur.lastrowid
-        except sqlite3.IntegrityError:
-            raise ValueError("A profile with that name already exists")
+        cur = conn.execute(
+            "INSERT INTO users (name, pin_hash, emoji, created_at) VALUES (?, ?, ?, ?)",
+            (name, pin_hash, emoji or "💪", now),
+        )
+        return cur.lastrowid
 
 
-def update_user(user_id: int, name: str | None = None,
-                emoji: str | None = None, pin: str | None | bool = False):
-    """Update name/emoji/pin. Pass pin=None to clear it, pin=str to set,
-    or leave pin=False (default) to not touch it."""
-    sets, params = [], []
-    if name is not None:
-        sets.append("name = ?")
-        params.append(name.strip())
-    if emoji is not None:
-        sets.append("emoji = ?")
-        params.append(emoji)
-    if pin is not False:
-        if pin is None or pin == "":
-            sets.append("pin_hash = NULL")
-        else:
-            sets.append("pin_hash = ?")
-            params.append(generate_password_hash(pin))
-    if not sets:
-        return
-    params.append(user_id)
+def update_user(user_id: int, name: str, emoji: str, pin: Optional[str]):
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("Name is required")
     with get_connection() as conn:
-        conn.execute(f"UPDATE users SET {', '.join(sets)} WHERE id = ?", params)
+        if pin:
+            conn.execute(
+                "UPDATE users SET name = ?, emoji = ?, pin_hash = ? WHERE id = ?",
+                (name, emoji or "💪", generate_password_hash(pin), user_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE users SET name = ?, emoji = ? WHERE id = ?",
+                (name, emoji or "💪", user_id),
+            )
 
 
 def delete_user(user_id: int):
@@ -216,53 +200,82 @@ def delete_user(user_id: int):
 
 def verify_pin(user_id: int, pin: str) -> bool:
     with get_connection() as conn:
-        row = conn.execute(
-            "SELECT pin_hash FROM users WHERE id = ?", (user_id,)
-        ).fetchone()
+        row = conn.execute("SELECT pin_hash FROM users WHERE id = ?", (user_id,)).fetchone()
     if not row or not row["pin_hash"]:
         return False
     return check_password_hash(row["pin_hash"], pin)
 
 
-# ---------- profile (per-user) ---------------------------------------------
+def _decode_json_list(value):
+    try:
+        data = json.loads(value or "[]")
+    except json.JSONDecodeError:
+        data = []
+    return data if isinstance(data, list) else []
+
 
 def get_profile(user_id):
     with get_connection() as conn:
-        row = conn.execute(
-            "SELECT * FROM profile WHERE user_id = ?", (user_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM profile WHERE user_id = ?", (user_id,)).fetchone()
         if not row:
             return None
         p = dict(row)
-        p["limitations"] = json.loads(p["limitations"])
-        p["equipment"] = json.loads(p.get("equipment") or "[]")
+        for field in ("limitations", "equipment", "custom_equipment", "target_muscles", "preferred_equipment"):
+            p[field] = _decode_json_list(p.get(field))
         return p
 
 
-def save_profile(user_id, current_weight, goal_weight,
-                 fitness_level, limitations, days_per_week, equipment=None):
+def save_profile(
+    user_id,
+    current_weight,
+    goal_weight,
+    fitness_level,
+    limitations,
+    days_per_week,
+    equipment=None,
+    custom_equipment=None,
+    target_muscles=None,
+    preferred_equipment=None,
+):
     now = datetime.utcnow().isoformat()
-    lim_json = json.dumps(limitations)
-    eq_json = json.dumps(equipment or [])
+    values = (
+        user_id,
+        current_weight,
+        goal_weight,
+        fitness_level,
+        json.dumps(limitations or []),
+        json.dumps(equipment or []),
+        json.dumps(custom_equipment or []),
+        json.dumps(target_muscles or []),
+        json.dumps(preferred_equipment or []),
+        days_per_week,
+        now,
+    )
     with get_connection() as conn:
-        conn.execute("""
-            INSERT INTO profile (user_id, current_weight, goal_weight, fitness_level,
-                                 limitations, equipment, days_per_week, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        conn.execute(
+            """
+            INSERT INTO profile (
+                user_id, current_weight, goal_weight, fitness_level, limitations,
+                equipment, custom_equipment, target_muscles, preferred_equipment,
+                days_per_week, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
                 current_weight=excluded.current_weight,
                 goal_weight=excluded.goal_weight,
                 fitness_level=excluded.fitness_level,
                 limitations=excluded.limitations,
                 equipment=excluded.equipment,
+                custom_equipment=excluded.custom_equipment,
+                target_muscles=excluded.target_muscles,
+                preferred_equipment=excluded.preferred_equipment,
                 days_per_week=excluded.days_per_week,
                 updated_at=excluded.updated_at
-        """, (user_id, current_weight, goal_weight, fitness_level, lim_json,
-              eq_json, days_per_week, now))
-        # Log current weight if it's new for this user
+            """,
+            values,
+        )
         last = conn.execute(
-            "SELECT weight FROM weight_log WHERE user_id = ? "
-            "ORDER BY id DESC LIMIT 1",
+            "SELECT weight FROM weight_log WHERE user_id = ? ORDER BY id DESC LIMIT 1",
             (user_id,),
         ).fetchone()
         if not last or last["weight"] != current_weight:
@@ -271,8 +284,6 @@ def save_profile(user_id, current_weight, goal_weight,
                 (user_id, current_weight, now),
             )
 
-
-# ---------- weight log -----------------------------------------------------
 
 def log_weight(user_id, weight):
     now = datetime.utcnow().isoformat()
@@ -290,38 +301,34 @@ def log_weight(user_id, weight):
 def get_weight_history(user_id, limit=60):
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT weight, logged_at FROM weight_log WHERE user_id = ? "
-            "ORDER BY id DESC LIMIT ?",
+            "SELECT weight, logged_at FROM weight_log WHERE user_id = ? ORDER BY id DESC LIMIT ?",
             (user_id, limit),
         ).fetchall()
         return [dict(r) for r in reversed(rows)]
 
 
-# ---------- workout log ----------------------------------------------------
-
 def log_workout(user_id, day_name, day_number, exercises, duration_seconds):
     now = datetime.utcnow().isoformat()
     with get_connection() as conn:
-        conn.execute("""
-            INSERT INTO workout_log (user_id, day_name, day_number, exercises_json,
-                                     duration_seconds, completed_at)
+        conn.execute(
+            """
+            INSERT INTO workout_log (user_id, day_name, day_number, exercises_json, duration_seconds, completed_at)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (user_id, day_name, day_number, json.dumps(exercises),
-              duration_seconds, now))
+            """,
+            (user_id, day_name, day_number, json.dumps(exercises), duration_seconds, now),
+        )
 
 
 def get_workout_history(user_id, limit=50):
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT * FROM workout_log WHERE user_id = ? "
-            "ORDER BY id DESC LIMIT ?",
+            "SELECT * FROM workout_log WHERE user_id = ? ORDER BY id DESC LIMIT ?",
             (user_id, limit),
         ).fetchall()
         result = []
         for r in rows:
             d = dict(r)
-            d["exercises"] = json.loads(d["exercises_json"])
-            del d["exercises_json"]
+            d["exercises"] = _decode_json_list(d.pop("exercises_json", "[]"))
             result.append(d)
         return result
 
@@ -332,16 +339,19 @@ def get_stats(user_id):
             "SELECT COUNT(*) c FROM workout_log WHERE user_id = ?",
             (user_id,),
         ).fetchone()["c"]
-        last_7 = conn.execute("""
-            SELECT COUNT(*) c FROM workout_log
-            WHERE user_id = ? AND completed_at >= datetime('now', '-7 days')
-        """, (user_id,)).fetchone()["c"]
-        total_minutes = conn.execute("""
-            SELECT COALESCE(SUM(duration_seconds), 0) / 60 AS m FROM workout_log
-            WHERE user_id = ?
-        """, (user_id,)).fetchone()["m"]
-        return {
-            "total_workouts": total,
-            "last_7_days": last_7,
-            "total_minutes": total_minutes,
-        }
+        last = conn.execute(
+            "SELECT completed_at FROM workout_log WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+            (user_id,),
+        ).fetchone()
+        weights = conn.execute(
+            "SELECT weight FROM weight_log WHERE user_id = ? ORDER BY id ASC",
+            (user_id,),
+        ).fetchall()
+    trend = None
+    if len(weights) >= 2:
+        trend = round(weights[-1]["weight"] - weights[0]["weight"], 1)
+    return {
+        "total_workouts": total,
+        "last_workout": last["completed_at"] if last else None,
+        "weight_change": trend,
+    }
