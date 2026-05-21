@@ -598,9 +598,6 @@ fieldset.field { border: none; padding: 0; }
   .hero-top .pill {
     align-self: flex-start;
   }
-  .hero-stats {
-    grid-template-columns: 1fr;
-  }
   .inline-form {
     flex-direction: column;
   }

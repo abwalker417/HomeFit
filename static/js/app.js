@@ -38,9 +38,36 @@ function startWorkout() {
   const root = document.getElementById('workout-body');
   if (!root) return;
 
-  // Running workout timer
   const timerEl = document.getElementById('workout-timer');
-  const started = Date.now();
+  const STORE_KEY = 'homefit_wk';
+  const dayName = root.dataset.dayName;
+
+  // Restore state if we're returning to the same workout (e.g. after adding an exercise)
+  let state = null;
+  try { state = JSON.parse(sessionStorage.getItem(STORE_KEY)); } catch (_) {}
+  if (!state || state.dayName !== dayName) {
+    state = { dayName, started: Date.now(), done: [] };
+  }
+  sessionStorage.setItem(STORE_KEY, JSON.stringify(state));
+
+  // Restore completed checkboxes
+  root.querySelectorAll('.exercise-item').forEach((li) => {
+    if (state.done.includes(li.dataset.exerciseId)) {
+      li.querySelector('.ex-done').checked = true;
+    }
+  });
+
+  // Persist checkbox changes
+  const persistDone = () => {
+    state.done = Array.from(root.querySelectorAll('.exercise-item'))
+      .filter((li) => li.querySelector('.ex-done').checked)
+      .map((li) => li.dataset.exerciseId);
+    sessionStorage.setItem(STORE_KEY, JSON.stringify(state));
+  };
+  root.querySelectorAll('.ex-done').forEach((cb) => cb.addEventListener('change', persistDone));
+
+  // Running workout timer (picks up from saved start time)
+  const started = state.started;
   const tickTimer = () => {
     const s = Math.floor((Date.now() - started) / 1000);
     const m = String(Math.floor(s / 60)).padStart(2, '0');
@@ -75,7 +102,6 @@ function startWorkout() {
         countEl.textContent = String(Math.max(0, remaining)).padStart(2, '0');
         if (remaining <= 0) {
           stopRest();
-          // small vibration on iPhone Safari (if allowed)
           if ('vibrate' in navigator) navigator.vibrate(200);
         }
       }, 1000);
@@ -86,6 +112,7 @@ function startWorkout() {
   const finishBtn = document.getElementById('finish-btn');
   finishBtn.addEventListener('click', async () => {
     clearInterval(timerInterval);
+    sessionStorage.removeItem(STORE_KEY);
     const duration = Math.floor((Date.now() - started) / 1000);
     const items = Array.from(root.querySelectorAll('.exercise-item')).map((li) => ({
       id: li.dataset.exerciseId,

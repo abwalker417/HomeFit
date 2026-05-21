@@ -32,6 +32,16 @@
     {% block content %}{% endblock %}
   </main>
 
+  {% if current_user %}
+  <nav class="bottom-nav">
+    <a href="{{ url_for('index') }}">Home</a>
+    <a href="{{ url_for('exercises') }}">Exercises</a>
+    <a href="{{ url_for('progress') }}">Progress</a>
+    <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
+    <a href="{{ url_for('profile_switch_out') }}">Switch</a>
+  </nav>
+  {% endif %}
+
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
