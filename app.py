@@ -172,13 +172,23 @@ def _dashboard_plan(profile):
 
 
 def _progress_stats(user_id):
+    from datetime import datetime, timedelta
     stats = database.get_stats(user_id)
     stats.setdefault("total_workouts", 0)
     stats.setdefault("last_workout", None)
     stats.setdefault("weight_change", None)
-    stats["last_7_days"] = stats.get("total_workouts", 0)
     history = database.get_workout_history(user_id)
+    cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
+    stats["last_7_days"] = sum(1 for item in history if (item.get("completed_at") or "") >= cutoff)
     stats["total_minutes"] = sum((item.get("duration_seconds") or 0) // 60 for item in history)
+    if stats["last_workout"]:
+        try:
+            last_dt = datetime.fromisoformat(stats["last_workout"])
+            stats["days_since_workout"] = (datetime.utcnow() - last_dt).days
+        except Exception:
+            stats["days_since_workout"] = None
+    else:
+        stats["days_since_workout"] = None
     return stats
 
 
@@ -340,6 +350,15 @@ def index():
         return redirect(url_for("onboarding"))
     plan = _dashboard_plan(profile)
     stats = _progress_stats(uid)
+    start_w = stats.get("starting_weight") or profile.get("current_weight")
+    current_w = profile.get("current_weight")
+    goal_w = profile.get("goal_weight")
+    if start_w and goal_w and start_w != goal_w:
+        span = abs(goal_w - start_w)
+        done = (start_w - current_w) if goal_w < start_w else (current_w - start_w)
+        stats["weight_progress_pct"] = min(100, max(0, round(done / span * 100)))
+    else:
+        stats["weight_progress_pct"] = 0
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats)
 
 

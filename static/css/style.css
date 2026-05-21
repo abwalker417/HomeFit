@@ -104,6 +104,39 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
 .hero-stats strong { display: block; font-size: 20px; }
 .hero-stats span { color: var(--subtle); font-size: 12px; }
 
+.progress-bar-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  height: 8px;
+  margin-top: 14px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+.progress-label {
+  color: var(--subtle);
+  font-size: 12px;
+  text-align: center;
+  margin: 6px 0 0;
+}
+
+.workout-secondary {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 14px;
+}
+.workout-secondary .btn {
+  font-size: 14px;
+  padding: 10px 16px;
+}
+
 .pill {
   background: var(--surface);
   border: 1px solid var(--border);
