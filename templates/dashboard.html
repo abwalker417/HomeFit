@@ -16,16 +16,16 @@
 
   <div class="hero-stats">
     <div>
+      <strong>{{ stats.starting_weight or profile.current_weight }}</strong>
+      <span>starting</span>
+    </div>
+    <div>
       <strong>{{ profile.current_weight }}</strong>
-      <span>lbs now</span>
+      <span>current</span>
     </div>
     <div>
       <strong>{{ profile.goal_weight }}</strong>
-      <span>lbs goal</span>
-    </div>
-    <div>
-      <strong>{{ profile.days_per_week }}</strong>
-      <span>days/week</span>
+      <span>goal</span>
     </div>
   </div>
 </section>
@@ -40,7 +40,7 @@
   <p id="weight-status" class="subtle"></p>
 </section>
 
-<section>
+<section style="text-align: center;">
   <h2 class="section-title">Pick a workout</h2>
   <p class="subtle" style="margin: 4px 0 12px;">Tap one to start, or use the buttons above to build your own.</p>
   <div class="day-grid">

@@ -359,4 +359,5 @@ def get_stats(user_id):
         "total_workouts": total,
         "last_workout": last["completed_at"] if last else None,
         "weight_change": trend,
+        "starting_weight": weights[0]["weight"] if weights else None,
     }
