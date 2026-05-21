@@ -186,7 +186,7 @@ function drawWeightChart() {
   const range = Math.max(1, max - min);
 
   // Axis
-  ctx.strokeStyle = '#263859';
+  ctx.strokeStyle = '#2d3a52';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(padding.l, padding.t);
@@ -209,7 +209,7 @@ function drawWeightChart() {
   }
 
   // Line
-  ctx.strokeStyle = '#22d3ee';
+  ctx.strokeStyle = '#f97316';
   ctx.lineWidth = 2;
   ctx.beginPath();
   points.forEach((p, i) => {
@@ -221,7 +221,7 @@ function drawWeightChart() {
   ctx.stroke();
 
   // Dots
-  ctx.fillStyle = '#38bdf8';
+  ctx.fillStyle = '#fb923c';
   points.forEach((p, i) => {
     const x = padding.l + (innerW * i) / Math.max(1, points.length - 1);
     const y = padding.t + innerH - ((p.weight - min) / range) * innerH;

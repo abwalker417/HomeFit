@@ -11,7 +11,7 @@
 <body>
   <header class="app-header">
     <a class="brand" href="{{ url_for('index') }}">
-      <span class="brand-mark">HF</span>
+      <img class="brand-mark" src="{{ url_for('static', filename='icons/apple-touch-icon.png') }}" alt="HomeFit">
       <span>
         <span class="brand-name">HomeFit</span>
         {% if current_user %}<span class="subtitle">{{ current_user.emoji }} {{ current_user.name }}</span>{% endif %}
