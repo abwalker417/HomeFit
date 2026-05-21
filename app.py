@@ -15,6 +15,7 @@ from workout_logic import (
     VALID_MUSCLE_GROUPS,
     all_exercises_with_status,
     build_workout,
+    get_exercise_by_id,
     pick_random_muscle_group,
 )
 
@@ -226,6 +227,8 @@ def profile_switch(user_id):
     if user.get("has_pin"):
         return redirect(url_for("profile_unlock", user_id=user_id))
     session["user_id"] = user_id
+    if user_id == 1:
+        session["is_owner"] = True
     return redirect(url_for("index"))
 
 
@@ -371,6 +374,27 @@ def today_workout():
         "exercises": workout.get("exercises", []),
     }
     return render_template("workout.html", day=day, profile=database.get_profile(session["user_id"]))
+
+
+@app.route("/today-workout/add", methods=["GET", "POST"])
+def add_exercise():
+    workout = session.get("today_workout")
+    if not workout:
+        return redirect(url_for("start_workout"))
+
+    if request.method == "POST":
+        ex = get_exercise_by_id(request.form.get("exercise_id", ""))
+        if ex:
+            workout["exercises"].append(ex)
+            session["today_workout"] = workout
+            session.modified = True
+        return redirect(url_for("today_workout"))
+
+    uid = session["user_id"]
+    profile = database.get_profile(uid)
+    all_ex = all_exercises_with_status(profile)
+    added_ids = {ex.get("id") for ex in workout.get("exercises", [])}
+    return render_template("add_exercise.html", exercises=all_ex, added_ids=added_ids)
 
 
 @app.route("/workout/<int:day_number>")

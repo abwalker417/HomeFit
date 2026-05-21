@@ -265,6 +265,7 @@ def all_exercises_with_status(profile):
             is_blocked = True
             reasons.append("missing equipment")
         out.append({
+            "id": ex.get("id", ""),
             "name": ex.get("name"),
             "category": ex.get("category", ""),
             "muscles": _exercise_muscles(ex),
@@ -275,6 +276,24 @@ def all_exercises_with_status(profile):
             "reason": ", ".join(reasons),
         })
     return out
+
+
+def get_exercise_by_id(exercise_id):
+    for ex in load_exercises():
+        if ex.get("id") == exercise_id:
+            return {
+                "id": ex["id"],
+                "name": ex.get("name"),
+                "muscles": _exercise_muscles(ex),
+                "equipment": _exercise_equipment(ex),
+                "difficulty": ex.get("difficulty", 1),
+                "instructions": ex.get("instructions", ""),
+                "sets": ex.get("default_sets", 3),
+                "reps": ex.get("default_reps", 10),
+                "rest": ex.get("rest_seconds", 45),
+                "unit": ex.get("unit", "reps"),
+            }
+    return None
 
 
 def pick_random_muscle_group():
