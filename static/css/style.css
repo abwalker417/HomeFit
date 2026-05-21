@@ -651,6 +651,32 @@ fieldset.field { border: none; padding: 0; }
 
 .eq-tag { color: var(--accent-2); font-size: 11px; text-transform: capitalize; }
 
+/* Profile management list (owner section of profile edit) */
+.profile-mgmt-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.profile-mgmt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.profile-mgmt-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.profile-mgmt-emoji { font-size: 22px; line-height: 1; }
+
 /* Add-exercise page */
 .add-ex-link { display: block; text-align: center; margin: 10px 0 6px; }
 .ex-row {

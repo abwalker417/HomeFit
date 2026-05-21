@@ -57,6 +57,25 @@
 </section>
 
 {% if can_manage_profiles %}
+<section class="card">
+  <h2>Manage profiles</h2>
+  <p class="subtle">Edit any profile or add a new one.</p>
+  <ul class="profile-mgmt-list">
+    {% for u in all_users %}
+    <li class="profile-mgmt-row">
+      <span class="profile-mgmt-identity">
+        <span class="profile-mgmt-emoji">{{ u.emoji }}</span>
+        <span>{{ u.name }}{% if u.id == current_user.id %} <span class="subtle">(you)</span>{% endif %}</span>
+      </span>
+      <a class="pill" href="{{ url_for('profile_edit', user_id=u.id) }}">Edit</a>
+    </li>
+    {% endfor %}
+  </ul>
+  <a class="btn btn-secondary" href="{{ url_for('profile_new') }}" style="display:block; text-align:center; margin-top:12px;">+ Add profile</a>
+</section>
+{% endif %}
+
+{% if can_manage_profiles %}
 <section class="card danger-card">
   <h2>Danger zone</h2>
   <p class="subtle">Permanently deletes this profile and all workout history.</p>

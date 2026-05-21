@@ -306,6 +306,7 @@ def profile_edit(user_id):
         valid_equipment=VALID_EQUIPMENT,
         valid_limitations=VALID_LIMITATIONS,
         valid_muscles=VALID_MUSCLE_GROUPS,
+        all_users=database.list_users(),
     )
 
 
