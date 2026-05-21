@@ -127,6 +127,14 @@ def _lockout_message(seconds):
     return f"Too many wrong PINs. Try again in {minutes} minute{'s' if minutes != 1 else ''}."
 
 
+_LABEL_TO_MUSCLES = {
+    "upper body":    ["arms", "back", "chest", "shoulders"],
+    "lower body":    ["legs", "glutes"],
+    "core & cardio": ["core"],
+    "recovery":      ["full body"],
+}
+
+
 def _dashboard_plan(profile):
     labels = ["Upper body", "Lower body", "Core & cardio", "Recovery"]
     days = []
@@ -135,7 +143,6 @@ def _dashboard_plan(profile):
         days.append({
             "day_number": index + 1,
             "name": label,
-            "summary": "Built fresh when you start today's workout.",
         })
     goal = "maintain"
     if profile.get("goal_weight", 0) < profile.get("current_weight", 0) - 5:
@@ -358,6 +365,21 @@ def start_workout():
         return redirect(url_for("today_workout"))
 
     return render_template("start_workout.html", valid_muscles=VALID_MUSCLE_GROUPS)
+
+
+@app.route("/build-day")
+def build_day():
+    uid = session["user_id"]
+    profile = database.get_profile(uid)
+    if not profile:
+        return redirect(url_for("onboarding"))
+    label = request.args.get("label", "").strip()
+    muscles = _LABEL_TO_MUSCLES.get(label.lower())
+    if not muscles:
+        return redirect(url_for("start_workout"))
+    workout = build_workout(profile, label, muscles, [])
+    session["today_workout"] = workout
+    return redirect(url_for("today_workout"))
 
 
 @app.route("/today-workout")

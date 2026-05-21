@@ -13,10 +13,9 @@
       </h1>
     </div>
   </div>
-  <p class="subtle">{{ plan.summary }}</p>
 
   <div class="hero-actions">
-    <a class="btn btn-primary" href="{{ url_for('start_workout') }}">Start today’s workout</a>
+    <a class="btn btn-primary" href="{{ url_for('start_workout') }}">Choose my focus</a>
     <a class="btn btn-secondary" href="{{ url_for('start_workout') }}?mode=surprise">Pick one for me</a>
   </div>
 
@@ -46,24 +45,15 @@
   <p id="weight-status" class="subtle"></p>
 </section>
 
-<section class="card">
-  <div class="section-row">
-    <div>
-      <h2>Today’s workout flow</h2>
-      <p class="subtle">Choose your focus when you’re ready, or let HomeFit decide for you.</p>
-    </div>
-    <a class="pill" href="{{ url_for('start_workout') }}">Open builder</a>
-  </div>
-</section>
-
 <section>
   <h2 class="section-title">This week</h2>
+  <p class="subtle" style="margin: 4px 0 12px;">Tap a day to build that workout, or use the buttons above to choose your own focus.</p>
   <div class="day-grid">
     {% for day in plan.days %}
-    <a class="day-card" href="{{ url_for('start_workout') }}">
+    <a class="day-card" href="{{ url_for('build_day', label=day.name) }}">
       <span class="day-num">Day {{ day.day_number }}</span>
       <strong>{{ day.name }}</strong>
-      <span class="day-meta">Tap to build today</span>
+      <span class="day-meta">Tap to start →</span>
     </a>
     {% endfor %}
   </div>

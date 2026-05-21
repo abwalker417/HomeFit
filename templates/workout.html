@@ -3,7 +3,10 @@
 
 {% block content %}
 <section class="workout-header">
-  <a href="{{ url_for('index') }}" class="back-link">← Back</a>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+    <a href="{{ url_for('index') }}" class="back-link" style="margin:0;">← Home</a>
+    <a href="{{ url_for('start_workout') }}" class="pill" style="font-size:12px;">Change focus</a>
+  </div>
   <p class="eyebrow">Day {{ day.day_number }}{% if day.focus %} · Focus: {{ day.focus }}{% endif %}</p>
   <h1>{{ day.name }}</h1>
   <p class="subtle">{{ day.exercises|length }} exercise{{ 's' if day.exercises|length != 1 else '' }} · tap any to expand</p>
