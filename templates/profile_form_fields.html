@@ -35,7 +35,7 @@
   <legend>Available equipment</legend>
   <div class="pill-grid">
     {% for item in valid_equipment %}
-    <label class="pill-option"><input type="checkbox" name="equipment" value="{{ item }}" {% if item in (p.equipment or []) %}checked{% endif %}> <span>{{ item.title() }}</span></label>
+    <label class="pill-option"><input type="checkbox" name="equipment" value="{{ item }}" {% if item in (p.equipment or []) %}checked{% endif %}> <span>{{ "Bodyweight" if item == "none" else item.title() }}</span></label>
     {% endfor %}
   </div>
   <label>Custom equipment
