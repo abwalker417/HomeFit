@@ -41,12 +41,11 @@
 </section>
 
 <section>
-  <h2 class="section-title">This week</h2>
-  <p class="subtle" style="margin: 4px 0 12px;">Tap a day to build that workout, or use the buttons above to choose your own focus.</p>
+  <h2 class="section-title">Pick a workout</h2>
+  <p class="subtle" style="margin: 4px 0 12px;">Tap one to start, or use the buttons above to build your own.</p>
   <div class="day-grid">
     {% for day in plan.days %}
     <a class="day-card" href="{{ url_for('build_day', label=day.name) }}">
-      <span class="day-num">Day {{ day.day_number }}</span>
       <strong>{{ day.name }}</strong>
       <span class="day-meta">Tap to start →</span>
     </a>
