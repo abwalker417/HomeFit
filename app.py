@@ -478,7 +478,9 @@ def complete_workout():
         duration,
     )
     from datetime import date
-    sparky_sync.sync_workout_async(exercises, date.today(), duration)
+    enriched = [get_exercise_by_id(e["id"]) for e in exercises if e.get("id")]
+    enriched = [e for e in enriched if e]  # drop any unknown ids
+    sparky_sync.sync_workout_async(enriched, date.today(), duration)
     return jsonify({"ok": True})
 
 
