@@ -77,8 +77,32 @@ _SPARKY_EQUIPMENT_TO_HOMEFIT = {
     "foam roll": "bodyweight",
 }
 
-_LEG_KEYWORDS = {"quad", "hamstring", "glute", "calf", "calve", "adduct", "abduct", "hip"}
+_BROAD_MUSCLE_MAP = {
+    "upper body": "upper",
+    "legs": "legs",
+    "lower body": "legs",
+    "core": "core",
+    "cardiovascular": "cardio",
+}
+_LEG_KEYWORDS = {"quad", "hamstring", "glute", "calf", "calve", "adduct", "abduct", "hip", "leg"}
 _CORE_KEYWORDS = {"ab", "oblique", "core", "transverse"}
+
+
+def _parse_muscles(val):
+    """Return a list of muscle strings regardless of whether val is a list or JSON string."""
+    if not val:
+        return []
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str):
+        try:
+            parsed = json.loads(val)
+            if isinstance(parsed, list):
+                return parsed
+        except Exception:
+            pass
+        return [val]
+    return []
 
 
 def _sparky_category_to_homefit(sparky_ex):
@@ -87,12 +111,19 @@ def _sparky_category_to_homefit(sparky_ex):
         return "cardio"
     if cat in ("stretching", "flexibility"):
         return "core"
-    muscles = " ".join(sparky_ex.get("primary_muscles") or []).lower()
+    muscles_list = _parse_muscles(sparky_ex.get("primary_muscles"))
+    # Direct match for our broad muscle labels
+    for m in muscles_list:
+        result = _BROAD_MUSCLE_MAP.get(m.lower())
+        if result:
+            return result
+    # Keyword search for Free Exercise DB muscle names
+    muscles_str = " ".join(muscles_list).lower()
     for kw in _LEG_KEYWORDS:
-        if kw in muscles:
+        if kw in muscles_str:
             return "legs"
     for kw in _CORE_KEYWORDS:
-        if kw in muscles:
+        if kw in muscles_str:
             return "core"
     return "upper"
 
@@ -119,8 +150,8 @@ def _sparky_to_homefit(ex):
         "category": _sparky_category_to_homefit(ex),
         "difficulty": _sparky_level_to_difficulty(ex.get("level")),
         "equipment": _sparky_equipment_to_homefit(ex.get("equipment") or []),
-        "muscle_group": (ex.get("primary_muscles") or ["full_body"])[0].lower().replace(" ", "_"),
-        "muscles": ex.get("primary_muscles") or [],
+        "muscle_group": (_parse_muscles(ex.get("primary_muscles")) or ["full_body"])[0].lower().replace(" ", "_"),
+        "muscles": _parse_muscles(ex.get("primary_muscles")),
         "contraindications": [],
         "default_reps": 10,
         "default_sets": 3,
