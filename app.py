@@ -501,6 +501,10 @@ def sparky_settings():
             message = "SparkyFitness sync disconnected."
         elif action == "test":
             ok, message = sparky_sync.test_connection(url, api_key)
+        elif action == "push_exercises":
+            ok, message = sparky_sync.push_exercises_to_sparky()
+        elif action == "refresh_exercises":
+            ok, message = sparky_sync.fetch_and_replace_exercises()
         else:
             sparky_sync.save_config(url, api_key)
             config = sparky_sync.load_config()

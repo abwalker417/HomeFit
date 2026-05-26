@@ -35,9 +35,27 @@
 
 {% if config.url %}
 <section class="card">
+  <h2>Exercise library</h2>
+  <p class="subtle">Keep HomeFit's exercise list in sync with what's in SparkyFitness.</p>
+  <form method="post" class="form">
+    <input type="hidden" name="url" value="{{ config.url }}">
+    <input type="hidden" name="api_key" value="{{ config.api_key }}">
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button type="submit" name="action" value="push_exercises" class="btn btn-secondary">Push HomeFit → Sparky</button>
+      <button type="submit" name="action" value="refresh_exercises" class="btn btn-primary"
+              onclick="return confirm('Replace exercises.json with what\'s currently in Sparky?')">Pull Sparky → HomeFit</button>
+    </div>
+    <p class="subtle" style="margin-top:8px;">
+      <strong>Push</strong> sends any missing HomeFit exercises up to Sparky.<br>
+      <strong>Pull</strong> replaces HomeFit's exercise list with everything currently in Sparky (including exercises you add there directly).
+    </p>
+  </form>
+</section>
+
+<section class="card">
   <h2>Status</h2>
   <p class="subtle">Connected to <strong>{{ config.url }}</strong></p>
-  <p class="subtle">New workouts completed in HomeFit will automatically appear in SparkyFitness under the same date.</p>
+  <p class="subtle">Completed workouts and weight logs sync to SparkyFitness automatically.</p>
 </section>
 {% endif %}
 {% endblock %}
