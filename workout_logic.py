@@ -194,12 +194,14 @@ def build_workout(profile, day_label, selected_muscles=None, preferred_equipment
     difficulty_cap = determine_difficulty_cap(profile.get("fitness_level"))
     goal = determine_goal(profile.get("current_weight", 0), profile.get("goal_weight", 0))
 
-    target_count = 6 if goal == "lose" else 5
+    target_count = 6
     chosen = _pick(filtered, target_count, difficulty_cap)
-    if len(chosen) < 3:
-        chosen = _pick(filtered, max(3, target_count), {1, 2, 3})
-    if len(chosen) < 3 and not selected_muscles:
-        chosen = _pick(exercises, target_count, difficulty_cap)
+    if len(chosen) < target_count:
+        # Relax difficulty constraint first (e.g. intermediate exercises for a beginner profile)
+        chosen = _pick(filtered, target_count, {1, 2, 3})
+    if len(chosen) < target_count and not selected_muscles:
+        # Not enough exercises even without difficulty filter — draw from full library
+        chosen = _pick(exercises, target_count, {1, 2, 3})
 
     workout = []
     for ex in chosen:
