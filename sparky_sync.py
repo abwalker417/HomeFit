@@ -261,20 +261,29 @@ def fetch_and_replace_exercises():
         return False, "SparkyFitness not configured."
 
     try:
-        r = requests.get(
-            f"{config['url']}/api/exercises",
-            params={"limit": 2000},
-            headers=_headers(config["api_key"]),
-            timeout=30,
-        )
-        if not r.ok:
-            return False, f"Sparky returned {r.status_code}."
-
         skip_sources = {"HealthKit", "healthkit"}
-        sparky_exercises = [
-            e for e in r.json().get("exercises", [])
-            if e.get("name") and e.get("source") not in skip_sources
-        ]
+        sparky_exercises = []
+        offset = 0
+        page_size = 10
+
+        while True:
+            r = requests.get(
+                f"{config['url']}/api/exercises",
+                params={"limit": page_size, "offset": offset},
+                headers=_headers(config["api_key"]),
+                timeout=30,
+            )
+            if not r.ok:
+                return False, f"Sparky returned {r.status_code}."
+            data = r.json()
+            page = data.get("exercises", [])
+            sparky_exercises += [
+                e for e in page
+                if e.get("name") and e.get("source") not in skip_sources
+            ]
+            if len(page) < page_size or offset + page_size >= data.get("totalCount", 0):
+                break
+            offset += page_size
 
         homefit_exercises = [_sparky_to_homefit(e) for e in sparky_exercises]
 
