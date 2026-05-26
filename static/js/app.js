@@ -127,12 +127,18 @@ function startWorkout() {
     finishBtn.disabled = true;
     finishBtn.textContent = 'Saving…';
     try {
-      await fetch('/api/complete_workout', {
+      const resp = await fetch('/api/complete_workout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      window.location.href = '/progress';
+      const result = await resp.json();
+      const mins = String(Math.floor(duration / 60)).padStart(2, '0');
+      const secs = String(duration % 60).padStart(2, '0');
+      document.getElementById('wc-time').textContent = `${mins}:${secs}`;
+      if (result.kcal) document.getElementById('wc-kcal').textContent = result.kcal;
+      document.getElementById('workout-complete').classList.remove('hidden');
+      document.getElementById('workout-body').classList.add('hidden');
     } catch (err) {
       finishBtn.disabled = false;
       finishBtn.textContent = 'Retry finish';

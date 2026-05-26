@@ -18,6 +18,10 @@
       <strong>{{ stats.total_minutes }}</strong>
       <span>Minutes</span>
     </div>
+    <div class="stat-card">
+      <strong>{{ stats.total_kcal }}</strong>
+      <span>kcal burned</span>
+    </div>
   </div>
 </section>
 
@@ -42,7 +46,7 @@
           <span class="subtle">Day {{ w.day_number }} · {{ w.exercises|length }} exercises</span>
         </div>
         <div class="history-meta">
-          <span>{{ (w.duration_seconds or 0) // 60 }} min</span>
+          <span>{{ (w.duration_seconds or 0) // 60 }} min{% if w.kcal %} · {{ w.kcal }} kcal{% endif %}</span>
           <span class="subtle">{{ w.completed_at[:10] }}</span>
         </div>
       </li>

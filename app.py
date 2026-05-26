@@ -172,6 +172,16 @@ def _dashboard_plan(profile):
     }
 
 
+def _calc_kcal(enriched_exercises, weight_lbs, duration_seconds):
+    if not duration_seconds or not weight_lbs or not enriched_exercises:
+        return 0
+    weight_kg = weight_lbs / 2.20462
+    hours = duration_seconds / 3600
+    mets = [float(e.get("met") or 5.0) for e in enriched_exercises if e]
+    avg_met = sum(mets) / len(mets) if mets else 5.0
+    return round(avg_met * weight_kg * hours)
+
+
 def _progress_stats(user_id):
     from datetime import datetime, timedelta
     stats = database.get_stats(user_id)
@@ -481,7 +491,9 @@ def complete_workout():
     enriched = [get_exercise_by_id(e["id"]) for e in exercises if e.get("id")]
     enriched = [e for e in enriched if e]  # drop any unknown ids
     sparky_sync.sync_workout_async(enriched, date.today(), duration)
-    return jsonify({"ok": True})
+    profile = database.get_profile(uid)
+    kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
+    return jsonify({"ok": True, "kcal": kcal})
 
 
 @app.route("/settings/sparky", methods=["GET", "POST"])
@@ -543,6 +555,12 @@ def progress():
     workouts = database.get_workout_history(uid)
     stats = _progress_stats(uid)
     weights = _weight_chart_points(history)
+    weight_lbs = (profile or {}).get("current_weight") or 0
+    for w in workouts:
+        eids = [e["id"] for e in w.get("exercises", []) if e.get("id")]
+        enriched = [get_exercise_by_id(eid) for eid in eids]
+        w["kcal"] = _calc_kcal([e for e in enriched if e], weight_lbs, w.get("duration_seconds"))
+    stats["total_kcal"] = sum(w["kcal"] for w in workouts)
     return render_template("progress.html", profile=profile, weights=weights, history=workouts, stats=stats)
 
 
