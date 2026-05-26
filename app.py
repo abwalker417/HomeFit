@@ -510,7 +510,9 @@ def sparky_settings():
 def log_weight():
     uid = session["user_id"]
     data = request.get_json(force=True)
-    database.log_weight(uid, float(data.get("weight", 0)))
+    weight = float(data.get("weight", 0))
+    database.log_weight(uid, weight)
+    sparky_sync.sync_weight_async(weight)
     return jsonify({"ok": True})
 
 

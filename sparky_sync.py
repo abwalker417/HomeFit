@@ -196,3 +196,35 @@ def sync_workout_async(exercises, workout_date, duration_seconds):
         daemon=True,
     )
     t.start()
+
+
+def _sync_weight(config, weight, log_date):
+    try:
+        requests.post(
+            f"{config['url']}/api/health-data",
+            headers={**_headers(config["api_key"]), "Content-Type": "application/json"},
+            json=[{"type": "weight", "value": weight, "date": log_date}],
+            timeout=10,
+        )
+    except Exception:
+        pass
+
+
+def sync_weight_async(weight, log_date=None):
+    """Fire-and-forget: push a weight entry to SparkyFitness in the background."""
+    config = load_config()
+    if not config.get("url") or not config.get("api_key"):
+        return
+
+    if log_date is None:
+        from datetime import date
+        log_date = date.today().isoformat()
+    elif hasattr(log_date, "isoformat"):
+        log_date = log_date.isoformat()
+
+    t = threading.Thread(
+        target=_sync_weight,
+        args=(config, weight, log_date),
+        daemon=True,
+    )
+    t.start()
