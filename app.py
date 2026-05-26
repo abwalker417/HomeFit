@@ -179,8 +179,11 @@ def _progress_stats(user_id):
     stats.setdefault("last_workout", None)
     stats.setdefault("weight_change", None)
     history = database.get_workout_history(user_id)
-    cutoff = (datetime.utcnow() - timedelta(days=7)).isoformat()
-    stats["last_7_days"] = sum(1 for item in history if (item.get("completed_at") or "") >= cutoff)
+    today = datetime.utcnow().date()
+    # weekday(): Mon=0 … Sun=6 — roll back to the most recent Sunday
+    days_since_sunday = (today.weekday() + 1) % 7
+    week_start = datetime.combine(today - timedelta(days=days_since_sunday), datetime.min.time()).isoformat()
+    stats["last_7_days"] = sum(1 for item in history if (item.get("completed_at") or "") >= week_start)
     stats["total_minutes"] = sum((item.get("duration_seconds") or 0) // 60 for item in history)
     if stats["last_workout"]:
         try:
