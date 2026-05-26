@@ -23,7 +23,6 @@
       <a href="{{ url_for('exercises') }}">Exercises</a>
       <a href="{{ url_for('progress') }}">Progress</a>
       <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
-      <a href="{{ url_for('sparky_settings') }}">Sparky</a>
       <a href="{{ url_for('profile_switch_out') }}">Switch</a>
     </nav>
     {% endif %}
@@ -39,7 +38,6 @@
     <a href="{{ url_for('exercises') }}">Exercises</a>
     <a href="{{ url_for('progress') }}">Progress</a>
     <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
-    <a href="{{ url_for('sparky_settings') }}">Sparky</a>
     <a href="{{ url_for('profile_switch_out') }}">Switch</a>
   </nav>
   {% endif %}
