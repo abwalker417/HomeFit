@@ -18,6 +18,13 @@ _CATEGORY_MAP = {
     "cardio": "Cardio",
 }
 
+_MUSCLE_MAP = {
+    "upper": ["Upper Body"],
+    "legs": ["Legs"],
+    "core": ["Core"],
+    "cardio": ["Cardiovascular"],
+}
+
 _EQUIPMENT_MAP = {
     "bodyweight": "None",
     "dumbbells": "Dumbbell",
@@ -104,10 +111,12 @@ def _find_or_create_exercise(base_url, api_key, exercise):
     raw_equipment = exercise.get("equipment") or ["bodyweight"]
     mapped_equipment = [_EQUIPMENT_MAP.get(e, e.capitalize()) for e in raw_equipment]
 
-    muscles = exercise.get("muscles") or []
-    mapped_muscles = [m.replace("_", " ").title() for m in muscles] if muscles else ["Full Body"]
-
     category = exercise.get("category", "upper")
+    # HomeFit stores only a broad muscle_group; use category to give Sparky something meaningful
+    muscles = exercise.get("muscles") or []
+    non_generic = [m for m in muscles if m.lower() not in ("full body", "full_body")]
+    mapped_muscles = [m.replace("_", " ").title() for m in non_generic] if non_generic \
+        else _MUSCLE_MAP.get(category, ["Full Body"])
 
     exercise_data = json.dumps({
         "name": name,
