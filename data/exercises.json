@@ -998,7 +998,7 @@
     "id": "rack_back_squat",
     "name": "Back Squat (Rack)",
     "category": "legs",
-    "difficulty": 2,
+    "difficulty": 1,
     "equipment": "power_cage_cable",
     "contraindications": [
       "bad_back",
@@ -1015,7 +1015,7 @@
     "id": "rack_bench_press",
     "name": "Bench Press (Rack)",
     "category": "upper",
-    "difficulty": 2,
+    "difficulty": 1,
     "equipment": "power_cage_cable",
     "contraindications": [
       "bad_shoulders",
@@ -1032,7 +1032,7 @@
     "id": "rack_overhead_press",
     "name": "Overhead Press (Rack)",
     "category": "upper",
-    "difficulty": 2,
+    "difficulty": 1,
     "equipment": "power_cage_cable",
     "contraindications": [
       "bad_shoulders",
@@ -1050,7 +1050,7 @@
     "id": "rack_pullup",
     "name": "Pull-Up (Power Cage)",
     "category": "upper",
-    "difficulty": 2,
+    "difficulty": 1,
     "equipment": "power_cage_cable",
     "contraindications": [
       "bad_shoulders",
@@ -1067,7 +1067,7 @@
     "id": "rack_dip",
     "name": "Dip (Dip Bars)",
     "category": "upper",
-    "difficulty": 2,
+    "difficulty": 1,
     "equipment": "power_cage_cable",
     "contraindications": [
       "bad_shoulders",
@@ -1182,7 +1182,7 @@
     "id": "landmine_press_cage",
     "name": "Landmine Press",
     "category": "upper",
-    "difficulty": 2,
+    "difficulty": 1,
     "equipment": "power_cage_cable",
     "contraindications": [
       "bad_shoulders",
@@ -1200,7 +1200,7 @@
     "id": "landmine_row_cage",
     "name": "Landmine Row",
     "category": "upper",
-    "difficulty": 2,
+    "difficulty": 1,
     "equipment": "power_cage_cable",
     "contraindications": [
       "bad_back",
@@ -1234,7 +1234,7 @@
     "id": "landmine_rotation_cage",
     "name": "Landmine Rotation",
     "category": "core",
-    "difficulty": 2,
+    "difficulty": 1,
     "equipment": "power_cage_cable",
     "contraindications": [
       "bad_back"
@@ -1349,7 +1349,7 @@
     "id": "cable_fly_bench_combo",
     "name": "Cable Fly (Bench Supported)",
     "category": "upper",
-    "difficulty": 2,
+    "difficulty": 1,
     "equipment": "power_cage_cable",
     "contraindications": [
       "bad_shoulders"
