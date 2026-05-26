@@ -199,11 +199,13 @@ def sync_workout_async(exercises, workout_date, duration_seconds):
 
 
 def _sync_weight(config, weight, log_date):
+    # SparkyFitness stores weight in kg; HomeFit uses lbs
+    weight_kg = round(weight / 2.20462, 4)
     try:
         requests.post(
             f"{config['url']}/api/health-data",
             headers={**_headers(config["api_key"]), "Content-Type": "application/json"},
-            json=[{"type": "weight", "value": weight, "date": log_date}],
+            json=[{"type": "weight", "value": weight_kg, "date": log_date}],
             timeout=10,
         )
     except Exception:
