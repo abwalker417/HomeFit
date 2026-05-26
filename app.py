@@ -24,6 +24,7 @@ STATIC_VERSION = _git_version()
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 
 import database
+import sparky_sync
 from workout_logic import (
     VALID_EQUIPMENT,
     VALID_LIMITATIONS,
@@ -464,14 +465,45 @@ def workout(day_number):
 def complete_workout():
     uid = session["user_id"]
     data = request.get_json(force=True)
+    exercises = data.get("exercises", [])
+    duration = data.get("duration_seconds")
     database.log_workout(
         uid,
         data.get("day_name", "Workout"),
         int(data.get("day_number", 1)),
-        data.get("exercises", []),
-        data.get("duration_seconds"),
+        exercises,
+        duration,
     )
+    from datetime import date
+    sparky_sync.sync_workout_async(exercises, date.today(), duration)
     return jsonify({"ok": True})
+
+
+@app.route("/settings/sparky", methods=["GET", "POST"])
+def sparky_settings():
+    message = None
+    ok = False
+    config = sparky_sync.load_config()
+
+    if request.method == "POST":
+        action = request.form.get("action", "save")
+        url = request.form.get("url", "").strip()
+        api_key = request.form.get("api_key", "").strip()
+
+        if action == "clear":
+            sparky_sync.save_config("", "")
+            config = {}
+            message = "SparkyFitness sync disconnected."
+        elif action == "test":
+            ok, message = sparky_sync.test_connection(url, api_key)
+        else:
+            sparky_sync.save_config(url, api_key)
+            config = sparky_sync.load_config()
+            ok, message = sparky_sync.test_connection(url, api_key)
+            if ok:
+                message = "Settings saved and connection verified."
+
+    return render_template("sparky_settings.html", config=config, message=message, ok=ok)
 
 
 @app.route("/api/log_weight", methods=["POST"])
