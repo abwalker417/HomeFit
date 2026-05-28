@@ -98,6 +98,7 @@ def _parse_profile_form(form):
         "target_muscles": [],
         "preferred_equipment": [],
         "days_per_week": int(form.get("days_per_week", 4) or 4),
+        "sparky_sync": form.get("sparky_sync") == "1",
     }
 
 
@@ -347,6 +348,7 @@ def profile_edit(user_id):
         valid_limitations=VALID_LIMITATIONS,
         valid_muscles=VALID_MUSCLE_GROUPS,
         all_users=database.list_users(),
+        sparky_configured=bool(sparky_sync.load_config().get("url")),
     )
 
 
@@ -395,6 +397,7 @@ def onboarding():
         valid_limitations=VALID_LIMITATIONS,
         valid_equipment=VALID_EQUIPMENT,
         valid_muscles=VALID_MUSCLE_GROUPS,
+        sparky_configured=bool(sparky_sync.load_config().get("url")),
     )
 
 
@@ -490,8 +493,9 @@ def complete_workout():
     from datetime import date
     enriched = [get_exercise_by_id(e["id"]) for e in exercises if e.get("id")]
     enriched = [e for e in enriched if e]  # drop any unknown ids
-    sparky_sync.sync_workout_async(enriched, date.today(), duration)
     profile = database.get_profile(uid)
+    if (profile or {}).get("sparky_sync"):
+        sparky_sync.sync_workout_async(enriched, date.today(), duration)
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     return jsonify({"ok": True, "kcal": kcal})
 
@@ -533,7 +537,9 @@ def log_weight():
     data = request.get_json(force=True)
     weight = float(data.get("weight", 0))
     database.log_weight(uid, weight)
-    sparky_sync.sync_weight_async(weight)
+    profile = database.get_profile(uid)
+    if (profile or {}).get("sparky_sync"):
+        sparky_sync.sync_weight_async(weight)
     return jsonify({"ok": True})
 
 
