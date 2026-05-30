@@ -499,6 +499,7 @@ def complete_workout():
     if enriched and (profile or {}).get("sparky_sync"):
         sparky_sync.sync_workout_async(enriched, date.today(), duration)
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
+    session.pop("today_workout", None)
     return jsonify({"ok": True, "kcal": kcal})
 
 
