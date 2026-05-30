@@ -406,7 +406,8 @@ def _sync_workout(config, exercises, workout_date, duration_seconds):
         date_str = str(workout_date)[:10]
 
     exercise_count = max(len(exercises), 1)
-    duration_per_exercise = max(1, (duration_seconds or 0) // exercise_count // 60)
+    total_seconds = duration_seconds or 0
+    duration_per_exercise = max(1, total_seconds // exercise_count // 60)
 
     for exercise in exercises:
         try:
@@ -417,13 +418,12 @@ def _sync_workout(config, exercises, workout_date, duration_seconds):
             sets_count = int(exercise.get("sets") or exercise.get("default_sets") or 3)
             reps = int(exercise.get("reps") or exercise.get("default_reps") or 10)
             is_timed = exercise.get("unit") == "seconds"
+            seconds_per_set = max(1, (total_seconds // exercise_count) // max(sets_count, 1))
 
             sets_data = []
             for i in range(sets_count):
-                s = {"set_number": i + 1}
-                if is_timed:
-                    s["duration"] = reps
-                else:
+                s = {"set_number": i + 1, "duration": seconds_per_set}
+                if not is_timed:
                     s["reps"] = reps
                 sets_data.append(s)
 
