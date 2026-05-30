@@ -16,7 +16,7 @@ from typing import Optional
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 DB_PATH = Path(os.environ.get(
     "HOMEFIT_DB",
@@ -128,6 +128,10 @@ def init_db():
         _ensure_column(conn, "profile", "target_muscles", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "preferred_equipment", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "sparky_sync", "INTEGER NOT NULL DEFAULT 0")
+
+        # v4: existing profiles had sync always-on; restore that for any row still at 0
+        if version < 4 and _has_column(conn, "profile", "sparky_sync"):
+            conn.execute("UPDATE profile SET sparky_sync = 1 WHERE sparky_sync = 0")
 
         conn.execute("DELETE FROM schema_version")
         conn.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))

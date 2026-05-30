@@ -375,7 +375,8 @@ def index():
         stats["weight_progress_pct"] = min(100, max(0, round(done / span * 100)))
     else:
         stats["weight_progress_pct"] = 0
-    return render_template("dashboard.html", profile=profile, plan=plan, stats=stats)
+    return render_template("dashboard.html", profile=profile, plan=plan, stats=stats,
+                           has_active_workout=bool(session.get("today_workout")))
 
 
 @app.route("/onboarding", methods=["GET", "POST"])

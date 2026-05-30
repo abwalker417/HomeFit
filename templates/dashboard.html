@@ -44,6 +44,12 @@
   <p id="weight-status" class="subtle"></p>
 </section>
 
+{% if has_active_workout %}
+<a href="{{ url_for('today_workout') }}" class="card" style="display:block; text-align:center; background:var(--accent); color:#fff; text-decoration:none; padding:16px; border-radius:var(--radius);">
+  <strong>Workout in progress — tap to resume →</strong>
+</a>
+{% endif %}
+
 <section style="text-align: center;">
   <h2 class="section-title">Pick a workout</h2>
   <p class="subtle" style="margin: 4px 0 12px;">Tap one to start, or choose a custom focus below.</p>
