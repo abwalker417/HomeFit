@@ -492,10 +492,11 @@ def complete_workout():
         duration,
     )
     from datetime import date
-    enriched = [get_exercise_by_id(e["id"]) for e in exercises if e.get("id")]
+    completed = [e for e in exercises if e.get("completed") and e.get("id")]
+    enriched = [get_exercise_by_id(e["id"]) for e in completed]
     enriched = [e for e in enriched if e]  # drop any unknown ids
     profile = database.get_profile(uid)
-    if (profile or {}).get("sparky_sync"):
+    if enriched and (profile or {}).get("sparky_sync"):
         sparky_sync.sync_workout_async(enriched, date.today(), duration)
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     return jsonify({"ok": True, "kcal": kcal})
