@@ -47,6 +47,7 @@ app.config.update(
 PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
+    "api_last_workout",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
