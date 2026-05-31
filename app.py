@@ -349,6 +349,7 @@ def profile_edit(user_id):
         valid_muscles=VALID_MUSCLE_GROUPS,
         all_users=database.list_users(),
         sparky_configured=bool(sparky_sync.load_config().get("url")),
+        api_token=database.get_or_create_api_token(user_id) if user_id == session.get("user_id") else None,
     )
 
 
@@ -568,6 +569,34 @@ def toggle_ignore(exercise_id):
     uid = session["user_id"]
     now_ignored = database.toggle_ignored_exercise(uid, exercise_id)
     return jsonify({"ok": True, "ignored": now_ignored})
+
+
+@app.route("/api/last_workout")
+def api_last_workout():
+    from datetime import datetime, timedelta
+    token = request.args.get("token", "")
+    uid = database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "invalid token"}), 401
+    workout = database.get_last_workout(uid)
+    if not workout:
+        return jsonify({"error": "no workouts found"}), 404
+    profile = database.get_profile(uid)
+    duration_s = workout.get("duration_seconds") or 0
+    completed_at = datetime.fromisoformat(workout["completed_at"])
+    start_time = completed_at - timedelta(seconds=duration_s)
+    exercises = workout.get("exercises", [])
+    enriched = [get_exercise_by_id(e["id"]) for e in exercises if e.get("id")]
+    enriched = [e for e in enriched if e]
+    kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration_s)
+    return jsonify({
+        "name": workout.get("day_name", "Workout"),
+        "workout_type": "Traditional Strength Training",
+        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S") + "Z",
+        "end_time": completed_at.strftime("%Y-%m-%dT%H:%M:%S") + "Z",
+        "duration_minutes": round(duration_s / 60),
+        "kcal": kcal,
+    })
 
 
 @app.route("/progress")

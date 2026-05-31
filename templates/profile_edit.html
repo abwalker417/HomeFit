@@ -60,6 +60,18 @@
   <h2>Integrations</h2>
   <p class="subtle">Connect HomeFit to external services.</p>
   <a class="btn btn-secondary" href="{{ url_for('sparky_settings') }}" style="display:block; text-align:center;">SparkyFitness Sync</a>
+  {% if api_token %}
+  <div style="margin-top:16px;">
+    <p style="margin:0 0 6px; font-weight:600;">Apple Health (Shortcuts)</p>
+    <p class="subtle" style="margin:0 0 8px; font-size:13px;">Use this URL in your iOS Shortcut to fetch your last workout.</p>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input id="api-url" type="text" readonly
+             value="http://192.168.68.15:5000/api/last_workout?token={{ api_token }}"
+             style="flex:1; font-size:11px; font-family:monospace; padding:8px;">
+      <button type="button" class="btn btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('api-url').value).then(()=>this.textContent='Copied!').catch(()=>{})" style="white-space:nowrap;">Copy</button>
+    </div>
+  </div>
+  {% endif %}
 </section>
 
 {% if can_manage_profiles %}

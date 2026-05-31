@@ -129,6 +129,7 @@ def init_db():
         _ensure_column(conn, "profile", "preferred_equipment", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "sparky_sync", "INTEGER NOT NULL DEFAULT 0")
         _ensure_column(conn, "profile", "ignored_exercises", "TEXT NOT NULL DEFAULT '[]'")
+        _ensure_column(conn, "users", "api_token", "TEXT")
 
         # v4: existing profiles had sync always-on; restore that for any row still at 0
         if version < 4 and _has_column(conn, "profile", "sparky_sync"):
@@ -366,6 +367,37 @@ def get_workout_history(user_id, limit=50):
             d["exercises"] = _decode_json_list(d.pop("exercises_json", "[]"))
             result.append(d)
         return result
+
+
+def get_last_workout(user_id):
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM workout_log WHERE user_id = ? ORDER BY id DESC LIMIT 1",
+            (user_id,),
+        ).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["exercises"] = _decode_json_list(d.pop("exercises_json", "[]"))
+        return d
+
+
+def get_or_create_api_token(user_id):
+    with get_connection() as conn:
+        row = conn.execute("SELECT api_token FROM users WHERE id = ?", (user_id,)).fetchone()
+        if row and row["api_token"]:
+            return row["api_token"]
+        token = secrets.token_urlsafe(32)
+        conn.execute("UPDATE users SET api_token = ? WHERE id = ?", (token, user_id))
+        return token
+
+
+def get_user_id_by_token(token):
+    if not token:
+        return None
+    with get_connection() as conn:
+        row = conn.execute("SELECT id FROM users WHERE api_token = ?", (token,)).fetchone()
+        return row["id"] if row else None
 
 
 def get_stats(user_id):
