@@ -39,16 +39,17 @@ function startWorkout() {
   if (!root) return;
 
   const timerEl = document.getElementById('workout-timer');
-  const STORE_KEY = 'homefit_wk';
+  const userId = root.dataset.userId || 'default';
+  const STORE_KEY = `homefit_wk_${userId}`;
   const dayName = root.dataset.dayName;
 
-  // Restore state if we're returning to the same workout (e.g. after adding an exercise)
+  // Restore state — localStorage survives app restarts
   let state = null;
-  try { state = JSON.parse(sessionStorage.getItem(STORE_KEY)); } catch (_) {}
+  try { state = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (_) {}
   if (!state || state.dayName !== dayName) {
-    state = { dayName, started: Date.now(), done: [] };
+    state = { dayName, started: Date.now(), offset: 0, done: [] };
   }
-  sessionStorage.setItem(STORE_KEY, JSON.stringify(state));
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
 
   // Restore completed checkboxes
   root.querySelectorAll('.exercise-item').forEach((li) => {
@@ -62,20 +63,38 @@ function startWorkout() {
     state.done = Array.from(root.querySelectorAll('.exercise-item'))
       .filter((li) => li.querySelector('.ex-done').checked)
       .map((li) => li.dataset.exerciseId);
-    sessionStorage.setItem(STORE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
   };
   root.querySelectorAll('.ex-done').forEach((cb) => cb.addEventListener('change', persistDone));
 
-  // Running workout timer (picks up from saved start time)
-  const started = state.started;
+  // Elapsed seconds = time since started + any manually added offset
+  const elapsed = () => Math.floor((Date.now() - state.started) / 1000) + (state.offset || 0);
+
   const tickTimer = () => {
-    const s = Math.floor((Date.now() - started) / 1000);
+    const s = elapsed();
     const m = String(Math.floor(s / 60)).padStart(2, '0');
     const r = String(s % 60).padStart(2, '0');
     timerEl.textContent = `${m}:${r}`;
   };
   tickTimer();
   const timerInterval = setInterval(tickTimer, 1000);
+
+  // Tap timer to manually correct the time
+  timerEl.addEventListener('click', () => {
+    clearInterval(timerInterval);
+    const currentMins = Math.floor(elapsed() / 60);
+    const input = prompt('Correct workout time (minutes):', currentMins);
+    if (input !== null) {
+      const mins = parseInt(input, 10);
+      if (!isNaN(mins) && mins >= 0) {
+        state.started = Date.now();
+        state.offset = mins * 60;
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      }
+    }
+    tickTimer();
+    setInterval(tickTimer, 1000);
+  });
 
   // Rest timer overlay
   const overlay = document.getElementById('rest-overlay');
@@ -112,8 +131,8 @@ function startWorkout() {
   const finishBtn = document.getElementById('finish-btn');
   finishBtn.addEventListener('click', async () => {
     clearInterval(timerInterval);
-    sessionStorage.removeItem(STORE_KEY);
-    const duration = Math.floor((Date.now() - started) / 1000);
+    localStorage.removeItem(STORE_KEY);
+    const duration = elapsed();
     const items = Array.from(root.querySelectorAll('.exercise-item')).map((li) => ({
       id: li.dataset.exerciseId,
       completed: li.querySelector('.ex-done').checked,

@@ -449,7 +449,8 @@ def today_workout():
         "focus": focus_label,
         "exercises": workout.get("exercises", []),
     }
-    return render_template("workout.html", day=day, profile=database.get_profile(session["user_id"]))
+    uid = session["user_id"]
+    return render_template("workout.html", day=day, profile=database.get_profile(uid), user_id=uid)
 
 
 @app.route("/today-workout/add", methods=["GET", "POST"])
@@ -553,7 +554,14 @@ def exercises():
     if not profile:
         return redirect(url_for("onboarding"))
     items = all_exercises_with_status(profile)
-    return render_template("exercises.html", exercises=items, profile=profile)
+    return render_template("exercises.html", exercises=items, profile=profile, user_id=uid)
+
+
+@app.route("/api/toggle_ignore/<exercise_id>", methods=["POST"])
+def toggle_ignore(exercise_id):
+    uid = session["user_id"]
+    now_ignored = database.toggle_ignored_exercise(uid, exercise_id)
+    return jsonify({"ok": True, "ignored": now_ignored})
 
 
 @app.route("/progress")

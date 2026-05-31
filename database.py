@@ -16,7 +16,7 @@ from typing import Optional
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 DB_PATH = Path(os.environ.get(
     "HOMEFIT_DB",
@@ -128,6 +128,7 @@ def init_db():
         _ensure_column(conn, "profile", "target_muscles", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "preferred_equipment", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "sparky_sync", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "profile", "ignored_exercises", "TEXT NOT NULL DEFAULT '[]'")
 
         # v4: existing profiles had sync always-on; restore that for any row still at 0
         if version < 4 and _has_column(conn, "profile", "sparky_sync"):
@@ -230,7 +231,7 @@ def get_profile(user_id):
         if not row:
             return None
         p = dict(row)
-        for field in ("limitations", "equipment", "custom_equipment", "target_muscles", "preferred_equipment"):
+        for field in ("limitations", "equipment", "custom_equipment", "target_muscles", "preferred_equipment", "ignored_exercises"):
             p[field] = _decode_json_list(p.get(field))
         return p
 
@@ -247,6 +248,7 @@ def save_profile(
     target_muscles=None,
     preferred_equipment=None,
     sparky_sync=False,
+    ignored_exercises=None,
 ):
     now = datetime.utcnow().isoformat()
     values = (
@@ -261,6 +263,7 @@ def save_profile(
         json.dumps(preferred_equipment or []),
         days_per_week,
         1 if sparky_sync else 0,
+        json.dumps(ignored_exercises or []),
         now,
     )
     with get_connection() as conn:
@@ -269,9 +272,9 @@ def save_profile(
             INSERT INTO profile (
                 user_id, current_weight, goal_weight, fitness_level, limitations,
                 equipment, custom_equipment, target_muscles, preferred_equipment,
-                days_per_week, sparky_sync, updated_at
+                days_per_week, sparky_sync, ignored_exercises, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
                 current_weight=excluded.current_weight,
                 goal_weight=excluded.goal_weight,
@@ -283,6 +286,7 @@ def save_profile(
                 preferred_equipment=excluded.preferred_equipment,
                 days_per_week=excluded.days_per_week,
                 sparky_sync=excluded.sparky_sync,
+                ignored_exercises=excluded.ignored_exercises,
                 updated_at=excluded.updated_at
             """,
             values,
@@ -296,6 +300,24 @@ def save_profile(
                 "INSERT INTO weight_log (user_id, weight, logged_at) VALUES (?, ?, ?)",
                 (user_id, current_weight, now),
             )
+
+
+def toggle_ignored_exercise(user_id, exercise_id):
+    """Add exercise_id to ignored list if not present, remove it if it is. Returns new state (True=ignored)."""
+    with get_connection() as conn:
+        row = conn.execute("SELECT ignored_exercises FROM profile WHERE user_id = ?", (user_id,)).fetchone()
+        ignored = _decode_json_list(row["ignored_exercises"] if row else None)
+        if exercise_id in ignored:
+            ignored.remove(exercise_id)
+            now_ignored = False
+        else:
+            ignored.append(exercise_id)
+            now_ignored = True
+        conn.execute(
+            "UPDATE profile SET ignored_exercises = ? WHERE user_id = ?",
+            (json.dumps(ignored), user_id),
+        )
+    return now_ignored
 
 
 def log_weight(user_id, weight):

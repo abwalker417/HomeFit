@@ -50,6 +50,12 @@
              href="https://www.youtube.com/results?search_query={{ ex.name|replace(' ', '+') }}+proper+form">
             ▶ Watch demo on YouTube
           </a>
+          <button type="button"
+                  class="btn btn-secondary ignore-btn"
+                  data-exercise-id="{{ ex.id }}"
+                  data-ignored="{{ 'true' if ex.ignored else 'false' }}">
+            {{ 'Re-enable exercise' if ex.ignored else 'Ignore this exercise' }}
+          </button>
         </div>
       </details>
     </li>
@@ -59,5 +65,32 @@
 {% endblock %}
 
 {% block scripts %}
-<script>setupLibraryFilter();</script>
+<script>
+setupLibraryFilter();
+
+document.querySelectorAll('.ignore-btn').forEach(btn => {
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const exId = btn.dataset.exerciseId;
+    const resp = await fetch(`/api/toggle_ignore/${exId}`, { method: 'POST' });
+    const data = await resp.json();
+    if (!data.ok) return;
+    const li = btn.closest('li');
+    btn.dataset.ignored = data.ignored ? 'true' : 'false';
+    btn.textContent = data.ignored ? 'Re-enable exercise' : 'Ignore this exercise';
+    if (data.ignored) {
+      li.classList.add('blocked');
+      li.querySelector('.ex-meta .warn')?.remove();
+      const meta = li.querySelector('.ex-meta');
+      const warn = document.createElement('span');
+      warn.className = 'warn';
+      warn.textContent = ' · ignored';
+      meta.appendChild(warn);
+    } else {
+      li.classList.remove('blocked');
+      li.querySelector('.ex-meta .warn')?.remove();
+    }
+  });
+});
+</script>
 {% endblock %}

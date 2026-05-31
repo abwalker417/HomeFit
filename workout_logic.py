@@ -122,12 +122,15 @@ def filter_exercises(exercises, profile, selected_muscles=None, preferred_equipm
     available_equipment.update(_normalize_values(profile.get("custom_equipment") or []))
     preferred_equipment = set(_normalize_values(preferred_equipment or profile.get("preferred_equipment") or []))
     target_muscles = set(_normalize_values(selected_muscles or profile.get("target_muscles") or []))
+    ignored = set(profile.get("ignored_exercises") or [])
 
     if "full body" in target_muscles and len(target_muscles) > 1:
         target_muscles.discard("full body")
 
     filtered = []
     for ex in exercises:
+        if ex.get("id") in ignored:
+            continue
         if limitations & set(_exercise_limitations(ex)):
             continue
 
@@ -249,8 +252,10 @@ def all_exercises_with_status(profile):
     available_equipment = set(_normalize_values(profile.get("equipment") or []))
     available_equipment.update(_normalize_values(profile.get("custom_equipment") or []))
     blocked_limitations = set(_normalize_values(profile.get("limitations") or []))
+    ignored = set(profile.get("ignored_exercises") or [])
     out = []
     for ex in exercises:
+        ex_id = ex.get("id", "")
         ex_limitations = set(_exercise_limitations(ex))
         ex_equipment = set(_exercise_equipment(ex))
         needs_equipment = (
@@ -260,14 +265,17 @@ def all_exercises_with_status(profile):
         )
         is_blocked = False
         reasons = []
-        if blocked_limitations & ex_limitations:
+        if ex_id in ignored:
+            is_blocked = True
+            reasons.append("ignored")
+        elif blocked_limitations & ex_limitations:
             is_blocked = True
             reasons.append("blocked by limitation")
-        if needs_equipment and available_equipment and not (ex_equipment & available_equipment):
+        elif needs_equipment and available_equipment and not (ex_equipment & available_equipment):
             is_blocked = True
             reasons.append("missing equipment")
         out.append({
-            "id": ex.get("id", ""),
+            "id": ex_id,
             "name": ex.get("name"),
             "category": ex.get("category", ""),
             "muscles": _exercise_muscles(ex),
@@ -275,6 +283,7 @@ def all_exercises_with_status(profile):
             "difficulty": ex.get("difficulty", 1),
             "instructions": ex.get("instructions", ""),
             "available": not is_blocked,
+            "ignored": ex_id in ignored,
             "reason": ", ".join(reasons),
         })
     return out

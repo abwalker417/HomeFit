@@ -14,7 +14,8 @@
 
 <section id="workout-body"
          data-day-number="{{ day.day_number }}"
-         data-day-name="{{ day.name }}">
+         data-day-name="{{ day.name }}"
+         data-user-id="{{ user_id }}">
   <ol class="exercise-list">
     {% for ex in day.exercises %}
     <li class="exercise-item" data-exercise-id="{{ ex.id }}">
@@ -53,8 +54,8 @@
 
   <div class="workout-footer">
     <div class="timer-box">
-      <span class="timer-label">Workout time</span>
-      <span id="workout-timer" class="timer-display">00:00</span>
+      <span class="timer-label">Workout time <small style="font-weight:normal;opacity:.6;">(tap to edit)</small></span>
+      <span id="workout-timer" class="timer-display" style="cursor:pointer;" title="Tap to correct time">00:00</span>
     </div>
     <button id="finish-btn" class="btn btn-primary">Finish workout</button>
   </div>
