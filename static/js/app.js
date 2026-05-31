@@ -26,6 +26,9 @@ function setupWeightForm() {
         body: JSON.stringify({ weight }),
       });
       const data = await res.json();
+      if (data.ok && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.healthKit) {
+        window.webkit.messageHandlers.healthKit.postMessage({ type: 'logWeight', pounds: weight });
+      }
       status.textContent = data.ok ? 'Logged ✓' : 'Could not save.';
     } catch (err) {
       status.textContent = 'Could not reach server.';
@@ -152,7 +155,16 @@ function startWorkout() {
         body: JSON.stringify(payload),
       });
       if (!resp.ok) throw new Error('server error');
-      await resp.json();
+      const data = await resp.json();
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.healthKit) {
+        window.webkit.messageHandlers.healthKit.postMessage({
+          type: 'logWorkout',
+          durationSeconds: duration,
+          kcal: data.kcal || 0,
+          startTime: new Date(Date.now() - duration * 1000).toISOString(),
+          endTime: new Date().toISOString(),
+        });
+      }
       window.location.href = '/';
     } catch (err) {
       finishBtn.disabled = false;
