@@ -24,7 +24,6 @@ STATIC_VERSION = _git_version()
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 
 import database
-import sparky_sync
 from workout_logic import (
     VALID_EQUIPMENT,
     VALID_LIMITATIONS,
@@ -99,7 +98,6 @@ def _parse_profile_form(form):
         "target_muscles": [],
         "preferred_equipment": [],
         "days_per_week": int(form.get("days_per_week", 4) or 4),
-        "sparky_sync": form.get("sparky_sync") == "1",
     }
 
 
@@ -349,7 +347,6 @@ def profile_edit(user_id):
         valid_limitations=VALID_LIMITATIONS,
         valid_muscles=VALID_MUSCLE_GROUPS,
         all_users=database.list_users(),
-        sparky_configured=bool(sparky_sync.load_config().get("url")),
         api_token=database.get_or_create_api_token(user_id) if user_id == session.get("user_id") else None,
     )
 
@@ -406,7 +403,6 @@ def onboarding():
         valid_limitations=VALID_LIMITATIONS,
         valid_equipment=VALID_EQUIPMENT,
         valid_muscles=VALID_MUSCLE_GROUPS,
-        sparky_configured=bool(sparky_sync.load_config().get("url")),
     )
 
 
@@ -505,42 +501,10 @@ def complete_workout():
     enriched = [get_exercise_by_id(e["id"]) for e in completed]
     enriched = [e for e in enriched if e]  # drop any unknown ids
     profile = database.get_profile(uid)
-    if enriched and (profile or {}).get("sparky_sync"):
-        sparky_sync.sync_workout_async(enriched, date.today(), duration)
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     session.pop("today_workout", None)
     return jsonify({"ok": True, "kcal": kcal})
 
-
-@app.route("/settings/sparky", methods=["GET", "POST"])
-def sparky_settings():
-    message = None
-    ok = False
-    config = sparky_sync.load_config()
-
-    if request.method == "POST":
-        action = request.form.get("action", "save")
-        url = request.form.get("url", "").strip()
-        api_key = request.form.get("api_key", "").strip()
-
-        if action == "clear":
-            sparky_sync.save_config("", "")
-            config = {}
-            message = "SparkyFitness sync disconnected."
-        elif action == "test":
-            ok, message = sparky_sync.test_connection(url, api_key)
-        elif action == "push_exercises":
-            ok, message = sparky_sync.push_exercises_to_sparky()
-        elif action == "refresh_exercises":
-            ok, message = sparky_sync.fetch_and_replace_exercises()
-        else:
-            sparky_sync.save_config(url, api_key)
-            config = sparky_sync.load_config()
-            ok, message = sparky_sync.test_connection(url, api_key)
-            if ok:
-                message = "Settings saved and connection verified."
-
-    return render_template("sparky_settings.html", config=config, message=message, ok=ok)
 
 
 @app.route("/api/log_weight", methods=["POST"])
@@ -549,9 +513,6 @@ def log_weight():
     data = request.get_json(force=True)
     weight = float(data.get("weight", 0))
     database.log_weight(uid, weight)
-    profile = database.get_profile(uid)
-    if (profile or {}).get("sparky_sync"):
-        sparky_sync.sync_weight_async(weight)
     return jsonify({"ok": True})
 
 

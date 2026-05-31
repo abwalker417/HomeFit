@@ -127,13 +127,8 @@ def init_db():
         _ensure_column(conn, "profile", "custom_equipment", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "target_muscles", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "preferred_equipment", "TEXT NOT NULL DEFAULT '[]'")
-        _ensure_column(conn, "profile", "sparky_sync", "INTEGER NOT NULL DEFAULT 0")
         _ensure_column(conn, "profile", "ignored_exercises", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "users", "api_token", "TEXT")
-
-        # v4: existing profiles had sync always-on; restore that for any row still at 0
-        if version < 4 and _has_column(conn, "profile", "sparky_sync"):
-            conn.execute("UPDATE profile SET sparky_sync = 1 WHERE sparky_sync = 0")
 
         conn.execute("DELETE FROM schema_version")
         conn.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
@@ -248,7 +243,6 @@ def save_profile(
     custom_equipment=None,
     target_muscles=None,
     preferred_equipment=None,
-    sparky_sync=False,
     ignored_exercises=None,
 ):
     now = datetime.utcnow().isoformat()
@@ -263,7 +257,6 @@ def save_profile(
         json.dumps(target_muscles or []),
         json.dumps(preferred_equipment or []),
         days_per_week,
-        1 if sparky_sync else 0,
         json.dumps(ignored_exercises or []),
         now,
     )
@@ -273,9 +266,9 @@ def save_profile(
             INSERT INTO profile (
                 user_id, current_weight, goal_weight, fitness_level, limitations,
                 equipment, custom_equipment, target_muscles, preferred_equipment,
-                days_per_week, sparky_sync, ignored_exercises, updated_at
+                days_per_week, ignored_exercises, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
                 current_weight=excluded.current_weight,
                 goal_weight=excluded.goal_weight,
@@ -286,7 +279,6 @@ def save_profile(
                 target_muscles=excluded.target_muscles,
                 preferred_equipment=excluded.preferred_equipment,
                 days_per_week=excluded.days_per_week,
-                sparky_sync=excluded.sparky_sync,
                 ignored_exercises=excluded.ignored_exercises,
                 updated_at=excluded.updated_at
             """,
