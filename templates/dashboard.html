@@ -48,6 +48,9 @@
 <a href="{{ url_for('today_workout') }}" class="card" style="display:block; text-align:center; background:var(--accent); color:#fff; text-decoration:none; padding:16px; border-radius:var(--radius);">
   <strong>Workout in progress — tap to resume →</strong>
 </a>
+<form method="post" action="{{ url_for('cancel_workout') }}" style="text-align:center; margin-top:8px;">
+  <button type="submit" class="btn btn-secondary" style="font-size:13px; padding:6px 16px;">Cancel workout</button>
+</form>
 {% endif %}
 
 <section style="text-align: center;">

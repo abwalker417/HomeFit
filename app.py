@@ -358,6 +358,12 @@ def profile_switch_out():
     return redirect(url_for("profiles"))
 
 
+@app.route("/cancel-workout", methods=["POST"])
+def cancel_workout():
+    session.pop("today_workout", None)
+    return redirect(url_for("index"))
+
+
 @app.route("/")
 def index():
     uid = session["user_id"]
