@@ -169,7 +169,7 @@ function startWorkout() {
     return Array.from(li.querySelectorAll('.weight-set-row')).map((row) => ({
       weight: parseFloat(row.querySelector('.set-weight').value) || null,
       reps: parseInt(row.querySelector('.set-reps').value, 10) || null,
-    })).filter((s) => s.weight !== null);
+    })).filter((s) => s.weight !== null || s.reps !== null);
   }
 
   // Finish workout
