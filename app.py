@@ -179,9 +179,34 @@ def _calc_kcal(enriched_exercises, weight_lbs, duration_seconds):
         return 0
     weight_kg = weight_lbs / 2.20462
     hours = duration_seconds / 3600
-    mets = [float(e.get("met") or 5.0) for e in enriched_exercises if e]
-    avg_met = sum(mets) / len(mets) if mets else 5.0
-    return round(avg_met * weight_kg * hours)
+    duration_per_ex = hours / len(enriched_exercises)
+
+    total_kcal = 0.0
+    for ex in enriched_exercises:
+        if not ex:
+            continue
+        base_met = float(ex.get("met") or 5.0)
+        logged_sets = ex.get("sets_logged") or []
+        weighted_sets = [s for s in logged_sets if s.get("weight")]
+
+        if weighted_sets:
+            # Adjust MET based on average load relative to body weight
+            avg_lifted_kg = sum(s["weight"] for s in weighted_sets) / len(weighted_sets) / 2.20462
+            load_ratio = avg_lifted_kg / weight_kg
+            if load_ratio < 0.3:
+                met = max(base_met, 4.0)
+            elif load_ratio < 0.6:
+                met = max(base_met, 5.5)
+            elif load_ratio < 1.0:
+                met = max(base_met, 7.0)
+            else:
+                met = max(base_met, 8.5)
+        else:
+            met = base_met
+
+        total_kcal += met * weight_kg * duration_per_ex
+
+    return round(total_kcal)
 
 
 def _progress_stats(user_id):
