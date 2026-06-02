@@ -47,7 +47,7 @@ app.config.update(
 PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
-    "api_last_workout",
+    "api_last_workout", "api_last_weight",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
@@ -625,6 +625,22 @@ def api_last_workout():
         "end_time": completed_at.strftime("%Y-%m-%dT%H:%M:%S") + "Z",
         "duration_minutes": round(duration_s / 60),
         "kcal": kcal,
+    })
+
+
+@app.route("/api/last_weight")
+def api_last_weight():
+    token = request.args.get("token", "")
+    uid = database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "invalid token"}), 401
+    history = database.get_weight_history(uid, limit=1)
+    if not history:
+        return jsonify({"error": "no weight logged"}), 404
+    entry = history[0]
+    return jsonify({
+        "weight_lbs": entry["weight"],
+        "logged_at": entry["logged_at"],
     })
 
 
