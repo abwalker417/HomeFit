@@ -415,7 +415,8 @@ def _sync_workout(config, exercises, workout_date, duration_seconds):
             if not exercise_id:
                 continue
 
-            sets_count = int(exercise.get("sets") or exercise.get("default_sets") or 3)
+            logged_sets = exercise.get("sets_logged") or []
+            sets_count = len(logged_sets) or int(exercise.get("sets") or exercise.get("default_sets") or 3)
             reps = int(exercise.get("reps") or exercise.get("default_reps") or 10)
             is_timed = exercise.get("unit") == "seconds"
             seconds_per_set = max(1, (total_seconds // exercise_count) // max(sets_count, 1))
@@ -424,7 +425,10 @@ def _sync_workout(config, exercises, workout_date, duration_seconds):
             for i in range(sets_count):
                 s = {"set_number": i + 1, "duration": seconds_per_set}
                 if not is_timed:
-                    s["reps"] = reps
+                    logged = logged_sets[i] if i < len(logged_sets) else {}
+                    s["reps"] = logged.get("reps") or reps
+                    if logged.get("weight"):
+                        s["weight"] = logged["weight"]
                 sets_data.append(s)
 
             requests.post(

@@ -44,6 +44,16 @@
                   data-rest="{{ ex.rest }}">
             Start {{ ex.rest }}s rest timer
           </button>
+          <div class="weight-log" data-sets="{{ ex.sets }}" data-reps="{{ ex.reps }}">
+            <button type="button" class="btn btn-secondary weight-log-toggle">
+              📊 Log weights (optional)
+            </button>
+            <div class="weight-log-body" style="display:none; margin-top:10px;">
+              <p class="hint" style="margin-bottom:8px;">Recommended: {{ ex.sets }} sets × {% if ex.unit == 'seconds' %}{{ ex.reps }}s{% else %}{{ ex.reps }} reps{% endif %}</p>
+              <div class="weight-sets"></div>
+              <button type="button" class="btn btn-secondary add-set-btn" style="margin-top:6px; font-size:13px;">+ Add set</button>
+            </div>
+          </div>
         </div>
       </details>
     </li>

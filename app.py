@@ -502,8 +502,11 @@ def complete_workout():
     )
     from datetime import date
     completed = [e for e in exercises if e.get("completed") and e.get("id")]
+    sets_by_id = {e["id"]: e.get("sets", []) for e in completed}
     enriched = [get_exercise_by_id(e["id"]) for e in completed]
-    enriched = [e for e in enriched if e]  # drop any unknown ids
+    enriched = [e for e in enriched if e]
+    for e in enriched:
+        e["sets_logged"] = sets_by_id.get(e["id"], [])
     profile = database.get_profile(uid)
     if enriched and (profile or {}).get("sparky_sync"):
         sparky_sync.sync_workout_async(enriched, date.today(), duration)

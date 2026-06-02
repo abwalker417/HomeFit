@@ -130,6 +130,48 @@ function startWorkout() {
     });
   });
 
+  // Weight logging
+  function makeSetRow(reps) {
+    const row = document.createElement('div');
+    row.className = 'weight-set-row';
+    row.innerHTML = `
+      <input type="number" class="set-weight" placeholder="lbs" min="0" step="0.5" style="width:72px;">
+      <span style="margin:0 6px;">×</span>
+      <input type="number" class="set-reps" value="${reps}" min="1" style="width:52px;">
+      <span style="margin-left:4px; color:#94a3b8; font-size:13px;">reps</span>
+      <button type="button" class="remove-set-btn" style="margin-left:8px; background:none; border:none; color:#f87171; cursor:pointer; font-size:16px;">×</button>
+    `;
+    row.querySelector('.remove-set-btn').addEventListener('click', () => row.remove());
+    return row;
+  }
+
+  root.querySelectorAll('.weight-log').forEach((wl) => {
+    const toggleBtn = wl.querySelector('.weight-log-toggle');
+    const body = wl.querySelector('.weight-log-body');
+    const setsContainer = wl.querySelector('.weight-sets');
+    const addSetBtn = wl.querySelector('.add-set-btn');
+    const defaultSets = parseInt(wl.dataset.sets, 10) || 3;
+    const defaultReps = parseInt(wl.dataset.reps, 10) || 10;
+
+    toggleBtn.addEventListener('click', () => {
+      const open = body.style.display === 'none';
+      body.style.display = open ? 'block' : 'none';
+      toggleBtn.textContent = open ? '📊 Hide weight log' : '📊 Log weights (optional)';
+      if (open && setsContainer.children.length === 0) {
+        for (let i = 0; i < defaultSets; i++) setsContainer.appendChild(makeSetRow(defaultReps));
+      }
+    });
+
+    addSetBtn.addEventListener('click', () => setsContainer.appendChild(makeSetRow(defaultReps)));
+  });
+
+  function getLoggedSets(li) {
+    return Array.from(li.querySelectorAll('.weight-set-row')).map((row) => ({
+      weight: parseFloat(row.querySelector('.set-weight').value) || null,
+      reps: parseInt(row.querySelector('.set-reps').value, 10) || null,
+    })).filter((s) => s.weight !== null);
+  }
+
   // Finish workout
   const finishBtn = document.getElementById('finish-btn');
   finishBtn.addEventListener('click', async () => {
@@ -139,6 +181,7 @@ function startWorkout() {
     const items = Array.from(root.querySelectorAll('.exercise-item')).map((li) => ({
       id: li.dataset.exerciseId,
       completed: li.querySelector('.ex-done').checked,
+      sets: getLoggedSets(li),
     }));
     const payload = {
       day_number: parseInt(root.dataset.dayNumber, 10),
