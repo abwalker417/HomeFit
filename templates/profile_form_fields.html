@@ -43,3 +43,12 @@
   </label>
   <p class="hint">Similar gear is okay. HomeFit only removes exact duplicates.</p>
 </fieldset>
+{% if sparky_configured %}
+<fieldset>
+  <legend>SparkyFitness</legend>
+  <label class="pill-option" style="width:100%">
+    <input type="checkbox" name="sparky_sync" value="1" {% if p.get('sparky_sync') %}checked{% endif %}>
+    <span>Sync workouts &amp; weight to SparkyFitness</span>
+  </label>
+</fieldset>
+{% endif %}
