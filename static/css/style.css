@@ -774,7 +774,7 @@ fieldset.field { border: none; padding: 0; }
 /* Apex floating action button */
 .apex-fab {
   position: fixed;
-  bottom: 100px;
+  bottom: 28px;
   right: 20px;
   width: 64px;
   height: 64px;
