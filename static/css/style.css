@@ -878,12 +878,11 @@ fieldset.field { border: none; padding: 0; }
   justify-content: center;
   align-items: center;
   gap: 8px;
-  padding: 12px 4px;
+  padding: 8px 0;
 }
 .workout-icon-btn {
   flex: 1 1 0;
   min-width: 0;
-  max-width: 72px;
   display: block;
   background: none;
   border: none;
@@ -901,7 +900,3 @@ fieldset.field { border: none; padding: 0; }
   display: block;
 }
 .workout-icon-btn:active { transform: scale(0.92); opacity: 0.85; }
-@media (min-width: 400px) {
-  .workout-icon-row { gap: 12px; }
-  .workout-icon-btn { max-width: 80px; }
-}
