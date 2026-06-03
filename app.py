@@ -419,7 +419,8 @@ def index():
     else:
         stats["weight_progress_pct"] = 0
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats,
-                           has_active_workout=bool(session.get("today_workout")))
+                           has_active_workout=bool(session.get("today_workout")),
+                           ai_online=coach.is_available())
 
 
 @app.route("/onboarding", methods=["GET", "POST"])

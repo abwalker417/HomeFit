@@ -36,6 +36,16 @@ function setupWeightForm() {
   });
 }
 
+/* ---------- Coach workout button ---------- */
+const coachForm = document.getElementById('coach-form');
+if (coachForm) {
+  coachForm.addEventListener('submit', () => {
+    const btn = document.getElementById('coach-btn');
+    btn.disabled = true;
+    btn.textContent = '🤖 Coach is building your workout…';
+  });
+}
+
 /* ---------- Regenerate workout ---------- */
 const regenBtn = document.getElementById('regen-btn');
 if (regenBtn) {

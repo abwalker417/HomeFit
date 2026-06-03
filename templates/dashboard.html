@@ -54,6 +54,16 @@
 {% endif %}
 
 <section style="text-align: center;">
+  {% if ai_online %}
+  <form method="post" action="{{ url_for('start_workout') }}" id="coach-form" style="margin-bottom:16px;">
+    <input type="hidden" name="focus_mode" value="ai">
+    <button type="submit" class="btn btn-primary" id="coach-btn"
+            style="width:100%; max-width:400px; padding:16px; font-size:1.05rem;">
+      🤖 Let Coach build my workout
+    </button>
+    <p class="subtle" style="margin:6px 0 0; font-size:12px;">Personalised based on your history & progression</p>
+  </form>
+  {% endif %}
   <h2 class="section-title">Pick a workout</h2>
   <p class="subtle" style="margin: 4px 0 12px;">Tap one to start, or choose a custom focus below.</p>
   <div class="day-grid">
