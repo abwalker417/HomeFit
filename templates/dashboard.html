@@ -78,13 +78,25 @@
   </div>
 </section>
 
+{% if stats.today_workout %}
+<section class="card" style="border-color:var(--success);">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+    <span style="font-size:22px;">🏆</span>
+    <div>
+      <strong>{{ stats.today_workout.name }}</strong>
+      <span class="subtle" style="font-size:13px;"> · {{ stats.today_workout.duration_min }} min · {{ stats.today_workout.kcal }} kcal</span>
+    </div>
+  </div>
+  <p class="subtle" style="margin:0;font-size:13px;">Workout complete for today — great work!</p>
+</section>
+{% endif %}
+
 {% if stats.total_workouts %}
 <section class="card">
   <h2>You've got this</h2>
   <p class="subtle">
     {{ stats.total_workouts }} workouts · {{ stats.last_7_days }} this week · {{ stats.total_minutes }} min
-    {% if stats.days_since_workout == 0 %} · worked out today 💪
-    {% elif stats.days_since_workout == 1 %} · last workout yesterday
+    {% if stats.days_since_workout == 1 %} · last workout yesterday
     {% elif stats.days_since_workout %} · last workout {{ stats.days_since_workout }} days ago
     {% endif %}
   </p>

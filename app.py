@@ -414,6 +414,21 @@ def index():
         return redirect(url_for("onboarding"))
     plan = _dashboard_plan(profile)
     stats = _progress_stats(uid)
+    # Check for a workout completed today
+    from datetime import date
+    last = database.get_last_workout(uid)
+    if last and last.get("completed_at", "")[:10] == date.today().isoformat():
+        dur = last.get("duration_seconds") or 0
+        exs = json.loads(last.get("exercises_json") or "[]")
+        weight_kg = (profile.get("current_weight") or 0) * 0.453592
+        kcal = round(5.0 * weight_kg * (dur / 3600))
+        stats["today_workout"] = {
+            "name": last.get("day_name", "Workout"),
+            "duration_min": dur // 60,
+            "kcal": kcal,
+        }
+    else:
+        stats["today_workout"] = None
     start_w = stats.get("starting_weight") or profile.get("current_weight")
     current_w = profile.get("current_weight")
     goal_w = profile.get("goal_weight")

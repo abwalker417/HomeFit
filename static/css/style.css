@@ -404,6 +404,7 @@ fieldset.field { border: none; padding: 0; }
   display: grid; place-items: center;
   z-index: 50;
 }
+.hidden { display: none !important; }
 .rest-overlay.hidden { display: none; }
 .rest-inner { text-align: center; }
 .rest-label { color: var(--subtle); text-transform: uppercase; letter-spacing: 2px; }

@@ -379,45 +379,47 @@ function startWorkout() {
         });
       }
 
-      // Show post-workout insight if coach returned one
-      if (data.insight || (data.overload && data.overload.length)) {
-        showPostWorkoutInsight(data.insight, data.overload || []);
-      } else {
-        window.location.href = '/';
-      }
+      showPostWorkoutInsight(data.insight, data.overload || [], duration, data.kcal);
     } catch (err) {
       finishBtn.disabled = false;
       finishBtn.textContent = 'Retry finish';
     }
   });
 
-  function showPostWorkoutInsight(insight, overload) {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:flex-end;padding:16px;';
+  function showPostWorkoutInsight(insight, overload, durationSecs, kcal) {
+    // Populate the static workout-complete card
+    const wcSection = document.getElementById('workout-complete');
+    const workoutSection = document.getElementById('workout-body');
+    if (wcSection) {
+      const mins = Math.floor(durationSecs / 60);
+      const secs = durationSecs % 60;
+      const timeEl = document.getElementById('wc-time');
+      const kcalEl = document.getElementById('wc-kcal');
+      if (timeEl) timeEl.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+      if (kcalEl) kcalEl.textContent = kcal ? Math.round(kcal) : '--';
+      if (workoutSection) workoutSection.style.display = 'none';
+      wcSection.classList.remove('hidden');
+    }
 
+    // If Apex returned extra data, show it above the card
+    if (!insight && (!overload || !overload.length)) return;
+    const banner = document.createElement('div');
+    banner.style.cssText = 'padding:16px;';
     let overloadHtml = '';
-    if (overload.length) {
+    if (overload && overload.length) {
       const items = overload.map(s =>
-        `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:14px;">
           <strong>${s.exercise_name}</strong>
           <span style="color:var(--accent);float:right">${s.current_weight} → ${s.suggested_weight} lbs</span>
         </div>`
       ).join('');
-      overloadHtml = `<div style="margin:12px 0 4px;font-weight:600;">📈 Ready to progress:</div>${items}`;
+      overloadHtml = `<div style="margin:10px 0 4px;font-weight:600;font-size:14px;">📈 Ready to progress:</div>${items}`;
     }
-
-    overlay.innerHTML = `
-      <div style="background:var(--card);border-radius:20px;padding:24px;width:100%;max-width:480px;margin:0 auto;">
-        <h2 style="margin:0 0 12px;font-size:1.1rem;">🏆 Workout Complete!</h2>
-        ${insight ? `<p style="line-height:1.6;color:var(--text-muted);margin:0 0 16px;">${insight}</p>` : ''}
-        ${overloadHtml}
-        <button style="margin-top:16px;width:100%;" class="btn btn-primary" id="insight-done">Done</button>
-      </div>`;
-
-    document.body.appendChild(overlay);
-    document.getElementById('insight-done').addEventListener('click', () => {
-      window.location.href = '/';
-    });
+    banner.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;max-width:480px;margin:0 auto;">
+      ${insight ? `<p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:var(--subtle);">${insight}</p>` : ''}
+      ${overloadHtml}
+    </div>`;
+    if (wcSection) wcSection.insertAdjacentElement('afterbegin', banner);
   }
 }
 
