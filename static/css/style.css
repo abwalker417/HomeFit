@@ -873,12 +873,15 @@ fieldset.field { border: none; padding: 0; }
 }
 
 /* Workout icon row */
+.workout-icon-section {
+  margin: 8px -16px;
+}
 .workout-icon-row {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 8px;
-  padding: 8px 0;
+  padding: 8px 12px;
 }
 .workout-icon-btn {
   flex: 1 1 0;
