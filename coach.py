@@ -139,23 +139,28 @@ Available exercises (choose ONLY from this list, use the exact id values):
 {library_lines}
 ]
 
-Generate a single workout session for today. Rules:
-- Choose exactly {ex_count} exercises to fit a {duration_target}-minute session
+You MUST select EXACTLY {ex_count} exercises — no more, no fewer.
 {focus_line}
 - Avoid muscle groups worked in the last 1-2 days unless the user explicitly requested that focus
 - Respect limitations: {', '.join(limitations) or 'none'}
-- Vary from the most recent workout — don't repeat the same exercises
+- Vary from the most recent workout — don't repeat exercises
 - Fitness goal is {fitness_goal}: {goal_guidance}
 - Adjust sets/reps for {profile.get('fitness_level','beginner')} fitness level
 - Give the workout a descriptive name (e.g. "Upper Pull Focus", "Leg Power Day")
 
-Return ONLY valid JSON in this exact format, no other text:
+Respond with ONLY a raw JSON object. No markdown fences, no explanation, nothing before or after the JSON.
+The "exercises" array must contain exactly {ex_count} objects.
+
 {{
   "name": "workout name",
   "focus": "brief focus description",
   "exercises": [
-    {{"id": "exercise_id", "sets": 3, "reps": 10}},
-    {{"id": "exercise_id", "sets": 3, "reps": 12}}
+    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 10}},
+    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 12}},
+    {{"id": "real_exercise_id_from_list", "sets": 4, "reps": 8}},
+    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 10}},
+    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 12}},
+    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 15}}
   ]
 }}"""
 
@@ -172,7 +177,10 @@ Return ONLY valid JSON in this exact format, no other text:
     end = raw.rfind("}") + 1
     if start == -1 or end == 0:
         raise ValueError("No JSON found in LLM response")
-    return json.loads(raw[start:end])
+    result = json.loads(raw[start:end])
+    if len(result.get("exercises", [])) < 3:
+        raise ValueError(f"Too few exercises returned: {len(result.get('exercises', []))}")
+    return result
 
 
 def generate_post_workout_insight(coaching_data, suggestions):
