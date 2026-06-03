@@ -4,7 +4,7 @@ import json
 import requests
 
 OLLAMA_URL = "http://192.168.68.56:11434"
-MODEL = "phi4-mini"
+MODEL = "llama3.1:8b"
 
 SYSTEM_PROMPT = """You are Apex, a personal AI fitness coach embedded in HomeFit.
 You have access to the user's complete fitness profile and workout history.
