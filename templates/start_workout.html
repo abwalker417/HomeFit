@@ -7,7 +7,7 @@
   <h1>Ready to train?</h1>
   <p class="subtle">
     {% if ai_online %}
-      Your coach will build a personalised workout based on your history.
+      Apex will build a personalised workout based on your history.
     {% else %}
       Pick a focus area or let HomeFit decide.
     {% endif %}
@@ -19,7 +19,7 @@
   <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
     <span style="font-size:28px;">🤖</span>
     <div>
-      <h2 style="margin:0;">Coach-Generated Workout</h2>
+      <h2 style="margin:0;">Apex Workout</h2>
       <p class="subtle" style="margin:4px 0 0; font-size:13px;">Personalised based on your recent sessions and progression</p>
     </div>
   </div>
@@ -33,7 +33,7 @@
 
 <section class="card">
   <h2>Choose your own focus</h2>
-  <p class="subtle" style="margin-bottom:12px;">Override the coach and pick a specific muscle group.</p>
+  <p class="subtle" style="margin-bottom:12px;">Override Apex and pick a specific muscle group.</p>
   <form method="post" class="form">
     <input type="hidden" name="focus_mode" value="pick">
     <div class="pill-grid">
@@ -52,7 +52,7 @@
 
 {% else %}
 <section class="card">
-  <p class="subtle" style="margin-bottom:16px;">Coach is offline — Ollama isn't running on your Mac.</p>
+  <p class="subtle" style="margin-bottom:16px;">Apex is offline — Ollama isn't running on your Mac.</p>
   <form method="post" class="form">
     <input type="hidden" name="focus_mode" value="pick">
     <fieldset>
@@ -80,7 +80,7 @@
   document.getElementById('ai-form').addEventListener('submit', () => {
     const btn = document.getElementById('ai-btn');
     btn.disabled = true;
-    btn.textContent = '🤖 Coach is building your workout…';
+    btn.textContent = '🏔️ Apex is building your workout…';
   });
 </script>
 {% endif %}

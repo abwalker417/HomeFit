@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import app; print\\('app imports OK'\\)\")",
+      "Bash(.venv/bin/python -c \"import app; print\\('OK'\\)\")"
+    ]
+  }
+}
