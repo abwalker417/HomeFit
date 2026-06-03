@@ -47,6 +47,8 @@
   <main class="app-main">
     {% block content %}{% endblock %}
   </main>
+
+  {% if current_user %}
   <button id="apex-fab" class="apex-fab" title="Apex AI Coach" aria-label="Open Apex coach">
     <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="Apex">
   </button>
@@ -70,7 +72,6 @@
       <button id="apex-send" class="btn btn-primary" style="border-radius:20px; padding:10px 18px; white-space:nowrap;">Send</button>
     </div>
   </div>
-
   {% endif %}
 
   <script src="{{ url_for('static', filename='js/app.js') }}?v={{ static_version }}"></script>
