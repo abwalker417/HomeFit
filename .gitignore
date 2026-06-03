@@ -12,6 +12,16 @@ data/
 memory/
 .claude/
 HomeFitIcon-Transparent.png
+# Source icon files (processed versions live in static/icons/)
+icons/
+*.ico
+Apex-AI-2.png
+Core.png
+HomeFit.png
+Lower.png
+"Lower Body.png"
+Recovery.png
+"Upper Body.png"
 *.db
 *.sqlite
 *.sqlite3
