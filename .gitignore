@@ -31,3 +31,4 @@ instance/
 .mypy_cache/
 coverage/
 htmlcov/
+deploy.sh
