@@ -129,6 +129,8 @@ def init_db():
         _ensure_column(conn, "profile", "preferred_equipment", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "sparky_sync", "INTEGER NOT NULL DEFAULT 0")
         _ensure_column(conn, "profile", "ignored_exercises", "TEXT NOT NULL DEFAULT '[]'")
+        _ensure_column(conn, "profile", "fitness_goal", "TEXT NOT NULL DEFAULT 'general'")
+        _ensure_column(conn, "profile", "workout_duration_target", "INTEGER NOT NULL DEFAULT 45")
         _ensure_column(conn, "users", "api_token", "TEXT")
 
         conn.execute("DELETE FROM schema_version")
@@ -246,6 +248,8 @@ def save_profile(
     preferred_equipment=None,
     sparky_sync=False,
     ignored_exercises=None,
+    fitness_goal="general",
+    workout_duration_target=45,
 ):
     now = datetime.utcnow().isoformat()
     values = (
@@ -261,6 +265,8 @@ def save_profile(
         days_per_week,
         1 if sparky_sync else 0,
         json.dumps(ignored_exercises or []),
+        fitness_goal,
+        int(workout_duration_target),
         now,
     )
     with get_connection() as conn:
@@ -269,9 +275,10 @@ def save_profile(
             INSERT INTO profile (
                 user_id, current_weight, goal_weight, fitness_level, limitations,
                 equipment, custom_equipment, target_muscles, preferred_equipment,
-                days_per_week, sparky_sync, ignored_exercises, updated_at
+                days_per_week, sparky_sync, ignored_exercises,
+                fitness_goal, workout_duration_target, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
                 current_weight=excluded.current_weight,
                 goal_weight=excluded.goal_weight,
@@ -284,6 +291,8 @@ def save_profile(
                 days_per_week=excluded.days_per_week,
                 sparky_sync=excluded.sparky_sync,
                 ignored_exercises=excluded.ignored_exercises,
+                fitness_goal=excluded.fitness_goal,
+                workout_duration_target=excluded.workout_duration_target,
                 updated_at=excluded.updated_at
             """,
             values,
@@ -376,6 +385,44 @@ def get_last_workout(user_id):
         d = dict(row)
         d["exercises"] = _decode_json_list(d.pop("exercises_json", "[]"))
         return d
+
+
+def get_exercise_history(user_id, limit=10):
+    """Return per-exercise set/rep/weight history across recent workouts."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT exercises_json, completed_at FROM workout_log WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
+    history = {}
+    for row in rows:
+        date = row["completed_at"][:10]
+        exercises = _decode_json_list(row["exercises_json"])
+        for ex in exercises:
+            ex_id = ex.get("id")
+            if not ex_id or not ex.get("completed"):
+                continue
+            if ex_id not in history:
+                history[ex_id] = []
+            history[ex_id].append({
+                "date": date,
+                "sets": ex.get("sets", []),
+            })
+    return history
+
+
+def get_coaching_context(user_id):
+    """Build full context for the AI coach — profile, history, progression."""
+    profile = get_profile(user_id)
+    workouts = get_workout_history(user_id, limit=10)
+    weight_history = get_weight_history(user_id, limit=10)
+    exercise_history = get_exercise_history(user_id, limit=15)
+    return {
+        "profile": profile,
+        "recent_workouts": workouts,
+        "weight_history": weight_history,
+        "exercise_history": exercise_history,
+    }
 
 
 def get_or_create_api_token(user_id):

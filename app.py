@@ -23,6 +23,7 @@ STATIC_VERSION = _git_version()
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 
+import coach
 import database
 import sparky_sync
 from workout_logic import (
@@ -32,6 +33,7 @@ from workout_logic import (
     all_exercises_with_status,
     build_workout,
     get_exercise_by_id,
+    get_progressive_overload_suggestions,
     pick_random_muscle_group,
 )
 
@@ -44,10 +46,18 @@ app.config.update(
     SESSION_COOKIE_SECURE=os.environ.get("HOMEFIT_SESSION_SECURE", "0") == "1",
 )
 
+
+@app.after_request
+def no_cache(response):
+    if "text/html" in response.content_type:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
 PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
-    "api_last_workout",
+    "api_last_workout", "api_last_weight",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
@@ -100,6 +110,8 @@ def _parse_profile_form(form):
         "preferred_equipment": [],
         "days_per_week": int(form.get("days_per_week", 4) or 4),
         "sparky_sync": form.get("sparky_sync") == "1",
+        "fitness_goal": form.get("fitness_goal", "general"),
+        "workout_duration_target": int(form.get("workout_duration_target", 45) or 45),
     }
 
 
@@ -179,9 +191,34 @@ def _calc_kcal(enriched_exercises, weight_lbs, duration_seconds):
         return 0
     weight_kg = weight_lbs / 2.20462
     hours = duration_seconds / 3600
-    mets = [float(e.get("met") or 5.0) for e in enriched_exercises if e]
-    avg_met = sum(mets) / len(mets) if mets else 5.0
-    return round(avg_met * weight_kg * hours)
+    duration_per_ex = hours / len(enriched_exercises)
+
+    total_kcal = 0.0
+    for ex in enriched_exercises:
+        if not ex:
+            continue
+        base_met = float(ex.get("met") or 5.0)
+        logged_sets = ex.get("sets_logged") or []
+        weighted_sets = [s for s in logged_sets if s.get("weight")]
+
+        if weighted_sets:
+            # Adjust MET based on average load relative to body weight
+            avg_lifted_kg = sum(s["weight"] for s in weighted_sets) / len(weighted_sets) / 2.20462
+            load_ratio = avg_lifted_kg / weight_kg
+            if load_ratio < 0.3:
+                met = max(base_met, 4.0)
+            elif load_ratio < 0.6:
+                met = max(base_met, 5.5)
+            elif load_ratio < 1.0:
+                met = max(base_met, 7.0)
+            else:
+                met = max(base_met, 8.5)
+        else:
+            met = base_met
+
+        total_kcal += met * weight_kg * duration_per_ex
+
+    return round(total_kcal)
 
 
 def _progress_stats(user_id):
@@ -384,7 +421,8 @@ def index():
     else:
         stats["weight_progress_pct"] = 0
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats,
-                           has_active_workout=bool(session.get("today_workout")))
+                           has_active_workout=bool(session.get("today_workout")),
+                           ai_online=coach.is_available())
 
 
 @app.route("/onboarding", methods=["GET", "POST"])
@@ -410,6 +448,41 @@ def onboarding():
     )
 
 
+def _ai_build_workout(uid, profile, focus=None):
+    """Try to build a workout with AI, return None if unavailable."""
+    if not coach.is_available():
+        return None
+    try:
+        from workout_logic import load_exercises
+        coaching_data = database.get_coaching_context(uid)
+        exercise_library = [
+            {"id": e["id"], "name": e["name"], "muscle_group": e.get("muscle_group", ""),
+             "equipment": e.get("equipment", "bodyweight"),
+             "default_sets": e.get("default_sets", 3), "default_reps": e.get("default_reps", 10)}
+            for e in load_exercises()
+        ]
+        ai_plan = coach.generate_workout(coaching_data, exercise_library, focus=focus)
+        # Enrich AI-chosen exercises with full data from library
+        exercises = []
+        for item in ai_plan.get("exercises", []):
+            ex = get_exercise_by_id(item["id"])
+            if not ex:
+                continue
+            ex["sets"] = item.get("sets", ex["sets"])
+            ex["reps"] = item.get("reps", ex["reps"])
+            exercises.append(ex)
+        if not exercises:
+            return None
+        return {
+            "label": ai_plan.get("name", "Today's Workout"),
+            "focus": ai_plan.get("focus", ""),
+            "ai_generated": True,
+            "exercises": exercises,
+        }
+    except Exception:
+        return None
+
+
 @app.route("/start-workout", methods=["GET", "POST"])
 def start_workout():
     uid = session["user_id"]
@@ -418,15 +491,33 @@ def start_workout():
         return redirect(url_for("onboarding"))
 
     if request.method == "POST":
-        focus_mode = request.form.get("focus_mode", "pick")
+        focus_mode = request.form.get("focus_mode", "ai")
+
+        if focus_mode == "ai" and coach.is_available():
+            session.pop("today_workout", None)
+            session["building_workout"] = {"label": "Today's Workout", "muscles": []}
+            return render_template("workout_loading.html", focus="your personalised workout")
+
         selected = _clean_list(request.form.getlist("focus"))
-        if focus_mode == "surprise" or not selected:
+        if not selected:
             selected = [pick_random_muscle_group()]
         workout = build_workout(profile, "Today's Workout", selected, [])
         session["today_workout"] = workout
         return redirect(url_for("today_workout"))
 
-    return render_template("start_workout.html", valid_muscles=VALID_MUSCLE_GROUPS)
+    ai_online = coach.is_available()
+    return render_template("start_workout.html", valid_muscles=VALID_MUSCLE_GROUPS, ai_online=ai_online)
+
+
+@app.route("/api/regenerate-workout", methods=["POST"])
+def regenerate_workout():
+    uid = session["user_id"]
+    profile = database.get_profile(uid)
+    workout = _ai_build_workout(uid, profile)
+    if not workout:
+        return jsonify({"error": "Coach unavailable"}), 503
+    session["today_workout"] = workout
+    return jsonify({"ok": True})
 
 
 @app.route("/build-day")
@@ -439,9 +530,35 @@ def build_day():
     muscles = _LABEL_TO_MUSCLES.get(label.lower())
     if not muscles:
         return redirect(url_for("start_workout"))
+
+    if coach.is_available():
+        # Clear any existing workout and show loading screen while AI generates
+        session.pop("today_workout", None)
+        session["building_workout"] = {"label": label, "muscles": muscles}
+        return render_template("workout_loading.html", focus=label)
+
     workout = build_workout(profile, label, muscles, [])
     session["today_workout"] = workout
     return redirect(url_for("today_workout"))
+
+
+@app.route("/api/workout-ready")
+def workout_ready():
+    if session.get("today_workout"):
+        return jsonify({"ready": True})
+    building = session.get("building_workout")
+    if not building:
+        return jsonify({"ready": False})
+    uid = session["user_id"]
+    profile = database.get_profile(uid)
+    label = building["label"]
+    muscles = building["muscles"]
+    workout = _ai_build_workout(uid, profile, focus=label)
+    if not workout:
+        workout = build_workout(profile, label, muscles, [])
+    session["today_workout"] = workout
+    session.pop("building_workout", None)
+    return jsonify({"ready": True})
 
 
 @app.route("/today-workout")
@@ -449,15 +566,49 @@ def today_workout():
     workout = session.get("today_workout")
     if not workout:
         return redirect(url_for("start_workout"))
-    focus_list = workout.get("focus", [])
-    focus_label = ", ".join(f.title() for f in focus_list) if focus_list else ""
+    focus_raw = workout.get("focus", [])
+    if isinstance(focus_raw, list):
+        focus_label = ", ".join(f.title() for f in focus_raw) if focus_raw else ""
+    else:
+        focus_label = str(focus_raw)
+    uid = session["user_id"]
+
+    # Build per-exercise weight hints
+    ex_history = database.get_exercise_history(uid, limit=15)
+    overload_suggestions = {
+        s["exercise_id"]: s
+        for s in get_progressive_overload_suggestions(ex_history)
+    }
+
+    def weight_hint(ex_id):
+        sessions = ex_history.get(ex_id, [])
+        for s in sessions:
+            weights = [w["weight"] for w in s.get("sets", []) if w.get("weight")]
+            if weights:
+                last_weight = max(weights)
+                last_reps = max((w.get("reps") or 0 for w in s.get("sets", []) if w.get("weight")), default=0)
+                if ex_id in overload_suggestions:
+                    sug = overload_suggestions[ex_id]
+                    return {
+                        "last_weight": last_weight,
+                        "last_reps": last_reps,
+                        "suggested_weight": sug["suggested_weight"],
+                        "ready": True,
+                    }
+                return {"last_weight": last_weight, "last_reps": last_reps, "suggested_weight": last_weight, "ready": False}
+        return None
+
+    exercises = workout.get("exercises", [])
+    for ex in exercises:
+        ex["weight_hint"] = weight_hint(ex.get("id", ""))
+
     day = {
         "day_number": 1,
         "name": workout.get("label", "Today's Workout"),
         "focus": focus_label,
-        "exercises": workout.get("exercises", []),
+        "ai_generated": workout.get("ai_generated", False),
+        "exercises": exercises,
     }
-    uid = session["user_id"]
     return render_template("workout.html", day=day, profile=database.get_profile(uid), user_id=uid)
 
 
@@ -502,14 +653,30 @@ def complete_workout():
     )
     from datetime import date
     completed = [e for e in exercises if e.get("completed") and e.get("id")]
+    sets_by_id = {e["id"]: e.get("sets", []) for e in completed}
     enriched = [get_exercise_by_id(e["id"]) for e in completed]
-    enriched = [e for e in enriched if e]  # drop any unknown ids
+    enriched = [e for e in enriched if e]
+    for e in enriched:
+        e["sets_logged"] = sets_by_id.get(e["id"], [])
     profile = database.get_profile(uid)
     if enriched and (profile or {}).get("sparky_sync"):
         sparky_sync.sync_workout_async(enriched, date.today(), duration)
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     session.pop("today_workout", None)
-    return jsonify({"ok": True, "kcal": kcal})
+
+    # Generate post-workout insight if Ollama is available
+    insight = None
+    overload = []
+    if coach.is_available():
+        try:
+            coaching_data = database.get_coaching_context(uid)
+            ex_history = coaching_data.get("exercise_history", {})
+            overload = get_progressive_overload_suggestions(ex_history)
+            insight = coach.generate_post_workout_insight(coaching_data, overload)
+        except Exception:
+            pass
+
+    return jsonify({"ok": True, "kcal": kcal, "insight": insight, "overload": overload})
 
 
 @app.route("/settings/sparky", methods=["GET", "POST"])
@@ -598,6 +765,47 @@ def api_last_workout():
         "duration_minutes": round(duration_s / 60),
         "kcal": kcal,
     })
+
+
+@app.route("/api/last_weight")
+def api_last_weight():
+    token = request.args.get("token", "")
+    uid = database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "invalid token"}), 401
+    history = database.get_weight_history(uid, limit=1)
+    if not history:
+        return jsonify({"error": "no weight logged"}), 404
+    entry = history[0]
+    return jsonify({
+        "weight_lbs": entry["weight"],
+        "logged_at": entry["logged_at"],
+    })
+
+
+@app.route("/coach")
+def coach_page():
+    uid = session["user_id"]
+    available = coach.is_available()
+    return render_template("coach.html", available=available)
+
+
+@app.route("/api/coach", methods=["POST"])
+def coach_chat():
+    uid = session["user_id"]
+    data = request.get_json(force=True)
+    message = data.get("message", "").strip()
+    history = data.get("history", [])
+    if not message:
+        return jsonify({"error": "empty message"}), 400
+    if not coach.is_available():
+        return jsonify({"error": "Coach is offline — make sure Ollama is running on your Mac."}), 503
+    try:
+        coaching_data = database.get_coaching_context(uid)
+        response = coach.chat(message, coaching_data, history)
+        return jsonify({"response": response})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/progress")

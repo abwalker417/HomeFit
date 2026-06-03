@@ -9,6 +9,82 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ---------- Apex floating coach panel ---------- */
+(function () {
+  const fab = document.getElementById('apex-fab');
+  const panel = document.getElementById('apex-panel');
+  const closeBtn = document.getElementById('apex-close');
+  const input = document.getElementById('apex-input');
+  const sendBtn = document.getElementById('apex-send');
+  const messages = document.getElementById('apex-messages');
+  if (!fab || !panel) return;
+
+  const history = [];
+
+  function togglePanel() {
+    const open = panel.classList.toggle('open');
+    fab.style.opacity = open ? '0.7' : '1';
+    panel.setAttribute('aria-hidden', String(!open));
+    if (open) setTimeout(() => input && input.focus(), 300);
+  }
+
+  let lastToggle = 0;
+  function safeToggle(e) {
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastToggle < 300) return; // debounce
+    lastToggle = now;
+    togglePanel();
+  }
+
+  fab.addEventListener('click', safeToggle);
+  fab.addEventListener('touchend', safeToggle);
+  closeBtn && closeBtn.addEventListener('click', safeToggle);
+  closeBtn && closeBtn.addEventListener('touchend', safeToggle);
+
+  function addMsg(text, role) {
+    const div = document.createElement('div');
+    div.className = `msg msg-${role === 'user' ? 'user' : 'coach'}`;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  async function send() {
+    const text = input.value.trim();
+    if (!text || sendBtn.disabled) return;
+    input.value = '';
+    sendBtn.disabled = true;
+    addMsg(text, 'user');
+    const typing = addMsg('Thinking…', 'coach');
+    typing.style.opacity = '0.5';
+    history.push({ role: 'user', content: text });
+    try {
+      const resp = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+      });
+      const data = await resp.json();
+      const reply = data.response || data.error || 'Something went wrong.';
+      typing.textContent = reply;
+      typing.style.opacity = '1';
+      history.push({ role: 'assistant', content: reply });
+    } catch {
+      typing.textContent = 'Connection error.';
+      typing.style.opacity = '1';
+      history.pop();
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  sendBtn && sendBtn.addEventListener('click', send);
+  input && input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+})();
+
 /* ---------- Weight logging (dashboard) ---------- */
 function setupWeightForm() {
   const form = document.getElementById('weight-form');
@@ -32,6 +108,36 @@ function setupWeightForm() {
       status.textContent = data.ok ? 'Logged ✓' : 'Could not save.';
     } catch (err) {
       status.textContent = 'Could not reach server.';
+    }
+  });
+}
+
+/* ---------- Coach workout button ---------- */
+const coachForm = document.getElementById('coach-form');
+if (coachForm) {
+  coachForm.addEventListener('submit', () => {
+    const btn = document.getElementById('coach-btn');
+    btn.disabled = true;
+    btn.textContent = '🤖 Coach is building your workout…';
+  });
+}
+
+/* ---------- Regenerate workout ---------- */
+const regenBtn = document.getElementById('regen-btn');
+if (regenBtn) {
+  regenBtn.addEventListener('click', async () => {
+    if (!confirm('Ask the coach to build a different workout?')) return;
+    regenBtn.disabled = true;
+    regenBtn.textContent = '🤖 Thinking…';
+    try {
+      const resp = await fetch('/api/regenerate-workout', { method: 'POST' });
+      if (resp.ok) {
+        window.location.reload();
+      } else {
+        regenBtn.textContent = '⚠ Coach offline';
+      }
+    } catch {
+      regenBtn.textContent = '⚠ Error';
     }
   });
 }
@@ -130,6 +236,53 @@ function startWorkout() {
     });
   });
 
+  // Weight logging
+  function makeSetRow(reps) {
+    const row = document.createElement('div');
+    row.className = 'weight-set-row';
+    row.innerHTML = `
+      <input type="number" class="set-weight" placeholder="lbs" min="0" step="0.5" style="width:72px;">
+      <span style="margin:0 6px;">×</span>
+      <input type="number" class="set-reps" value="${reps}" min="1" style="width:52px;">
+      <span style="margin-left:4px; color:#94a3b8; font-size:13px;">reps</span>
+      <button type="button" class="remove-set-btn" style="margin-left:8px; background:none; border:none; color:#f87171; cursor:pointer; font-size:16px;">×</button>
+    `;
+    row.querySelector('.remove-set-btn').addEventListener('click', () => row.remove());
+    return row;
+  }
+
+  root.querySelectorAll('.weight-log').forEach((wl) => {
+    const toggleBtn = wl.querySelector('.weight-log-toggle');
+    const body = wl.querySelector('.weight-log-body');
+    const setsContainer = wl.querySelector('.weight-sets');
+    const addSetBtn = wl.querySelector('.add-set-btn');
+    const defaultSets = parseInt(wl.dataset.sets, 10) || 3;
+    const defaultReps = parseInt(wl.dataset.reps, 10) || 10;
+
+    toggleBtn.addEventListener('click', () => {
+      const open = body.style.display === 'none';
+      body.style.display = open ? 'block' : 'none';
+      toggleBtn.textContent = open ? '📊 Hide weight log' : '📊 Log weights (optional)';
+      if (open && setsContainer.children.length === 0) {
+        const suggestedWeight = parseFloat(wl.dataset.suggestedWeight) || null;
+        for (let i = 0; i < defaultSets; i++) {
+          const row = makeSetRow(defaultReps);
+          if (suggestedWeight) row.querySelector('.set-weight').value = suggestedWeight;
+          setsContainer.appendChild(row);
+        }
+      }
+    });
+
+    addSetBtn.addEventListener('click', () => setsContainer.appendChild(makeSetRow(defaultReps)));
+  });
+
+  function getLoggedSets(li) {
+    return Array.from(li.querySelectorAll('.weight-set-row')).map((row) => ({
+      weight: parseFloat(row.querySelector('.set-weight').value) || null,
+      reps: parseInt(row.querySelector('.set-reps').value, 10) || null,
+    })).filter((s) => s.weight !== null || s.reps !== null);
+  }
+
   // Finish workout
   const finishBtn = document.getElementById('finish-btn');
   finishBtn.addEventListener('click', async () => {
@@ -139,6 +292,7 @@ function startWorkout() {
     const items = Array.from(root.querySelectorAll('.exercise-item')).map((li) => ({
       id: li.dataset.exerciseId,
       completed: li.querySelector('.ex-done').checked,
+      sets: getLoggedSets(li),
     }));
     const payload = {
       day_number: parseInt(root.dataset.dayNumber, 10),
@@ -165,12 +319,47 @@ function startWorkout() {
           endTime: new Date().toISOString(),
         });
       }
-      window.location.href = '/';
+
+      // Show post-workout insight if coach returned one
+      if (data.insight || (data.overload && data.overload.length)) {
+        showPostWorkoutInsight(data.insight, data.overload || []);
+      } else {
+        window.location.href = '/';
+      }
     } catch (err) {
       finishBtn.disabled = false;
       finishBtn.textContent = 'Retry finish';
     }
   });
+
+  function showPostWorkoutInsight(insight, overload) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:flex-end;padding:16px;';
+
+    let overloadHtml = '';
+    if (overload.length) {
+      const items = overload.map(s =>
+        `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <strong>${s.exercise_name}</strong>
+          <span style="color:var(--accent);float:right">${s.current_weight} → ${s.suggested_weight} lbs</span>
+        </div>`
+      ).join('');
+      overloadHtml = `<div style="margin:12px 0 4px;font-weight:600;">📈 Ready to progress:</div>${items}`;
+    }
+
+    overlay.innerHTML = `
+      <div style="background:var(--card);border-radius:20px;padding:24px;width:100%;max-width:480px;margin:0 auto;">
+        <h2 style="margin:0 0 12px;font-size:1.1rem;">🏆 Workout Complete!</h2>
+        ${insight ? `<p style="line-height:1.6;color:var(--text-muted);margin:0 0 16px;">${insight}</p>` : ''}
+        ${overloadHtml}
+        <button style="margin-top:16px;width:100%;" class="btn btn-primary" id="insight-done">Done</button>
+      </div>`;
+
+    document.body.appendChild(overlay);
+    document.getElementById('insight-done').addEventListener('click', () => {
+      window.location.href = '/';
+    });
+  }
 }
 
 /* ---------- Exercise library filtering ---------- */

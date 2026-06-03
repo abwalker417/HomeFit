@@ -738,3 +738,175 @@ fieldset.field { border: none; padding: 0; }
   width: 36px;
   text-align: center;
 }
+
+/* Weight logging */
+.weight-log { margin-top: 12px; }
+.weight-set-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.weight-set-row input {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+}
+
+/* Weight hint bar */
+.weight-hint-bar {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.weight-hint-ready {
+  background: rgba(249, 115, 22, 0.1);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* Apex floating action button */
+.apex-fab {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  z-index: 9998;
+  transition: transform 0.15s ease;
+  display: block;
+  overflow: hidden;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.apex-fab img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.apex-fab:active { transform: scale(0.93); }
+@media (min-width: 640px) {
+  .apex-fab { bottom: 32px; right: 32px; width: 72px; height: 72px; border-radius: 20px; }
+}
+
+/* Apex slide-up panel */
+.apex-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
+  height: 70vh;
+  max-height: 600px;
+  background: #162238;
+  background: var(--surface);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.apex-panel.open { display: flex; }
+.apex-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: #1e2d4a;
+  background: var(--surface-2);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}
+.apex-messages {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.apex-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.apex-input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: #0f172a;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+@media (min-width: 640px) {
+  .apex-panel {
+    left: auto; right: 32px;
+    width: 380px;
+    bottom: 120px;
+    border-radius: 20px;
+    height: 520px;
+    max-height: 80vh;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+}
+
+/* Workout icon row */
+.workout-icon-section {
+  margin: 8px -16px;
+}
+.workout-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.workout-icon-row::-webkit-scrollbar { display: none; }
+.workout-icon-btn {
+  flex: 0 0 110px;
+  width: 110px;
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.workout-icon-btn img {
+  width: 110px;
+  height: 110px;
+  border-radius: 22px;
+  display: block;
+  object-fit: cover;
+}
+.workout-icon-btn:active { transform: scale(0.92); opacity: 0.85; }
+@media (min-width: 640px) {
+  .workout-icon-btn { flex: 0 0 120px; width: 120px; }
+  .workout-icon-btn img { width: 120px; height: 120px; }
+}

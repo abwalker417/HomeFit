@@ -4,14 +4,57 @@
 {% block content %}
 <section class="hero">
   <p class="eyebrow">Today's workout</p>
-  <h1>Choose your focus</h1>
-  <p class="subtle">Pick one area to train, or let HomeFit decide for you.</p>
+  <h1>Ready to train?</h1>
+  <p class="subtle">
+    {% if ai_online %}
+      Apex will build a personalised workout based on your history.
+    {% else %}
+      Pick a focus area or let HomeFit decide.
+    {% endif %}
+  </p>
+</section>
+
+{% if ai_online %}
+<section class="card">
+  <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+    <span style="font-size:28px;">🤖</span>
+    <div>
+      <h2 style="margin:0;">Apex Workout</h2>
+      <p class="subtle" style="margin:4px 0 0; font-size:13px;">Personalised based on your recent sessions and progression</p>
+    </div>
+  </div>
+  <form method="post" id="ai-form">
+    <input type="hidden" name="focus_mode" value="ai">
+    <button type="submit" class="btn btn-primary" style="width:100%;" id="ai-btn">
+      Build my workout
+    </button>
+  </form>
 </section>
 
 <section class="card">
+  <h2>Choose your own focus</h2>
+  <p class="subtle" style="margin-bottom:12px;">Override Apex and pick a specific muscle group.</p>
   <form method="post" class="form">
     <input type="hidden" name="focus_mode" value="pick">
+    <div class="pill-grid">
+      {% for item in valid_muscles %}
+      {% if item != 'full body' %}
+      <label class="pill-option">
+        <input type="radio" name="focus" value="{{ item }}" {% if loop.first %}checked{% endif %}>
+        <span>{{ item.title() }}</span>
+      </label>
+      {% endif %}
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-secondary" style="margin-top:12px;">Build with this focus</button>
+  </form>
+</section>
 
+{% else %}
+<section class="card">
+  <p class="subtle" style="margin-bottom:16px;">Apex is offline — Ollama isn't running on your Mac.</p>
+  <form method="post" class="form">
+    <input type="hidden" name="focus_mode" value="pick">
     <fieldset>
       <legend>Workout focus</legend>
       <div class="pill-grid">
@@ -25,21 +68,20 @@
         {% endfor %}
       </div>
     </fieldset>
-
     <button type="submit" class="btn btn-primary">Build my workout</button>
   </form>
 </section>
+{% endif %}
+{% endblock %}
 
-<section class="card">
-  <div class="section-row">
-    <div>
-      <h2>Not sure what to do?</h2>
-      <p class="subtle">HomeFit will pick a random focus based on your profile and available equipment.</p>
-    </div>
-    <form method="post">
-      <input type="hidden" name="focus_mode" value="surprise">
-      <button type="submit" class="btn btn-secondary">Pick one for me</button>
-    </form>
-  </div>
-</section>
+{% block scripts %}
+{% if ai_online %}
+<script>
+  document.getElementById('ai-form').addEventListener('submit', () => {
+    const btn = document.getElementById('ai-btn');
+    btn.disabled = true;
+    btn.textContent = '🏔️ Apex is building your workout…';
+  });
+</script>
+{% endif %}
 {% endblock %}

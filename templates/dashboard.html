@@ -53,20 +53,28 @@
 </form>
 {% endif %}
 
-<section style="text-align: center;">
-  <h2 class="section-title">Pick a workout</h2>
-  <p class="subtle" style="margin: 4px 0 12px;">Tap one to start, or choose a custom focus below.</p>
-  <div class="day-grid">
-    {% for day in plan.days %}
-    <a class="day-card" href="{{ url_for('build_day', label=day.name) }}">
-      <strong>{{ day.name }}</strong>
-      <span class="day-meta">Tap to start →</span>
+<section class="workout-icon-section">
+  <div class="workout-icon-row">
+    {% if ai_online %}
+    <form method="post" action="{{ url_for('start_workout') }}" id="coach-form" style="display:contents;">
+      <input type="hidden" name="focus_mode" value="ai">
+      <button type="submit" class="workout-icon-btn" id="coach-btn" title="Let Apex build my workout">
+        <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="Apex">
+      </button>
+    </form>
+    {% endif %}
+    <a class="workout-icon-btn" href="{{ url_for('build_day', label='Upper body') }}" title="Upper Body">
+      <img src="{{ url_for('static', filename='icons/upper-body.png') }}?v={{ static_version }}" alt="Upper Body">
     </a>
-    {% endfor %}
-  </div>
-  <div class="workout-secondary">
-    <a href="{{ url_for('start_workout') }}" class="btn btn-secondary">Custom focus</a>
-    <a href="{{ url_for('start_workout') }}?mode=surprise" class="btn btn-secondary">Surprise me</a>
+    <a class="workout-icon-btn" href="{{ url_for('build_day', label='Lower body') }}" title="Lower Body">
+      <img src="{{ url_for('static', filename='icons/lower-body.png') }}?v={{ static_version }}" alt="Lower Body">
+    </a>
+    <a class="workout-icon-btn" href="{{ url_for('build_day', label='Core & Cardio') }}" title="Core">
+      <img src="{{ url_for('static', filename='icons/core.png') }}?v={{ static_version }}" alt="Core">
+    </a>
+    <a class="workout-icon-btn" href="{{ url_for('build_day', label='Recovery') }}" title="Recovery">
+      <img src="{{ url_for('static', filename='icons/recovery.png') }}?v={{ static_version }}" alt="Recovery">
+    </a>
   </div>
 </section>
 
