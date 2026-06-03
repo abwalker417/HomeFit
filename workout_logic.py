@@ -63,11 +63,7 @@ CATEGORY_TO_MUSCLES = {
 
 def load_exercises():
     if not EXERCISE_PATH.exists():
-        try:
-            import sparky_sync
-            sparky_sync.fetch_and_replace_exercises()
-        except Exception:
-            return []
+        return []
     with open(EXERCISE_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
