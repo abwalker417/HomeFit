@@ -8,6 +8,10 @@ __pycache__/
 .env
 .env.*
 .DS_Store
+data/
+memory/
+.claude/
+HomeFitIcon-Transparent.png
 *.db
 *.sqlite
 *.sqlite3
