@@ -803,15 +803,17 @@ fieldset.field { border: none; padding: 0; }
 /* Apex slide-up panel */
 .apex-panel {
   position: fixed;
-  bottom: 56px; /* sit above bottom nav */
+  bottom: 56px;
   left: 0; right: 0;
-  height: calc(70vh - 56px);
+  height: 65vh;
   max-height: 560px;
-  background: var(--card);
+  background: #162238; /* explicit fallback — var(--surface) */
+  background: var(--surface);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
-  box-shadow: 0 -8px 40px rgba(0,0,0,0.4);
-  z-index: 250;
+  border: 1px solid var(--border);
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   transform: translateY(110%);
@@ -825,6 +827,9 @@ fieldset.field { border: none; padding: 0; }
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  background: var(--surface-2);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
 }
 .apex-messages {
   flex: 1;
@@ -834,6 +839,7 @@ fieldset.field { border: none; padding: 0; }
   flex-direction: column;
   gap: 10px;
   scroll-behavior: smooth;
+  background: var(--surface);
 }
 .apex-input-row {
   display: flex;
@@ -841,13 +847,14 @@ fieldset.field { border: none; padding: 0; }
   padding: 10px 12px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  background: var(--surface);
 }
 .apex-input-row input {
   flex: 1;
   padding: 10px 14px;
   border-radius: 20px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--bg);
   color: var(--text);
   font-size: 15px;
 }
