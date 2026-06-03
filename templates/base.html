@@ -22,7 +22,6 @@
       <a href="{{ url_for('index') }}">Dashboard</a>
       <a href="{{ url_for('exercises') }}">Exercises</a>
       <a href="{{ url_for('progress') }}">Progress</a>
-      <a href="{{ url_for('coach_page') }}">Apex</a>
       <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
       <a href="{{ url_for('profile_switch_out') }}">Switch</a>
     </nav>
@@ -38,9 +37,11 @@
     <a href="{{ url_for('index') }}">Home</a>
     <a href="{{ url_for('exercises') }}">Exercises</a>
     <a href="{{ url_for('progress') }}">Progress</a>
-    <a href="{{ url_for('coach_page') }}">Apex</a>
     <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
   </nav>
+  <a href="{{ url_for('coach_page') }}" class="apex-fab" title="Apex AI Coach">
+    <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="Apex">
+  </a>
   {% endif %}
 
   <script src="{{ url_for('static', filename='js/app.js') }}?v={{ static_version }}"></script>

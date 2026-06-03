@@ -770,3 +770,27 @@ fieldset.field { border: none; padding: 0; }
   border-color: var(--accent);
   color: var(--text);
 }
+
+/* Apex floating action button */
+.apex-fab {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  z-index: 200;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: block;
+  overflow: hidden;
+}
+.apex-fab img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.apex-fab:active { transform: scale(0.93); }
+@media (min-width: 640px) {
+  .apex-fab { bottom: 32px; right: 32px; width: 72px; height: 72px; border-radius: 20px; }
+}
