@@ -774,21 +774,22 @@ fieldset.field { border: none; padding: 0; }
 /* Apex floating action button */
 .apex-fab {
   position: fixed;
-  bottom: 80px;
+  bottom: 100px;
   right: 20px;
   width: 64px;
   height: 64px;
   border-radius: 18px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  z-index: 200;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  z-index: 9998;
+  transition: transform 0.15s ease;
   display: block;
   overflow: hidden;
-  /* Reset button defaults */
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .apex-fab img {
   width: 100%;

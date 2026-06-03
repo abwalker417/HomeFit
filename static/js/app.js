@@ -28,8 +28,19 @@ if ('serviceWorker' in navigator) {
     if (open) setTimeout(() => input && input.focus(), 300);
   }
 
-  fab.addEventListener('click', togglePanel);
-  closeBtn && closeBtn.addEventListener('click', togglePanel);
+  let lastToggle = 0;
+  function safeToggle(e) {
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastToggle < 300) return; // debounce
+    lastToggle = now;
+    togglePanel();
+  }
+
+  fab.addEventListener('click', safeToggle);
+  fab.addEventListener('touchend', safeToggle);
+  closeBtn && closeBtn.addEventListener('click', safeToggle);
+  closeBtn && closeBtn.addEventListener('touchend', safeToggle);
 
   function addMsg(text, role) {
     const div = document.createElement('div');
