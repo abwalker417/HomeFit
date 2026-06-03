@@ -155,12 +155,7 @@ The "exercises" array must contain exactly {ex_count} objects.
   "name": "workout name",
   "focus": "brief focus description",
   "exercises": [
-    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 10}},
-    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 12}},
-    {{"id": "real_exercise_id_from_list", "sets": 4, "reps": 8}},
-    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 10}},
-    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 12}},
-    {{"id": "real_exercise_id_from_list", "sets": 3, "reps": 15}}
+{chr(10).join(f'    {{"id": "exercise_id_{i+1}", "sets": 3, "reps": 10}}{"," if i < ex_count-1 else ""}' for i in range(ex_count))}
   ]
 }}"""
 
