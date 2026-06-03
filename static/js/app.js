@@ -404,18 +404,18 @@ function startWorkout() {
 function setupLibraryFilter() {
   const search = document.getElementById('ex-search');
   const filter = document.getElementById('ex-filter');
-  const items = document.querySelectorAll('.library-list .exercise-item');
   if (!search || !filter) return;
   const apply = () => {
     const q = search.value.trim().toLowerCase();
     const cat = filter.value;
-    items.forEach((li) => {
+    document.querySelectorAll('.library-list .exercise-item').forEach((li) => {
       const matchCat = cat === 'all' || li.dataset.category === cat;
-      const matchQ = !q || li.dataset.name.includes(q);
+      const name = (li.dataset.name || '').toLowerCase();
+      const matchQ = !q || name.includes(q);
       li.style.display = matchCat && matchQ ? '' : 'none';
     });
   };
-  search.addEventListener('input', apply);
+  ['input', 'keyup', 'change', 'search'].forEach(ev => search.addEventListener(ev, apply));
   filter.addEventListener('change', apply);
 }
 
