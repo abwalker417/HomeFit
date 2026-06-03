@@ -24,6 +24,8 @@ def _build_context(coaching_data):
         f"- Fitness level: {profile.get('fitness_level', 'unknown')}",
         f"- Current weight: {profile.get('current_weight')} lbs, Goal: {profile.get('goal_weight')} lbs",
         f"- Days per week: {profile.get('days_per_week')}",
+        f"- Fitness goal: {profile.get('fitness_goal', 'general')}",
+        f"- Target workout length: {profile.get('workout_duration_target', 45)} minutes",
         f"- Equipment: {', '.join(profile.get('equipment') or [])}",
         f"- Limitations: {', '.join(profile.get('limitations') or []) or 'none'}",
         f"- Ignored exercises: {', '.join(profile.get('ignored_exercises') or []) or 'none'}",
@@ -114,6 +116,18 @@ def generate_workout(coaching_data, exercise_library):
 
     recent_text = "\n".join(recently_worked) if recently_worked else "No recent workouts."
 
+    fitness_goal = profile.get("fitness_goal", "general")
+    duration_target = int(profile.get("workout_duration_target") or 45)
+    # Estimate exercise count from target duration (avg ~6-8 min per exercise including rest)
+    ex_count = max(3, min(10, duration_target // 7))
+
+    goal_guidance = {
+        "weight_loss": "Higher reps (12-20), shorter rest, circuit-style. Prioritise compound movements and keep intensity high.",
+        "muscle_building": "Lower reps (6-10), heavier sets, longer rest. Focus on progressive overload with compound lifts.",
+        "toning": "Moderate reps (10-15), moderate rest. Mix compound and isolation exercises. Keep volume consistent.",
+        "general": "Balanced reps (8-12), standard rest. Mix of compound and isolation movements.",
+    }.get(fitness_goal, "Balanced approach.")
+
     prompt = f"""{context}
 Recent workout history (avoid overworking these muscle groups today):
 {recent_text}
@@ -124,10 +138,11 @@ Available exercises (choose ONLY from this list, use the exact id values):
 ]
 
 Generate a single workout session for today. Rules:
-- Choose 5-7 exercises
+- Choose exactly {ex_count} exercises to fit a {duration_target}-minute session
 - Avoid muscle groups worked in the last 1-2 days
 - Respect limitations: {', '.join(limitations) or 'none'}
 - Vary from the most recent workout — don't repeat the same exercises
+- Fitness goal is {fitness_goal}: {goal_guidance}
 - Adjust sets/reps for {profile.get('fitness_level','beginner')} fitness level
 - Give the workout a descriptive name (e.g. "Upper Pull Focus", "Leg Power Day")
 

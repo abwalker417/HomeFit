@@ -110,6 +110,8 @@ def _parse_profile_form(form):
         "preferred_equipment": [],
         "days_per_week": int(form.get("days_per_week", 4) or 4),
         "sparky_sync": form.get("sparky_sync") == "1",
+        "fitness_goal": form.get("fitness_goal", "general"),
+        "workout_duration_target": int(form.get("workout_duration_target", 45) or 45),
     }
 
 
