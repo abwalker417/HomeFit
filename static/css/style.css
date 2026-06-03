@@ -878,14 +878,17 @@ fieldset.field { border: none; padding: 0; }
 }
 .workout-icon-row {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 12px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.workout-icon-row::-webkit-scrollbar { display: none; }
 .workout-icon-btn {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 110px;
+  width: 110px;
   display: block;
   background: none;
   border: none;
@@ -896,10 +899,14 @@ fieldset.field { border: none; padding: 0; }
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 .workout-icon-btn img {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1;
-  border-radius: 14px;
+  width: 110px;
+  height: 110px;
+  border-radius: 22px;
   display: block;
+  object-fit: cover;
 }
 .workout-icon-btn:active { transform: scale(0.92); opacity: 0.85; }
+@media (min-width: 640px) {
+  .workout-icon-btn { flex: 0 0 120px; width: 120px; }
+  .workout-icon-btn img { width: 120px; height: 120px; }
+}
