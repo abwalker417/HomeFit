@@ -871,3 +871,31 @@ fieldset.field { border: none; padding: 0; }
     padding-bottom: 0;
   }
 }
+
+/* Workout icon row */
+.workout-icon-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 8px;
+  flex-wrap: nowrap;
+}
+.workout-icon-btn {
+  flex: 1;
+  max-width: 80px;
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.workout-icon-btn img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  display: block;
+}
+.workout-icon-btn:active { transform: scale(0.92); opacity: 0.85; }
