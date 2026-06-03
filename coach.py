@@ -84,6 +84,79 @@ def chat(message, coaching_data, history=None):
     return resp.json()["message"]["content"]
 
 
+def generate_workout(coaching_data, exercise_library):
+    """Use the LLM to generate a personalised workout plan."""
+    profile = coaching_data.get("profile") or {}
+    context = _build_context(coaching_data)
+
+    # Build a compact exercise reference the LLM can pick from
+    available_equipment = set(profile.get("equipment") or [])
+    ignored = set(profile.get("ignored_exercises") or [])
+    limitations = profile.get("limitations") or []
+
+    eligible = [
+        e for e in exercise_library
+        if e["id"] not in ignored
+        and (e["equipment"] in available_equipment or e["equipment"] == "bodyweight")
+    ]
+
+    library_lines = "\n".join(
+        f'  {{"id":"{e["id"]}","name":"{e["name"]}","muscle":"{e["muscle_group"]}","sets":{e["default_sets"]},"reps":{e["default_reps"]}}}'
+        for e in eligible
+    )
+
+    # Summarise recent muscle groups hit so the LLM can balance
+    recent_workouts = coaching_data.get("recent_workouts") or []
+    recently_worked = []
+    for w in recent_workouts[:3]:
+        ids = [e["id"] for e in w.get("exercises", []) if e.get("completed")]
+        recently_worked.append(f"{w.get('completed_at','')[:10]}: {', '.join(ids[:5])}")
+
+    recent_text = "\n".join(recently_worked) if recently_worked else "No recent workouts."
+
+    prompt = f"""{context}
+Recent workout history (avoid overworking these muscle groups today):
+{recent_text}
+
+Available exercises (choose ONLY from this list, use the exact id values):
+[
+{library_lines}
+]
+
+Generate a single workout session for today. Rules:
+- Choose 5-7 exercises
+- Avoid muscle groups worked in the last 1-2 days
+- Respect limitations: {', '.join(limitations) or 'none'}
+- Vary from the most recent workout — don't repeat the same exercises
+- Adjust sets/reps for {profile.get('fitness_level','beginner')} fitness level
+- Give the workout a descriptive name (e.g. "Upper Pull Focus", "Leg Power Day")
+
+Return ONLY valid JSON in this exact format, no other text:
+{{
+  "name": "workout name",
+  "focus": "brief focus description",
+  "exercises": [
+    {{"id": "exercise_id", "sets": 3, "reps": 10}},
+    {{"id": "exercise_id", "sets": 3, "reps": 12}}
+  ]
+}}"""
+
+    resp = requests.post(
+        f"{OLLAMA_URL}/api/generate",
+        json={"model": MODEL, "prompt": prompt, "stream": False},
+        timeout=90,
+    )
+    resp.raise_for_status()
+    raw = resp.json()["response"].strip()
+
+    # Extract JSON — LLM sometimes adds surrounding text despite instructions
+    start = raw.find("{")
+    end = raw.rfind("}") + 1
+    if start == -1 or end == 0:
+        raise ValueError("No JSON found in LLM response")
+    return json.loads(raw[start:end])
+
+
 def generate_post_workout_insight(coaching_data, suggestions):
     """Generate a brief post-workout insight based on the completed session."""
     context = _build_context(coaching_data)

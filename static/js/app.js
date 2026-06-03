@@ -36,6 +36,26 @@ function setupWeightForm() {
   });
 }
 
+/* ---------- Regenerate workout ---------- */
+const regenBtn = document.getElementById('regen-btn');
+if (regenBtn) {
+  regenBtn.addEventListener('click', async () => {
+    if (!confirm('Ask the coach to build a different workout?')) return;
+    regenBtn.disabled = true;
+    regenBtn.textContent = '🤖 Thinking…';
+    try {
+      const resp = await fetch('/api/regenerate-workout', { method: 'POST' });
+      if (resp.ok) {
+        window.location.reload();
+      } else {
+        regenBtn.textContent = '⚠ Coach offline';
+      }
+    } catch {
+      regenBtn.textContent = '⚠ Error';
+    }
+  });
+}
+
 /* ---------- Active workout ---------- */
 function startWorkout() {
   const root = document.getElementById('workout-body');

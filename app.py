@@ -437,6 +437,41 @@ def onboarding():
     )
 
 
+def _ai_build_workout(uid, profile):
+    """Try to build a workout with AI, return None if unavailable."""
+    if not coach.is_available():
+        return None
+    try:
+        from workout_logic import load_exercises
+        coaching_data = database.get_coaching_context(uid)
+        exercise_library = [
+            {"id": e["id"], "name": e["name"], "muscle_group": e.get("muscle_group", ""),
+             "equipment": e.get("equipment", "bodyweight"),
+             "default_sets": e.get("default_sets", 3), "default_reps": e.get("default_reps", 10)}
+            for e in load_exercises()
+        ]
+        ai_plan = coach.generate_workout(coaching_data, exercise_library)
+        # Enrich AI-chosen exercises with full data from library
+        exercises = []
+        for item in ai_plan.get("exercises", []):
+            ex = get_exercise_by_id(item["id"])
+            if not ex:
+                continue
+            ex["sets"] = item.get("sets", ex["sets"])
+            ex["reps"] = item.get("reps", ex["reps"])
+            exercises.append(ex)
+        if not exercises:
+            return None
+        return {
+            "label": ai_plan.get("name", "Today's Workout"),
+            "focus": ai_plan.get("focus", ""),
+            "ai_generated": True,
+            "exercises": exercises,
+        }
+    except Exception:
+        return None
+
+
 @app.route("/start-workout", methods=["GET", "POST"])
 def start_workout():
     uid = session["user_id"]
@@ -445,15 +480,36 @@ def start_workout():
         return redirect(url_for("onboarding"))
 
     if request.method == "POST":
-        focus_mode = request.form.get("focus_mode", "pick")
-        selected = _clean_list(request.form.getlist("focus"))
-        if focus_mode == "surprise" or not selected:
-            selected = [pick_random_muscle_group()]
-        workout = build_workout(profile, "Today's Workout", selected, [])
+        focus_mode = request.form.get("focus_mode", "ai")
+
+        if focus_mode == "ai":
+            workout = _ai_build_workout(uid, profile)
+            if not workout:
+                # Fallback to rule-based
+                selected = [pick_random_muscle_group()]
+                workout = build_workout(profile, "Today's Workout", selected, [])
+        else:
+            selected = _clean_list(request.form.getlist("focus"))
+            if focus_mode == "surprise" or not selected:
+                selected = [pick_random_muscle_group()]
+            workout = build_workout(profile, "Today's Workout", selected, [])
+
         session["today_workout"] = workout
         return redirect(url_for("today_workout"))
 
-    return render_template("start_workout.html", valid_muscles=VALID_MUSCLE_GROUPS)
+    ai_online = coach.is_available()
+    return render_template("start_workout.html", valid_muscles=VALID_MUSCLE_GROUPS, ai_online=ai_online)
+
+
+@app.route("/api/regenerate-workout", methods=["POST"])
+def regenerate_workout():
+    uid = session["user_id"]
+    profile = database.get_profile(uid)
+    workout = _ai_build_workout(uid, profile)
+    if not workout:
+        return jsonify({"error": "Coach unavailable"}), 503
+    session["today_workout"] = workout
+    return jsonify({"ok": True})
 
 
 @app.route("/build-day")
@@ -476,12 +532,16 @@ def today_workout():
     workout = session.get("today_workout")
     if not workout:
         return redirect(url_for("start_workout"))
-    focus_list = workout.get("focus", [])
-    focus_label = ", ".join(f.title() for f in focus_list) if focus_list else ""
+    focus_raw = workout.get("focus", [])
+    if isinstance(focus_raw, list):
+        focus_label = ", ".join(f.title() for f in focus_raw) if focus_raw else ""
+    else:
+        focus_label = str(focus_raw)
     day = {
         "day_number": 1,
         "name": workout.get("label", "Today's Workout"),
         "focus": focus_label,
+        "ai_generated": workout.get("ai_generated", False),
         "exercises": workout.get("exercises", []),
     }
     uid = session["user_id"]
