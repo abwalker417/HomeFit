@@ -86,7 +86,7 @@ def chat(message, coaching_data, history=None):
     return resp.json()["message"]["content"]
 
 
-def generate_workout(coaching_data, exercise_library):
+def generate_workout(coaching_data, exercise_library, focus=None):
     """Use the LLM to generate a personalised workout plan."""
     profile = coaching_data.get("profile") or {}
     context = _build_context(coaching_data)
@@ -128,6 +128,8 @@ def generate_workout(coaching_data, exercise_library):
         "general": "Balanced reps (8-12), standard rest. Mix of compound and isolation movements.",
     }.get(fitness_goal, "Balanced approach.")
 
+    focus_line = f"- The user has requested a focus on: {focus}. Prioritise exercises that match this focus." if focus else "- Choose a focus based on what muscle groups need the most rest/attention given their history."
+
     prompt = f"""{context}
 Recent workout history (avoid overworking these muscle groups today):
 {recent_text}
@@ -139,7 +141,8 @@ Available exercises (choose ONLY from this list, use the exact id values):
 
 Generate a single workout session for today. Rules:
 - Choose exactly {ex_count} exercises to fit a {duration_target}-minute session
-- Avoid muscle groups worked in the last 1-2 days
+{focus_line}
+- Avoid muscle groups worked in the last 1-2 days unless the user explicitly requested that focus
 - Respect limitations: {', '.join(limitations) or 'none'}
 - Vary from the most recent workout — don't repeat the same exercises
 - Fitness goal is {fitness_goal}: {goal_guidance}

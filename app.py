@@ -448,7 +448,7 @@ def onboarding():
     )
 
 
-def _ai_build_workout(uid, profile):
+def _ai_build_workout(uid, profile, focus=None):
     """Try to build a workout with AI, return None if unavailable."""
     if not coach.is_available():
         return None
@@ -461,7 +461,7 @@ def _ai_build_workout(uid, profile):
              "default_sets": e.get("default_sets", 3), "default_reps": e.get("default_reps", 10)}
             for e in load_exercises()
         ]
-        ai_plan = coach.generate_workout(coaching_data, exercise_library)
+        ai_plan = coach.generate_workout(coaching_data, exercise_library, focus=focus)
         # Enrich AI-chosen exercises with full data from library
         exercises = []
         for item in ai_plan.get("exercises", []):
@@ -493,18 +493,15 @@ def start_workout():
     if request.method == "POST":
         focus_mode = request.form.get("focus_mode", "ai")
 
-        if focus_mode == "ai":
-            workout = _ai_build_workout(uid, profile)
-            if not workout:
-                # Fallback to rule-based
-                selected = [pick_random_muscle_group()]
-                workout = build_workout(profile, "Today's Workout", selected, [])
-        else:
-            selected = _clean_list(request.form.getlist("focus"))
-            if focus_mode == "surprise" or not selected:
-                selected = [pick_random_muscle_group()]
-            workout = build_workout(profile, "Today's Workout", selected, [])
+        if focus_mode == "ai" and coach.is_available():
+            session.pop("today_workout", None)
+            session["building_workout"] = {"label": "Today's Workout", "muscles": []}
+            return render_template("workout_loading.html", focus="your personalised workout")
 
+        selected = _clean_list(request.form.getlist("focus"))
+        if not selected:
+            selected = [pick_random_muscle_group()]
+        workout = build_workout(profile, "Today's Workout", selected, [])
         session["today_workout"] = workout
         return redirect(url_for("today_workout"))
 
@@ -533,9 +530,35 @@ def build_day():
     muscles = _LABEL_TO_MUSCLES.get(label.lower())
     if not muscles:
         return redirect(url_for("start_workout"))
+
+    if coach.is_available():
+        # Clear any existing workout and show loading screen while AI generates
+        session.pop("today_workout", None)
+        session["building_workout"] = {"label": label, "muscles": muscles}
+        return render_template("workout_loading.html", focus=label)
+
     workout = build_workout(profile, label, muscles, [])
     session["today_workout"] = workout
     return redirect(url_for("today_workout"))
+
+
+@app.route("/api/workout-ready")
+def workout_ready():
+    if session.get("today_workout"):
+        return jsonify({"ready": True})
+    building = session.get("building_workout")
+    if not building:
+        return jsonify({"ready": False})
+    uid = session["user_id"]
+    profile = database.get_profile(uid)
+    label = building["label"]
+    muscles = building["muscles"]
+    workout = _ai_build_workout(uid, profile, focus=label)
+    if not workout:
+        workout = build_workout(profile, label, muscles, [])
+    session["today_workout"] = workout
+    session.pop("building_workout", None)
+    return jsonify({"ready": True})
 
 
 @app.route("/today-workout")
