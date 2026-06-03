@@ -23,6 +23,7 @@ STATIC_VERSION = _git_version()
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
 
+import coach
 import database
 import sparky_sync
 from workout_logic import (
@@ -32,6 +33,7 @@ from workout_logic import (
     all_exercises_with_status,
     build_workout,
     get_exercise_by_id,
+    get_progressive_overload_suggestions,
     pick_random_muscle_group,
 )
 
@@ -537,7 +539,20 @@ def complete_workout():
         sparky_sync.sync_workout_async(enriched, date.today(), duration)
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     session.pop("today_workout", None)
-    return jsonify({"ok": True, "kcal": kcal})
+
+    # Generate post-workout insight if Ollama is available
+    insight = None
+    overload = []
+    if coach.is_available():
+        try:
+            coaching_data = database.get_coaching_context(uid)
+            ex_history = coaching_data.get("exercise_history", {})
+            overload = get_progressive_overload_suggestions(ex_history)
+            insight = coach.generate_post_workout_insight(coaching_data, overload)
+        except Exception:
+            pass
+
+    return jsonify({"ok": True, "kcal": kcal, "insight": insight, "overload": overload})
 
 
 @app.route("/settings/sparky", methods=["GET", "POST"])
@@ -642,6 +657,31 @@ def api_last_weight():
         "weight_lbs": entry["weight"],
         "logged_at": entry["logged_at"],
     })
+
+
+@app.route("/coach")
+def coach_page():
+    uid = session["user_id"]
+    available = coach.is_available()
+    return render_template("coach.html", available=available)
+
+
+@app.route("/api/coach", methods=["POST"])
+def coach_chat():
+    uid = session["user_id"]
+    data = request.get_json(force=True)
+    message = data.get("message", "").strip()
+    history = data.get("history", [])
+    if not message:
+        return jsonify({"error": "empty message"}), 400
+    if not coach.is_available():
+        return jsonify({"error": "Coach is offline — make sure Ollama is running on your Mac."}), 503
+    try:
+        coaching_data = database.get_coaching_context(uid)
+        response = coach.chat(message, coaching_data, history)
+        return jsonify({"response": response})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/progress")

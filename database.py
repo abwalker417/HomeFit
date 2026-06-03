@@ -378,6 +378,44 @@ def get_last_workout(user_id):
         return d
 
 
+def get_exercise_history(user_id, limit=10):
+    """Return per-exercise set/rep/weight history across recent workouts."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT exercises_json, completed_at FROM workout_log WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
+    history = {}
+    for row in rows:
+        date = row["completed_at"][:10]
+        exercises = _decode_json_list(row["exercises_json"])
+        for ex in exercises:
+            ex_id = ex.get("id")
+            if not ex_id or not ex.get("completed"):
+                continue
+            if ex_id not in history:
+                history[ex_id] = []
+            history[ex_id].append({
+                "date": date,
+                "sets": ex.get("sets", []),
+            })
+    return history
+
+
+def get_coaching_context(user_id):
+    """Build full context for the AI coach — profile, history, progression."""
+    profile = get_profile(user_id)
+    workouts = get_workout_history(user_id, limit=10)
+    weight_history = get_weight_history(user_id, limit=10)
+    exercise_history = get_exercise_history(user_id, limit=15)
+    return {
+        "profile": profile,
+        "recent_workouts": workouts,
+        "weight_history": weight_history,
+        "exercise_history": exercise_history,
+    }
+
+
 def get_or_create_api_token(user_id):
     with get_connection() as conn:
         row = conn.execute("SELECT api_token FROM users WHERE id = ?", (user_id,)).fetchone()

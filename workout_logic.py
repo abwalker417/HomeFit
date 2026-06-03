@@ -309,3 +309,44 @@ def get_exercise_by_id(exercise_id):
 
 def pick_random_muscle_group():
     return random.choice(["arms", "back", "chest", "core", "glutes", "legs", "shoulders"])
+
+
+def get_progressive_overload_suggestions(exercise_history):
+    """
+    Analyze exercise history and return suggestions for progressive overload.
+    Returns list of {exercise_id, exercise_name, current_weight, suggested_weight, reason}.
+    """
+    suggestions = []
+    for ex_id, sessions in exercise_history.items():
+        # Need at least 3 sessions with logged sets to make a suggestion
+        sessions_with_sets = [s for s in sessions if s.get("sets")]
+        if len(sessions_with_sets) < 3:
+            continue
+
+        # Look at the 3 most recent sessions with logged weights
+        recent = sessions_with_sets[:3]
+        weights = []
+        for session in recent:
+            session_weights = [s["weight"] for s in session["sets"] if s.get("weight")]
+            if session_weights:
+                weights.append(max(session_weights))
+
+        if len(weights) < 3:
+            continue
+
+        # If weight has been consistent across last 3 sessions, suggest an increase
+        min_w, max_w = min(weights), max(weights)
+        if max_w > 0 and (max_w - min_w) / max_w < 0.1:  # within 10% = consistent
+            # Suggest ~5-10% increase, rounded to nearest 2.5lbs
+            increase = max(2.5, round(max_w * 0.075 / 2.5) * 2.5)
+            suggested = max_w + increase
+            ex_data = get_exercise_by_id(ex_id)
+            suggestions.append({
+                "exercise_id": ex_id,
+                "exercise_name": ex_data["name"] if ex_data else ex_id,
+                "current_weight": max_w,
+                "suggested_weight": suggested,
+                "sessions_at_current": len(weights),
+            })
+
+    return suggestions

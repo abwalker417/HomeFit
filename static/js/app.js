@@ -208,12 +208,47 @@ function startWorkout() {
           endTime: new Date().toISOString(),
         });
       }
-      window.location.href = '/';
+
+      // Show post-workout insight if coach returned one
+      if (data.insight || (data.overload && data.overload.length)) {
+        showPostWorkoutInsight(data.insight, data.overload || []);
+      } else {
+        window.location.href = '/';
+      }
     } catch (err) {
       finishBtn.disabled = false;
       finishBtn.textContent = 'Retry finish';
     }
   });
+
+  function showPostWorkoutInsight(insight, overload) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:flex-end;padding:16px;';
+
+    let overloadHtml = '';
+    if (overload.length) {
+      const items = overload.map(s =>
+        `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <strong>${s.exercise_name}</strong>
+          <span style="color:var(--accent);float:right">${s.current_weight} → ${s.suggested_weight} lbs</span>
+        </div>`
+      ).join('');
+      overloadHtml = `<div style="margin:12px 0 4px;font-weight:600;">📈 Ready to progress:</div>${items}`;
+    }
+
+    overlay.innerHTML = `
+      <div style="background:var(--card);border-radius:20px;padding:24px;width:100%;max-width:480px;margin:0 auto;">
+        <h2 style="margin:0 0 12px;font-size:1.1rem;">🏆 Workout Complete!</h2>
+        ${insight ? `<p style="line-height:1.6;color:var(--text-muted);margin:0 0 16px;">${insight}</p>` : ''}
+        ${overloadHtml}
+        <button style="margin-top:16px;width:100%;" class="btn btn-primary" id="insight-done">Done</button>
+      </div>`;
+
+    document.body.appendChild(overlay);
+    document.getElementById('insight-done').addEventListener('click', () => {
+      window.location.href = '/';
+    });
+  }
 }
 
 /* ---------- Exercise library filtering ---------- */
