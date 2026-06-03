@@ -9,6 +9,71 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ---------- Apex floating coach panel ---------- */
+(function () {
+  const fab = document.getElementById('apex-fab');
+  const panel = document.getElementById('apex-panel');
+  const closeBtn = document.getElementById('apex-close');
+  const input = document.getElementById('apex-input');
+  const sendBtn = document.getElementById('apex-send');
+  const messages = document.getElementById('apex-messages');
+  if (!fab || !panel) return;
+
+  const history = [];
+
+  function togglePanel() {
+    const open = panel.classList.toggle('open');
+    fab.style.opacity = open ? '0.7' : '1';
+    panel.setAttribute('aria-hidden', String(!open));
+    if (open) setTimeout(() => input && input.focus(), 300);
+  }
+
+  fab.addEventListener('click', togglePanel);
+  closeBtn && closeBtn.addEventListener('click', togglePanel);
+
+  function addMsg(text, role) {
+    const div = document.createElement('div');
+    div.className = `msg msg-${role === 'user' ? 'user' : 'coach'}`;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  async function send() {
+    const text = input.value.trim();
+    if (!text || sendBtn.disabled) return;
+    input.value = '';
+    sendBtn.disabled = true;
+    addMsg(text, 'user');
+    const typing = addMsg('Thinking…', 'coach');
+    typing.style.opacity = '0.5';
+    history.push({ role: 'user', content: text });
+    try {
+      const resp = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+      });
+      const data = await resp.json();
+      const reply = data.response || data.error || 'Something went wrong.';
+      typing.textContent = reply;
+      typing.style.opacity = '1';
+      history.push({ role: 'assistant', content: reply });
+    } catch {
+      typing.textContent = 'Connection error.';
+      typing.style.opacity = '1';
+      history.pop();
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  sendBtn && sendBtn.addEventListener('click', send);
+  input && input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+})();
+
 /* ---------- Weight logging (dashboard) ---------- */
 function setupWeightForm() {
   const form = document.getElementById('weight-form');
