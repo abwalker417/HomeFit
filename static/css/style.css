@@ -784,6 +784,11 @@ fieldset.field { border: none; padding: 0; }
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   display: block;
   overflow: hidden;
+  /* Reset button defaults */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 .apex-fab img {
   width: 100%;
@@ -798,17 +803,18 @@ fieldset.field { border: none; padding: 0; }
 /* Apex slide-up panel */
 .apex-panel {
   position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: 70vh;
-  max-height: 600px;
+  bottom: 56px; /* sit above bottom nav */
+  left: 0; right: 0;
+  height: calc(70vh - 56px);
+  max-height: 560px;
   background: var(--card);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   box-shadow: 0 -8px 40px rgba(0,0,0,0.4);
-  z-index: 300;
+  z-index: 250;
   display: flex;
   flex-direction: column;
-  transform: translateY(100%);
+  transform: translateY(110%);
   transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
 }
 .apex-panel.open { transform: translateY(0); }
