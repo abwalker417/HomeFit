@@ -188,7 +188,12 @@ function startWorkout() {
       body.style.display = open ? 'block' : 'none';
       toggleBtn.textContent = open ? '📊 Hide weight log' : '📊 Log weights (optional)';
       if (open && setsContainer.children.length === 0) {
-        for (let i = 0; i < defaultSets; i++) setsContainer.appendChild(makeSetRow(defaultReps));
+        const suggestedWeight = parseFloat(wl.dataset.suggestedWeight) || null;
+        for (let i = 0; i < defaultSets; i++) {
+          const row = makeSetRow(defaultReps);
+          if (suggestedWeight) row.querySelector('.set-weight').value = suggestedWeight;
+          setsContainer.appendChild(row);
+        }
       }
     });
 

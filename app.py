@@ -571,14 +571,44 @@ def today_workout():
         focus_label = ", ".join(f.title() for f in focus_raw) if focus_raw else ""
     else:
         focus_label = str(focus_raw)
+    uid = session["user_id"]
+
+    # Build per-exercise weight hints
+    ex_history = database.get_exercise_history(uid, limit=15)
+    overload_suggestions = {
+        s["exercise_id"]: s
+        for s in get_progressive_overload_suggestions(ex_history)
+    }
+
+    def weight_hint(ex_id):
+        sessions = ex_history.get(ex_id, [])
+        for s in sessions:
+            weights = [w["weight"] for w in s.get("sets", []) if w.get("weight")]
+            if weights:
+                last_weight = max(weights)
+                last_reps = max((w.get("reps") or 0 for w in s.get("sets", []) if w.get("weight")), default=0)
+                if ex_id in overload_suggestions:
+                    sug = overload_suggestions[ex_id]
+                    return {
+                        "last_weight": last_weight,
+                        "last_reps": last_reps,
+                        "suggested_weight": sug["suggested_weight"],
+                        "ready": True,
+                    }
+                return {"last_weight": last_weight, "last_reps": last_reps, "suggested_weight": last_weight, "ready": False}
+        return None
+
+    exercises = workout.get("exercises", [])
+    for ex in exercises:
+        ex["weight_hint"] = weight_hint(ex.get("id", ""))
+
     day = {
         "day_number": 1,
         "name": workout.get("label", "Today's Workout"),
         "focus": focus_label,
         "ai_generated": workout.get("ai_generated", False),
-        "exercises": workout.get("exercises", []),
+        "exercises": exercises,
     }
-    uid = session["user_id"]
     return render_template("workout.html", day=day, profile=database.get_profile(uid), user_id=uid)
 
 

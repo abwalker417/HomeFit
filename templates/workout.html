@@ -52,7 +52,19 @@
                   data-rest="{{ ex.rest }}">
             Start {{ ex.rest }}s rest timer
           </button>
-          <div class="weight-log" data-sets="{{ ex.sets }}" data-reps="{{ ex.reps }}">
+          {% if ex.weight_hint %}
+          <div class="weight-hint-bar {% if ex.weight_hint.ready %}weight-hint-ready{% endif %}">
+            {% if ex.weight_hint.ready %}
+              📈 <strong>Time to increase!</strong> Last: {{ ex.weight_hint.last_weight }} lbs × {{ ex.weight_hint.last_reps }} reps · Try <strong>{{ ex.weight_hint.suggested_weight }} lbs</strong> today
+            {% else %}
+              Last session: {{ ex.weight_hint.last_weight }} lbs × {{ ex.weight_hint.last_reps }} reps
+            {% endif %}
+          </div>
+          {% endif %}
+          <div class="weight-log"
+               data-sets="{{ ex.sets }}"
+               data-reps="{{ ex.reps }}"
+               data-suggested-weight="{{ ex.weight_hint.suggested_weight if ex.weight_hint else '' }}">
             <button type="button" class="btn btn-secondary weight-log-toggle">
               📊 Log weights (optional)
             </button>
