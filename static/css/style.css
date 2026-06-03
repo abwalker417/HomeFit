@@ -48,9 +48,9 @@ a { color: var(--accent); text-decoration: none; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--text); }
 .brand-mark {
   display: block;
-  width: 32px; height: 32px;
-  border-radius: 9px;
-  object-fit: cover;
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 .brand-name { font-weight: 600; letter-spacing: 0.2px; }
