@@ -27,20 +27,26 @@
       <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
       <a href="{{ url_for('profile_switch_out') }}">Switch</a>
     </nav>
+    <button id="hamburger-btn" class="hamburger-btn" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
     {% endif %}
   </header>
+
+  {% if current_user %}
+  <div id="mobile-menu" class="mobile-menu" aria-hidden="true">
+    <a href="{{ url_for('index') }}">🏠 Home</a>
+    <a href="{{ url_for('exercises') }}">💪 Exercises</a>
+    <a href="{{ url_for('progress') }}">📈 Progress</a>
+    <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">👤 Profile</a>
+    <a href="{{ url_for('profile_switch_out') }}">🔄 Switch user</a>
+  </div>
+  <div id="mobile-menu-backdrop" class="mobile-menu-backdrop"></div>
+  {% endif %}
 
   <main class="app-main">
     {% block content %}{% endblock %}
   </main>
-
-  {% if current_user %}
-  <nav class="bottom-nav">
-    <a href="{{ url_for('index') }}">Home</a>
-    <a href="{{ url_for('exercises') }}">Exercises</a>
-    <a href="{{ url_for('progress') }}">Progress</a>
-    <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
-  </nav>
   <button id="apex-fab" class="apex-fab" title="Apex AI Coach" aria-label="Open Apex coach">
     <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="Apex">
   </button>

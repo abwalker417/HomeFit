@@ -9,6 +9,27 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ---------- Hamburger menu ---------- */
+(function () {
+  const btn = document.getElementById('hamburger-btn');
+  const menu = document.getElementById('mobile-menu');
+  const backdrop = document.getElementById('mobile-menu-backdrop');
+  if (!btn || !menu) return;
+  function close() {
+    btn.classList.remove('open');
+    menu.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+  function open() {
+    btn.classList.add('open');
+    menu.classList.add('open');
+    backdrop.classList.add('open');
+  }
+  btn.addEventListener('click', () => btn.classList.contains('open') ? close() : open());
+  btn.addEventListener('touchend', (e) => { e.preventDefault(); btn.classList.contains('open') ? close() : open(); });
+  backdrop.addEventListener('click', close);
+})();
+
 /* ---------- Apex floating coach panel ---------- */
 (function () {
   const fab = document.getElementById('apex-fab');
