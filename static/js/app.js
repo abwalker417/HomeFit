@@ -85,6 +85,44 @@ if ('serviceWorker' in navigator) {
   input && input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
 })();
 
+/* ---------- Apex form cues ---------- */
+document.querySelectorAll('.apex-cue-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const body = btn.closest('.ex-body');
+    const wrap = body.querySelector('.ex-cue-wrap');
+    const cueEl = body.querySelector('.ex-cue-body');
+    if (wrap.style.display !== 'none') {
+      wrap.style.display = 'none';
+      btn.textContent = '🏔️ Form tips';
+      return;
+    }
+    if (cueEl.dataset.loaded) {
+      wrap.style.display = 'block';
+      btn.textContent = '🏔️ Hide tips';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = '🏔️ Thinking…';
+    const name = body.dataset.exName;
+    const id = body.dataset.exId;
+    try {
+      const resp = await fetch(`/api/exercise-cue?name=${encodeURIComponent(name)}&id=${encodeURIComponent(id)}`);
+      const data = await resp.json();
+      if (data.cue) {
+        cueEl.textContent = data.cue;
+        cueEl.dataset.loaded = '1';
+        wrap.style.display = 'block';
+        btn.textContent = '🏔️ Hide tips';
+      } else {
+        btn.textContent = '🏔️ Apex offline';
+      }
+    } catch {
+      btn.textContent = '🏔️ Error';
+    }
+    btn.disabled = false;
+  });
+});
+
 /* ---------- Weight logging (dashboard) ---------- */
 function setupWeightForm() {
   const form = document.getElementById('weight-form');

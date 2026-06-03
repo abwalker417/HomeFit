@@ -1,6 +1,6 @@
 /* HomeFit service worker — offline-first for app shell */
 
-const CACHE = 'homefit-v27';
+const CACHE = 'homefit-v28';
 const APP_SHELL = [
   '/',
   '/static/css/style.css',

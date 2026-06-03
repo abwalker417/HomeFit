@@ -1,11 +1,14 @@
 """Flask entrypoint for HomeFit (multi-user v2)."""
 
+import json
 import os
 import random
 import subprocess
 from collections import defaultdict
 from threading import Lock
 from time import time
+
+import requests
 
 
 def _git_version():
@@ -598,9 +601,11 @@ def today_workout():
                 return {"last_weight": last_weight, "last_reps": last_reps, "suggested_weight": last_weight, "ready": False}
         return None
 
+    images = _load_exercise_images()
     exercises = workout.get("exercises", [])
     for ex in exercises:
         ex["weight_hint"] = weight_hint(ex.get("id", ""))
+        ex["demo_image"] = images.get(ex.get("name", ""))
 
     day = {
         "day_number": 1,
@@ -677,6 +682,45 @@ def complete_workout():
             pass
 
     return jsonify({"ok": True, "kcal": kcal, "insight": insight, "overload": overload})
+
+
+_exercise_images = None
+
+def _load_exercise_images():
+    global _exercise_images
+    if _exercise_images is None:
+        path = os.path.join(os.path.dirname(__file__), "data", "exercise_images.json")
+        try:
+            with open(path) as f:
+                _exercise_images = json.load(f)
+        except Exception:
+            _exercise_images = {}
+    return _exercise_images
+
+
+@app.route("/api/exercise-cue")
+def exercise_cue():
+    if not session.get("user_id"):
+        return jsonify({"error": "unauthorized"}), 401
+    ex_name = request.args.get("name", "")
+    ex_id = request.args.get("id", "")
+    if not ex_name or not coach.is_available():
+        return jsonify({"cue": None})
+    uid = session["user_id"]
+    try:
+        profile = database.get_profile(uid)
+        limitations = ", ".join(profile.get("limitations") or []) or "none"
+        fitness_level = profile.get("fitness_level", "beginner")
+        prompt = f"""Give 2-3 short, practical form cues for {ex_name} for a {fitness_level} with limitations: {limitations}.
+Focus on the most important things to watch. Be direct — no intro, just the cues. Use bullet points."""
+        resp = requests.post(
+            f"{coach.OLLAMA_URL}/api/generate",
+            json={"model": coach.MODEL, "prompt": prompt, "stream": False},
+            timeout=30,
+        )
+        return jsonify({"cue": resp.json()["response"]})
+    except Exception:
+        return jsonify({"cue": None})
 
 
 @app.route("/settings/sparky", methods=["GET", "POST"])

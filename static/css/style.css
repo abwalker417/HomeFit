@@ -5,7 +5,7 @@
   --bg-2: #111c33;
   --surface: #162238;
   --surface-2: #1e2d4a;
-  --border: #263859;
+  --border: #1e4d80;
   --text: #e2e8f0;
   --subtle: #94a3b8;
   --accent: #f97316;
@@ -909,4 +909,19 @@ fieldset.field { border: none; padding: 0; }
 @media (min-width: 640px) {
   .workout-icon-btn { flex: 0 0 120px; width: 120px; }
   .workout-icon-btn img { width: 120px; height: 120px; }
+}
+
+/* Exercise demo image */
+.ex-demo-wrap {
+  margin: 10px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
+  text-align: center;
+}
+.ex-demo-img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  display: block;
 }

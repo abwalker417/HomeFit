@@ -42,12 +42,28 @@
             <input type="checkbox" class="ex-done" aria-label="Mark complete">
           </div>
         </summary>
-        <div class="ex-body">
+        <div class="ex-body"
+             data-ex-id="{{ ex.id }}"
+             data-ex-name="{{ ex.name }}">
+          {% if ex.demo_image %}
+          <div class="ex-demo-wrap">
+            <img class="ex-demo-img" src="{{ ex.demo_image }}" alt="{{ ex.name }} demo" loading="lazy">
+          </div>
+          {% endif %}
           <p>{{ ex.instructions }}</p>
-          <a class="btn btn-secondary demo-link" target="_blank" rel="noopener"
-             href="https://www.youtube.com/results?search_query={{ ex.name|replace(' ', '+') }}+proper+form">
-            ▶ Watch demo on YouTube
-          </a>
+          <div class="ex-cue-wrap" style="display:none;">
+            <div class="ex-cue-body subtle" style="font-size:13px; line-height:1.6; white-space:pre-wrap;"></div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="btn btn-secondary demo-link" target="_blank" rel="noopener"
+               href="https://www.youtube.com/results?search_query={{ ex.name|replace(' ', '+') }}+proper+form"
+               style="flex:1; text-align:center;">
+              ▶ YouTube
+            </a>
+            <button type="button" class="btn btn-secondary apex-cue-btn" style="flex:1;">
+              🏔️ Form tips
+            </button>
+          </div>
           <button type="button" class="btn btn-secondary rest-btn"
                   data-rest="{{ ex.rest }}">
             Start {{ ex.rest }}s rest timer
