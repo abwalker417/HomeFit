@@ -803,23 +803,23 @@ fieldset.field { border: none; padding: 0; }
 /* Apex slide-up panel */
 .apex-panel {
   position: fixed;
-  bottom: 56px;
+  bottom: 0;
   left: 0; right: 0;
-  height: 65vh;
-  max-height: 560px;
-  background: #162238; /* explicit fallback — var(--surface) */
+  height: 70vh;
+  max-height: 600px;
+  background: #162238;
   background: var(--surface);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   border: 1px solid var(--border);
+  border-bottom: none;
   box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
   z-index: 9999;
-  display: flex;
+  display: none;
   flex-direction: column;
-  transform: translateY(110%);
-  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  padding-bottom: env(safe-area-inset-bottom);
 }
-.apex-panel.open { transform: translateY(0); }
+.apex-panel.open { display: flex; }
 .apex-panel-header {
   display: flex;
   align-items: center;
@@ -827,6 +827,7 @@ fieldset.field { border: none; padding: 0; }
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  background: #1e2d4a;
   background: var(--surface-2);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
@@ -834,12 +835,11 @@ fieldset.field { border: none; padding: 0; }
 .apex-messages {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  scroll-behavior: smooth;
-  background: var(--surface);
 }
 .apex-input-row {
   display: flex;
@@ -847,13 +847,13 @@ fieldset.field { border: none; padding: 0; }
   padding: 10px 12px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
-  background: var(--surface);
 }
 .apex-input-row input {
   flex: 1;
   padding: 10px 14px;
   border-radius: 20px;
   border: 1px solid var(--border);
+  background: #0f172a;
   background: var(--bg);
   color: var(--text);
   font-size: 15px;
@@ -866,14 +866,7 @@ fieldset.field { border: none; padding: 0; }
     border-radius: 20px;
     height: 520px;
     max-height: 80vh;
-    transform: scale(0.95) translateY(10px);
-    opacity: 0;
-    pointer-events: none;
-    transition: transform 0.2s ease, opacity 0.2s ease;
-  }
-  .apex-panel.open {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-    pointer-events: all;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
   }
 }
