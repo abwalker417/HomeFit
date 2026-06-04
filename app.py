@@ -973,6 +973,8 @@ def coach_chat():
     if not coach.is_available():
         return jsonify({"error": "APEX is offline — make sure Ollama is running on your Mac."}), 503
     try:
+        import logging
+        logging.warning(f"APEX chat: local_date={local_date!r} local_day={local_day!r}")
         coaching_data = database.get_coaching_context(uid)
         if local_date:
             coaching_data["local_date"] = local_date

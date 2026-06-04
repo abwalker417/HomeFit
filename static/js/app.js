@@ -197,8 +197,8 @@ if ('serviceWorker' in navigator) {
         body: JSON.stringify({
           message: text,
           history: history.slice(0, -1),
-          local_date: new Date().toLocaleDateString('en-CA'),
-          local_day: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+          local_date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })(),
+          local_day: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()],
         }),
       });
       const data = await resp.json();
