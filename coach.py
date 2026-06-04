@@ -403,32 +403,38 @@ def extract_plan_from_chat(history, exercise_library, current_plan=None):
     lookup = "\n".join(f'  "{e["name"]}" -> "{e["id"]}"' for e in exercise_library[:50])
 
     if current_plan:
-        current_json = json.dumps(current_plan, indent=2)
-        prompt = f"""Update this existing 7-day workout plan based on the changes APEX described.
+        # Strip to compact form — only id/sets/reps to keep output small
+        compact = []
+        for d in current_plan:
+            exs = [{"id": e.get("id"), "sets": e.get("sets", 3), "reps": e.get("reps", 10)}
+                   for e in d.get("exercises", []) if e.get("id")]
+            compact.append({"day": d.get("day"), "name": d.get("name"), "focus": d.get("focus", ""),
+                            "rest": d.get("rest", False), "exercises": exs})
+        current_json = json.dumps(compact)
+        prompt = f"""Update this 7-day plan based on the changes described. Return compact JSON only.
 
-CURRENT PLAN:
-{current_json}
+CURRENT PLAN (compact): {current_json}
 
-APEX PROPOSED THESE CHANGES:
+CHANGES TO APPLY:
 {apex_msgs}
 
-Apply ONLY the changes above. Keep all other days exactly the same.
-Map exercise names to IDs using:
+Rules: Apply ONLY the described changes. Keep other days identical. Map exercise names to IDs:
 {lookup}
 
-Return ONLY raw JSON: {{"plan": [7 day objects, index 0=Monday]}}"""
+Return ONLY: {{"plan":[{{"day":1,"name":"...","focus":"...","rest":false,"exercises":[{{"id":"...","sets":3,"reps":10}}]}},...]}}
+Must have exactly 7 items."""
     else:
-        prompt = f"""Extract the 7-day workout plan from these APEX coach messages.
+        prompt = f"""Extract a 7-day workout plan from these coach messages. Return compact JSON only.
 
-APEX MESSAGES:
+MESSAGES:
 {apex_msgs}
 
-Map exercise names to IDs:
-{lookup}
+Map names to IDs: {lookup}
 
-Return ONLY raw JSON: {{"plan": [7 day objects, index 0=Monday, each has day/name/focus/rest/exercises]}}"""
+Return ONLY: {{"plan":[{{"day":1,"name":"...","focus":"...","rest":false,"exercises":[{{"id":"...","sets":3,"reps":10}}]}},...]}}
+Must have exactly 7 items. Use rest:true for rest days."""
 
-    raw = _generate(prompt, json_mode=True, max_tokens=4096, timeout=90)
+    raw = _generate(prompt, json_mode=True, max_tokens=2048, timeout=90)
     result = _parse_json_safe(raw)
     plan = result.get("plan", [])
     if len(plan) < 5:
