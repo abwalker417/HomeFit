@@ -132,6 +132,22 @@ def init_db():
         _ensure_column(conn, "profile", "fitness_goal", "TEXT NOT NULL DEFAULT 'general'")
         _ensure_column(conn, "profile", "workout_duration_target", "INTEGER NOT NULL DEFAULT 45")
         _ensure_column(conn, "users", "api_token", "TEXT")
+        _ensure_column(conn, "users", "photo", "TEXT")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS apex_plan (
+                user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                plan_json  TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS apex_chat (
+                user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                messages    TEXT NOT NULL DEFAULT '[]',
+                updated_at  TEXT NOT NULL
+            )
+        """)
+
 
         conn.execute("DELETE FROM schema_version")
         conn.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
@@ -466,3 +482,51 @@ def get_stats(user_id):
         "weight_change": trend,
         "starting_weight": weights[0]["weight"] if weights else None,
     }
+
+
+def get_apex_plan(user_id):
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT plan_json, created_at FROM apex_plan WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    if not row:
+        return None
+    return {"plan": json.loads(row["plan_json"]), "created_at": row["created_at"]}
+
+
+def save_apex_plan(user_id, plan):
+    now = datetime.utcnow().isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO apex_plan (user_id, plan_json, created_at) VALUES (?, ?, ?)
+               ON CONFLICT(user_id) DO UPDATE SET plan_json=excluded.plan_json, created_at=excluded.created_at""",
+            (user_id, json.dumps(plan), now),
+        )
+
+
+def get_apex_chat(user_id):
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT messages FROM apex_chat WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return json.loads(row["messages"]) if row else []
+
+
+def save_apex_chat(user_id, messages):
+    now = datetime.utcnow().isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO apex_chat (user_id, messages, updated_at) VALUES (?, ?, ?)
+               ON CONFLICT(user_id) DO UPDATE SET messages=excluded.messages, updated_at=excluded.updated_at""",
+            (user_id, json.dumps(messages[-100:]), now),  # keep last 100 messages
+        )
+
+
+def save_user_photo(user_id, filename):
+    with get_connection() as conn:
+        conn.execute("UPDATE users SET photo = ? WHERE id = ?", (filename, user_id))
+
+
+def clear_apex_chat(user_id):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM apex_chat WHERE user_id = ?", (user_id,))

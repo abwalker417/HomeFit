@@ -58,8 +58,8 @@
     {% if ai_online %}
     <form method="post" action="{{ url_for('start_workout') }}" id="coach-form" style="display:contents;">
       <input type="hidden" name="focus_mode" value="ai">
-      <button type="submit" class="workout-icon-btn" id="coach-btn" title="Let Apex build my workout">
-        <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="Apex">
+      <button type="submit" class="workout-icon-btn" id="coach-btn" title="Let APEX build my workout">
+        <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="APEX">
       </button>
     </form>
     {% endif %}

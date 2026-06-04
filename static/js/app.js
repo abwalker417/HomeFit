@@ -30,30 +30,57 @@ if ('serviceWorker' in navigator) {
   backdrop.addEventListener('click', close);
 })();
 
-/* ---------- Apex floating coach panel ---------- */
+/* ---------- APEX floating coach panel ---------- */
 (function () {
   const fab = document.getElementById('apex-fab');
   const panel = document.getElementById('apex-panel');
   const closeBtn = document.getElementById('apex-close');
+  const clearBtn = document.getElementById('apex-clear-btn');
+  const planBtn = document.getElementById('apex-plan-btn');
   const input = document.getElementById('apex-input');
   const sendBtn = document.getElementById('apex-send');
   const messages = document.getElementById('apex-messages');
   if (!fab || !panel) return;
 
-  const history = [];
+  let history = [];
+  let panelOpen = false;
+
+  // Auto-expand textarea
+  if (input) {
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+  }
+
+  async function loadHistory() {
+    try {
+      const resp = await fetch('/api/apex-chat');
+      const data = await resp.json();
+      if (data.messages && data.messages.length) {
+        history = data.messages;
+        messages.innerHTML = '';
+        history.forEach(m => addMsg(m.content, m.role, false));
+      }
+    } catch {}
+  }
 
   function togglePanel() {
-    const open = panel.classList.toggle('open');
-    fab.style.opacity = open ? '0.7' : '1';
-    panel.setAttribute('aria-hidden', String(!open));
-    if (open) setTimeout(() => input && input.focus(), 300);
+    panelOpen = !panelOpen;
+    panel.classList.toggle('open', panelOpen);
+    fab.style.opacity = panelOpen ? '0.7' : '1';
+    panel.setAttribute('aria-hidden', String(!panelOpen));
+    if (panelOpen) {
+      if (!history.length) loadHistory();
+      setTimeout(() => input && input.focus(), 300);
+    }
   }
 
   let lastToggle = 0;
   function safeToggle(e) {
     e.preventDefault();
     const now = Date.now();
-    if (now - lastToggle < 300) return; // debounce
+    if (now - lastToggle < 300) return;
     lastToggle = now;
     togglePanel();
   }
@@ -63,12 +90,49 @@ if ('serviceWorker' in navigator) {
   closeBtn && closeBtn.addEventListener('click', safeToggle);
   closeBtn && closeBtn.addEventListener('touchend', safeToggle);
 
-  function addMsg(text, role) {
+  clearBtn && clearBtn.addEventListener('click', async () => {
+    if (!confirm('Clear chat history?')) return;
+    await fetch('/api/apex-chat/clear', { method: 'POST' });
+    history = [];
+    messages.innerHTML = '<div class="msg msg-apex">Chat cleared. Ask me anything — or say "create my weekly plan".</div>';
+  });
+
+  planBtn && planBtn.addEventListener('click', async () => {
+    planBtn.disabled = true;
+    planBtn.textContent = '⏳ Loading…';
+    try {
+      const resp = await fetch('/api/apex-plan');
+      const data = await resp.json();
+      if (data.plan && data.plan.length) {
+        const today = new Date().getDay(); // 0=Sun
+        const idx = today === 0 ? 6 : today - 1; // convert to Mon=0
+        const day = data.plan[idx % data.plan.length];
+        if (day.rest) {
+          addMsg(`Today (Day ${idx + 1}) is a rest day: ${day.name}. Recovery is part of the plan!`, 'apex');
+        } else {
+          const postResp = await fetch('/api/apex-plan/today', { method: 'POST' });
+          const postData = await postResp.json();
+          if (postData.ok) {
+            addMsg(`Loading today's plan: ${day.name}. Head to the workout screen!`, 'apex');
+            setTimeout(() => window.location.href = '/today-workout', 1500);
+          }
+        }
+      } else {
+        addMsg('No weekly plan yet. Say "create my weekly plan" and I\'ll build one for you!', 'apex');
+      }
+    } catch {
+      addMsg('Could not load plan.', 'apex');
+    }
+    planBtn.disabled = false;
+    planBtn.textContent = '📅 My Plan';
+  });
+
+  function addMsg(text, role, scroll = true) {
     const div = document.createElement('div');
-    div.className = `msg msg-${role === 'user' ? 'user' : 'coach'}`;
+    div.className = `msg msg-${role === 'user' ? 'user' : 'apex'}`;
     div.textContent = text;
     messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
+    if (scroll) messages.scrollTop = messages.scrollHeight;
     return div;
   }
 
@@ -76,10 +140,37 @@ if ('serviceWorker' in navigator) {
     const text = input.value.trim();
     if (!text || sendBtn.disabled) return;
     input.value = '';
+    input.style.height = 'auto';
     sendBtn.disabled = true;
     addMsg(text, 'user');
-    const typing = addMsg('Thinking…', 'coach');
+    const typing = addMsg('Thinking…', 'apex');
     typing.style.opacity = '0.5';
+    // Detect plan creation request
+    const wantsPlan = /weekly plan|create.*plan|build.*plan|plan.*week/i.test(text);
+    if (wantsPlan) {
+      typing.textContent = 'Building your 7-day plan… this takes ~30 seconds.';
+      try {
+        const resp = await fetch('/api/apex-plan/generate', { method: 'POST' });
+        const data = await resp.json();
+        if (data.ok) {
+          typing.textContent = 'Done! Your 7-day plan is saved. Tap 📅 My Plan to load today\'s workout anytime.';
+          typing.style.opacity = '1';
+          history.push({ role: 'user', content: text });
+          history.push({ role: 'assistant', content: typing.textContent });
+        } else {
+          typing.textContent = data.error || 'Could not generate plan.';
+          typing.style.opacity = '1';
+        }
+        sendBtn.disabled = false;
+        input.focus();
+        return;
+      } catch {
+        typing.textContent = 'Error generating plan.';
+        typing.style.opacity = '1';
+        sendBtn.disabled = false;
+        return;
+      }
+    }
     history.push({ role: 'user', content: text });
     try {
       const resp = await fetch('/api/coach', {
@@ -103,7 +194,9 @@ if ('serviceWorker' in navigator) {
   }
 
   sendBtn && sendBtn.addEventListener('click', send);
-  input && input.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  input && input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
 })();
 
 /* ---------- Apex form cues ---------- */

@@ -201,3 +201,81 @@ Give a 2-3 sentence post-workout insight. Mention one specific thing they did we
     )
     resp.raise_for_status()
     return resp.json()["response"]
+
+
+def generate_weekly_plan(coaching_data, exercise_library):
+    """Generate a structured 7-day workout plan."""
+    profile = coaching_data.get("profile") or {}
+    context = _build_context(coaching_data)
+
+    days_per_week = int(profile.get("days_per_week") or 4)
+    duration_target = int(profile.get("workout_duration_target") or 45)
+    fitness_goal = profile.get("fitness_goal", "general")
+    fitness_level = profile.get("fitness_level", "beginner")
+
+    available_equipment = set(profile.get("equipment") or [])
+    ignored = set(profile.get("ignored_exercises") or [])
+    eligible = [
+        e for e in exercise_library
+        if e["id"] not in ignored
+        and (e["equipment"] in available_equipment or e["equipment"] == "bodyweight")
+    ]
+    library_lines = "\n".join(
+        f'  {{"id":"{e["id"]}","name":"{e["name"]}","muscle":"{e["muscle_group"]}"}}'
+        for e in eligible
+    )
+
+    ex_count = max(3, min(10, duration_target // 7))
+    rest_days = 7 - days_per_week
+
+    prompt = f"""{context}
+
+Available exercises (use exact id values):
+[
+{library_lines}
+]
+
+Create a 7-day workout plan for a {fitness_level} with goal: {fitness_goal}.
+- {days_per_week} training days, {rest_days} rest days
+- Each workout: EXACTLY {ex_count} exercises, ~{duration_target} minutes
+- Balance muscle groups across the week — no two consecutive days hitting the same primary muscles
+- Rest days should be labelled "Rest Day" with no exercises
+
+Respond with ONLY raw JSON — no markdown, no explanation:
+{{
+  "plan": [
+    {{
+      "day": 1,
+      "name": "Upper Body Power",
+      "focus": "chest, shoulders, triceps",
+      "rest": false,
+      "exercises": [
+        {{"id": "exercise_id_1", "sets": 3, "reps": 10}},
+        {{"id": "exercise_id_2", "sets": 3, "reps": 12}},
+        {{"id": "exercise_id_3", "sets": 4, "reps": 8}},
+        {{"id": "exercise_id_4", "sets": 3, "reps": 10}},
+        {{"id": "exercise_id_5", "sets": 3, "reps": 12}},
+        {{"id": "exercise_id_6", "sets": 3, "reps": 15}}
+      ]
+    }},
+    {{"day": 2, "name": "Rest Day", "focus": "recovery", "rest": true, "exercises": []}}
+  ]
+}}
+
+The plan array must have exactly 7 items (one per day). Training days need exactly {ex_count} exercises each."""
+
+    resp = requests.post(
+        f"{OLLAMA_URL}/api/generate",
+        json={"model": MODEL, "prompt": prompt, "stream": False},
+        timeout=120,
+    )
+    resp.raise_for_status()
+    raw = resp.json()["response"].strip()
+    start = raw.find("{")
+    end = raw.rfind("}") + 1
+    if start == -1 or end == 0:
+        raise ValueError("No JSON in response")
+    result = json.loads(raw[start:end])
+    if len(result.get("plan", [])) != 7:
+        raise ValueError(f"Expected 7 days, got {len(result.get('plan', []))}")
+    return result

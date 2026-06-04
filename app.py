@@ -369,11 +369,22 @@ def profile_edit(user_id):
             database.update_user(
                 user_id,
                 request.form.get("name", user["name"]),
-                request.form.get("emoji", user["emoji"]),
+                user.get("emoji", ""),
                 new_pin,
             )
             if pin_action == "clear":
                 database.clear_pin(user_id)
+
+            # Handle photo upload
+            photo_file = request.files.get("photo")
+            if photo_file and photo_file.filename:
+                import imghdr
+                upload_dir = os.path.join(os.path.dirname(__file__), "static", "uploads")
+                os.makedirs(upload_dir, exist_ok=True)
+                ext = os.path.splitext(photo_file.filename)[1].lower() or ".jpg"
+                filename = f"profile_{user_id}{ext}"
+                photo_file.save(os.path.join(upload_dir, filename))
+                database.save_user_photo(user_id, filename)
 
             payload = _parse_profile_form(request.form)
             database.save_profile(user_id=user_id, **payload)
@@ -713,6 +724,90 @@ def _load_exercise_images():
     return _exercise_images
 
 
+@app.route("/api/apex-plan", methods=["GET"])
+def get_apex_plan():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    plan_data = database.get_apex_plan(uid)
+    return jsonify(plan_data or {})
+
+
+@app.route("/api/apex-plan/generate", methods=["POST"])
+def generate_apex_plan():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    if not coach.is_available():
+        return jsonify({"error": "APEX offline"}), 503
+    try:
+        from workout_logic import load_exercises
+        coaching_data = database.get_coaching_context(uid)
+        exercise_library = [
+            {"id": e["id"], "name": e["name"], "muscle_group": e.get("muscle_group", ""),
+             "equipment": e.get("equipment", "bodyweight")}
+            for e in load_exercises()
+        ]
+        result = coach.generate_weekly_plan(coaching_data, exercise_library)
+        # Enrich exercises with full data
+        for day in result.get("plan", []):
+            enriched = []
+            for item in day.get("exercises", []):
+                ex = get_exercise_by_id(item["id"])
+                if ex:
+                    ex["sets"] = item.get("sets", ex["sets"])
+                    ex["reps"] = item.get("reps", ex["reps"])
+                    enriched.append(ex)
+            day["exercises"] = enriched
+        database.save_apex_plan(uid, result["plan"])
+        return jsonify({"ok": True, "plan": result["plan"]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/apex-plan/today", methods=["POST"])
+def load_plan_today():
+    """Load today's planned workout into the session."""
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    plan_data = database.get_apex_plan(uid)
+    if not plan_data:
+        return jsonify({"error": "no plan"}), 404
+    from datetime import date
+    day_of_week = date.today().weekday()  # 0=Monday
+    plan = plan_data["plan"]
+    day_index = day_of_week % len(plan)
+    day = plan[day_index]
+    if day.get("rest"):
+        return jsonify({"rest": True, "name": day.get("name", "Rest Day")})
+    if not day.get("exercises"):
+        return jsonify({"error": "no exercises for today"}), 404
+    session["today_workout"] = {
+        "label": day.get("name", "Today's Workout"),
+        "focus": day.get("focus", ""),
+        "ai_generated": True,
+        "exercises": day["exercises"],
+    }
+    return jsonify({"ok": True})
+
+
+@app.route("/api/apex-chat", methods=["GET"])
+def get_apex_chat():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"messages": []})
+    return jsonify({"messages": database.get_apex_chat(uid)})
+
+
+@app.route("/api/apex-chat/clear", methods=["POST"])
+def clear_apex_chat():
+    uid = session.get("user_id")
+    if uid:
+        database.clear_apex_chat(uid)
+    return jsonify({"ok": True})
+
+
 @app.route("/api/exercise-cue")
 def exercise_cue():
     if not session.get("user_id"):
@@ -858,10 +953,16 @@ def coach_chat():
     if not message:
         return jsonify({"error": "empty message"}), 400
     if not coach.is_available():
-        return jsonify({"error": "Coach is offline — make sure Ollama is running on your Mac."}), 503
+        return jsonify({"error": "APEX is offline — make sure Ollama is running on your Mac."}), 503
     try:
         coaching_data = database.get_coaching_context(uid)
         response = coach.chat(message, coaching_data, history)
+        # Persist chat history
+        all_messages = history + [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": response},
+        ]
+        database.save_apex_chat(uid, all_messages)
         return jsonify({"response": response})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

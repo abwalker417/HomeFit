@@ -16,7 +16,14 @@
       <img class="brand-mark" src="{{ url_for('static', filename='icons/apple-touch-icon.png') }}" alt="HomeFit">
       <span>
         <span class="brand-name">HomeFit</span>
-        {% if current_user %}<span class="subtitle">{{ current_user.emoji }} {{ current_user.name }}</span>{% endif %}
+        {% if current_user %}
+          <span class="subtitle">
+            {% if current_user.photo %}
+              <img src="{{ url_for('static', filename='uploads/' + current_user.photo) }}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px;">
+            {% endif %}
+            {{ current_user.name }}
+          </span>
+        {% endif %}
       </span>
     </a>
     {% if current_user %}
@@ -35,11 +42,11 @@
 
   {% if current_user %}
   <div id="mobile-menu" class="mobile-menu" aria-hidden="true">
-    <a href="{{ url_for('index') }}">🏠 Home</a>
-    <a href="{{ url_for('exercises') }}">💪 Exercises</a>
-    <a href="{{ url_for('progress') }}">📈 Progress</a>
-    <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">👤 Profile</a>
-    <a href="{{ url_for('profile_switch_out') }}">🔄 Switch user</a>
+    <a href="{{ url_for('index') }}">Home</a>
+    <a href="{{ url_for('exercises') }}">Exercises</a>
+    <a href="{{ url_for('progress') }}">Progress</a>
+    <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
+    <a href="{{ url_for('profile_switch_out') }}">Switch user</a>
   </div>
   <div id="mobile-menu-backdrop" class="mobile-menu-backdrop"></div>
   {% endif %}
@@ -49,8 +56,8 @@
   </main>
 
   {% if current_user %}
-  <button id="apex-fab" class="apex-fab" title="Apex AI Coach" aria-label="Open Apex coach">
-    <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="Apex">
+  <button id="apex-fab" class="apex-fab" title="APEX AI Coach" aria-label="Open APEX coach">
+    <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="APEX">
   </button>
 
   <div id="apex-panel" class="apex-panel" aria-hidden="true">
@@ -58,18 +65,22 @@
       <div style="display:flex; align-items:center; gap:10px;">
         <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" style="width:32px; height:32px; border-radius:8px;">
         <div>
-          <div style="font-weight:700; font-size:15px;">Apex</div>
-          <div style="font-size:12px; color:var(--text-muted);">AI Coach · Powered by Llama 3.1</div>
+          <div style="font-weight:700; font-size:15px;">AI Coach</div>
+          <div style="font-size:12px; color:var(--subtle);">Powered by PeakAI</div>
         </div>
       </div>
-      <button id="apex-close" style="background:none; border:none; color:var(--text-muted); font-size:22px; cursor:pointer; padding:4px;">✕</button>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button id="apex-plan-btn" class="pill" style="font-size:11px; cursor:pointer; border:none; background:var(--surface-2); padding:5px 10px;" title="My weekly plan">📅 My Plan</button>
+        <button id="apex-clear-btn" class="pill" style="font-size:11px; cursor:pointer; border:none; background:var(--surface-2); padding:5px 10px;" title="Clear chat">Clear</button>
+        <button id="apex-close" style="background:none; border:none; color:var(--subtle); font-size:22px; cursor:pointer; padding:4px 8px; line-height:1;">✕</button>
+      </div>
     </div>
     <div id="apex-messages" class="apex-messages">
-      <div class="msg msg-coach">Hey! I'm Apex, your AI coach. Ask me anything about your workouts, form, or progression.</div>
+      <div class="msg msg-apex">Hey! I'm your APEX AI Coach. Ask me anything — workouts, form, nutrition, or say "create my weekly plan" and I'll build one for you.</div>
     </div>
     <div class="apex-input-row">
-      <input id="apex-input" type="text" placeholder="Ask Apex anything…" autocomplete="off">
-      <button id="apex-send" class="btn btn-primary" style="border-radius:20px; padding:10px 18px; white-space:nowrap;">Send</button>
+      <textarea id="apex-input" placeholder="Ask APEX anything…" autocomplete="off" rows="1"></textarea>
+      <button id="apex-send" class="btn btn-primary" style="border-radius:20px; padding:10px 18px; white-space:nowrap; align-self:flex-end;">Send</button>
     </div>
   </div>
   {% endif %}
