@@ -974,7 +974,7 @@ def coach_chat():
         coaching_data = database.get_coaching_context(uid)
         plan_saved = False
 
-        # Detect intent to save the plan from conversation
+        # Detect intent to save the plan — skip chat call if successful
         if coach.wants_to_save_plan(message):
             try:
                 from workout_logic import load_exercises
@@ -986,7 +986,6 @@ def coach_chat():
                 ]
                 full_history = history + [{"role": "user", "content": message}]
                 result = coach.extract_plan_from_chat(full_history, exercise_library)
-                # Enrich with full exercise data
                 for day in result.get("plan", []):
                     enriched = []
                     for item in day.get("exercises", []):
@@ -998,12 +997,12 @@ def coach_chat():
                     day["exercises"] = enriched
                 database.save_apex_plan(uid, result["plan"])
                 plan_saved = True
+                response = "Done! I've saved that as your weekly plan. Tap **📅 My Plan** to see the full schedule and load today's workout."
             except Exception:
-                pass  # Plan extraction failed — continue with normal chat response
+                pass  # Extraction failed — fall through to normal chat
 
-        response = coach.chat(message, coaching_data, history)
-        if plan_saved:
-            response = "Done! I've saved that plan. Tap **📅 My Plan** anytime to see the full schedule and load today's workout."
+        if not plan_saved:
+            response = coach.chat(message, coaching_data, history)
 
         all_messages = history + [
             {"role": "user", "content": message},
