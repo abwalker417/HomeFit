@@ -23,17 +23,13 @@
 </section>
 
 {% else %}
-<div style="display:flex;flex-direction:column;gap:12px;">
-  {% set day_names = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+{% set day_names = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+<div style="display:flex;flex-direction:column;gap:12px;" id="plan-days">
   {% for day in plan %}
-  <section class="card {% if loop.index0 == today_index %}today-plan-card{% endif %}">
+  <section class="card plan-day-card" data-weekday="{{ loop.index0 }}">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:{% if not day.rest %}10px{% else %}0{% endif %};">
       <div>
-        {% if loop.index0 == today_index %}
-        <span class="eyebrow" style="color:var(--accent);">Today</span>
-        {% else %}
-        <span class="eyebrow">{{ day_names[loop.index0] }}</span>
-        {% endif %}
+        <span class="eyebrow day-label">{{ day_names[loop.index0] }}</span>
         <h2 style="margin:2px 0 0;font-size:16px;">{{ day.name }}</h2>
       </div>
       {% if not day.rest %}
@@ -51,11 +47,9 @@
       </div>
       {% endfor %}
     </div>
-    {% if loop.index0 == today_index %}
-    <button class="btn btn-primary load-day-btn" style="width:100%;margin-top:14px;" data-day="{{ loop.index0 }}">
+    <button class="btn btn-primary load-day-btn" style="width:100%;margin-top:14px;display:none;">
       Start today's workout →
     </button>
-    {% endif %}
     {% endif %}
   </section>
   {% endfor %}
@@ -70,6 +64,19 @@
 
 {% block scripts %}
 <script>
+  // Highlight today using the client's local clock — avoids UTC offset issues
+  const todayIdx = (new Date().getDay() + 6) % 7; // JS: 0=Sun → Mon=0
+  document.querySelectorAll('.plan-day-card').forEach(card => {
+    const idx = parseInt(card.dataset.weekday, 10);
+    if (idx === todayIdx) {
+      card.style.borderColor = 'var(--accent)';
+      const label = card.querySelector('.day-label');
+      if (label) { label.textContent = 'Today'; label.style.color = 'var(--accent)'; }
+      const startBtn = card.querySelector('.load-day-btn');
+      if (startBtn) startBtn.style.display = '';
+    }
+  });
+
   const genBtn = document.getElementById('gen-plan-btn');
   if (genBtn) {
     genBtn.addEventListener('click', async () => {
@@ -88,14 +95,11 @@
     btn.addEventListener('click', async () => {
       btn.disabled = true;
       btn.textContent = 'Loading…';
-      const resp = await fetch('/api/apex-plan/today', { method: 'POST' });
+      const resp = await fetch('/api/apex-plan/today', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({weekday: todayIdx}) });
       const data = await resp.json();
       if (data.ok) window.location.href = '/today-workout';
       else { btn.textContent = 'Error loading workout'; btn.disabled = false; }
     });
   });
 </script>
-<style>
-  .today-plan-card { border-color: var(--accent); }
-</style>
 {% endblock %}

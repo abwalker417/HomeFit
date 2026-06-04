@@ -297,7 +297,8 @@ if (apexWorkoutBtn) {
     apexWorkoutBtn.disabled = true;
     try {
       // Try loading today's plan first
-      const planResp = await fetch('/api/apex-plan/today', { method: 'POST' });
+      const localWeekday = (new Date().getDay() + 6) % 7;
+      const planResp = await fetch('/api/apex-plan/today', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({weekday: localWeekday}) });
       if (planResp.ok) {
         const data = await planResp.json();
         if (data.rest) {

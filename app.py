@@ -790,8 +790,14 @@ def load_plan_today():
     plan_data = database.get_apex_plan(uid)
     if not plan_data:
         return jsonify({"error": "no plan"}), 404
-    from datetime import date
-    day_of_week = date.today().weekday()  # 0=Monday
+    # Use client-supplied weekday (0=Mon) to avoid UTC offset issues
+    body = request.get_json(silent=True) or {}
+    client_weekday = body.get("weekday")
+    if client_weekday is not None:
+        day_of_week = int(client_weekday)
+    else:
+        from datetime import date
+        day_of_week = date.today().weekday()
     plan = plan_data["plan"]
     day_index = day_of_week % len(plan)
     day = plan[day_index]
