@@ -57,6 +57,31 @@ def _ollama_generate(prompt, json_mode=False, timeout=90):
     return resp.json()["response"].strip()
 
 
+def _strip_code_fences(text):
+    """Remove markdown code fences Claude sometimes wraps JSON in."""
+    import re
+    text = text.strip()
+    text = re.sub(r'^```(?:json)?\s*', '', text)
+    text = re.sub(r'\s*```$', '', text)
+    return text.strip()
+
+
+def _parse_json_safe(raw):
+    """Extract and parse JSON from raw text, repairing common issues."""
+    import re
+    raw = _strip_code_fences(raw)
+    start = raw.find("{")
+    end = raw.rfind("}") + 1
+    if start == -1 or end == 0:
+        raise ValueError("No JSON object found in response")
+    candidate = raw[start:end]
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        fixed = re.sub(r',\s*([}\]])', r'\1', candidate)
+        return json.loads(fixed)
+
+
 def _generate(prompt, json_mode=False, system=None, max_tokens=1024, timeout=90):
     """Route to Claude if available, else Ollama."""
     if _claude_available():
@@ -257,13 +282,7 @@ The "exercises" array must contain exactly {ex_count} objects.
 }}"""
 
     raw = _generate(prompt, json_mode=True, max_tokens=2048, timeout=90)
-
-    # Extract JSON — LLM sometimes adds surrounding text despite instructions
-    start = raw.find("{")
-    end = raw.rfind("}") + 1
-    if start == -1 or end == 0:
-        raise ValueError("No JSON found in LLM response")
-    result = json.loads(raw[start:end])
+    result = _parse_json_safe(raw)
     if len(result.get("exercises", [])) < 3:
         raise ValueError(f"Too few exercises returned: {len(result.get('exercises', []))}")
     return result
@@ -350,11 +369,7 @@ Respond with ONLY raw JSON — no markdown, no explanation:
 The plan array must have exactly 7 items (one per day). Training days need exactly {ex_count} exercises each."""
 
     raw = _generate(prompt, json_mode=True, max_tokens=4096, timeout=120)
-    start = raw.find("{")
-    end = raw.rfind("}") + 1
-    if start == -1 or end == 0:
-        raise ValueError("No JSON in response")
-    result = json.loads(raw[start:end])
+    result = _parse_json_safe(raw)
     if len(result.get("plan", [])) != 7:
         raise ValueError(f"Expected 7 days, got {len(result.get('plan', []))}")
     return result
@@ -413,18 +428,8 @@ Map exercise names to IDs:
 
 Return ONLY raw JSON: {{"plan": [7 day objects, index 0=Monday, each has day/name/focus/rest/exercises]}}"""
 
-    raw = _generate(prompt, json_mode=True, max_tokens=2048, timeout=90)
-    start = raw.find("{")
-    end = raw.rfind("}") + 1
-    if start == -1 or end == 0:
-        raise ValueError("No JSON in response")
-    raw_json = raw[start:end]
-    try:
-        result = json.loads(raw_json)
-    except json.JSONDecodeError:
-        import re
-        fixed = re.sub(r',\s*([}\]])', r'\1', raw_json)
-        result = json.loads(fixed)
+    raw = _generate(prompt, json_mode=True, max_tokens=4096, timeout=90)
+    result = _parse_json_safe(raw)
     plan = result.get("plan", [])
     if len(plan) < 5:
         raise ValueError(f"Only got {len(plan)} days")
