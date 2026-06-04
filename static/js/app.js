@@ -36,7 +36,7 @@ if ('serviceWorker' in navigator) {
   const panel = document.getElementById('apex-panel');
   const closeBtn = document.getElementById('apex-close');
   const clearBtn = document.getElementById('apex-clear-btn');
-  const planBtn = document.getElementById('apex-plan-btn');
+  const planBtn = null; // Now a link — handled by apex_plan.html
   const input = document.getElementById('apex-input');
   const sendBtn = document.getElementById('apex-send');
   const messages = document.getElementById('apex-messages');
@@ -264,14 +264,43 @@ function setupWeightForm() {
   });
 }
 
-/* ---------- Coach workout button ---------- */
-const coachForm = document.getElementById('coach-form');
-if (coachForm) {
-  coachForm.addEventListener('submit', () => {
-    const btn = document.getElementById('coach-btn');
-    btn.disabled = true;
-    btn.textContent = '🤖 Coach is building your workout…';
-  });
+/* ---------- APEX dashboard icon — plan or generate ---------- */
+const apexWorkoutBtn = document.getElementById('apex-workout-btn');
+if (apexWorkoutBtn) {
+  async function handleApexIcon(e) {
+    e.preventDefault();
+    apexWorkoutBtn.style.opacity = '0.5';
+    apexWorkoutBtn.disabled = true;
+    try {
+      // Try loading today's plan first
+      const planResp = await fetch('/api/apex-plan/today', { method: 'POST' });
+      if (planResp.ok) {
+        const data = await planResp.json();
+        if (data.rest) {
+          // Rest day — fall through to generate a light workout instead
+        } else if (data.ok) {
+          window.location.href = '/today-workout';
+          return;
+        }
+      }
+      // No plan or rest day — build an AI-generated workout
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/start-workout';
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'focus_mode';
+      input.value = 'ai';
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+    } catch {
+      apexWorkoutBtn.style.opacity = '1';
+      apexWorkoutBtn.disabled = false;
+    }
+  }
+  apexWorkoutBtn.addEventListener('click', handleApexIcon);
+  apexWorkoutBtn.addEventListener('touchend', (e) => { e.preventDefault(); handleApexIcon(e); });
 }
 
 /* ---------- Regenerate workout ---------- */

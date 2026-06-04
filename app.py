@@ -724,6 +724,22 @@ def _load_exercise_images():
     return _exercise_images
 
 
+@app.route("/apex-plan")
+def apex_plan_page():
+    uid = session.get("user_id")
+    if not uid:
+        return redirect(url_for("profiles"))
+    from datetime import date
+    plan_data = database.get_apex_plan(uid)
+    today_index = date.today().weekday()  # 0=Monday
+    return render_template(
+        "apex_plan.html",
+        plan=plan_data["plan"] if plan_data else None,
+        created_at=plan_data["created_at"] if plan_data else "",
+        today_index=today_index,
+    )
+
+
 @app.route("/api/apex-plan", methods=["GET"])
 def get_apex_plan():
     uid = session.get("user_id")

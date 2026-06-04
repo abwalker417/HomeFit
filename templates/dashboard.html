@@ -56,12 +56,9 @@
 <section class="workout-icon-section">
   <div class="workout-icon-row">
     {% if ai_online %}
-    <form method="post" action="{{ url_for('start_workout') }}" id="coach-form" style="display:contents;">
-      <input type="hidden" name="focus_mode" value="ai">
-      <button type="submit" class="workout-icon-btn" id="coach-btn" title="Let APEX build my workout">
-        <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="APEX">
-      </button>
-    </form>
+    <button class="workout-icon-btn" id="apex-workout-btn" title="APEX: load today's plan or build a workout">
+      <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="APEX">
+    </button>
     {% endif %}
     <a class="workout-icon-btn" href="{{ url_for('build_day', label='Upper body') }}" title="Upper Body">
       <img src="{{ url_for('static', filename='icons/upper-body.png') }}?v={{ static_version }}" alt="Upper Body">
