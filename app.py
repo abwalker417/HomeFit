@@ -972,14 +972,45 @@ def coach_chat():
         return jsonify({"error": "APEX is offline — make sure Ollama is running on your Mac."}), 503
     try:
         coaching_data = database.get_coaching_context(uid)
+        plan_saved = False
+
+        # Detect intent to save the plan from conversation
+        if coach.wants_to_save_plan(message):
+            try:
+                from workout_logic import load_exercises
+                exercise_library = [
+                    {"id": e["id"], "name": e["name"], "muscle_group": e.get("muscle_group", ""),
+                     "equipment": e.get("equipment", "bodyweight"),
+                     "default_sets": e.get("default_sets", 3), "default_reps": e.get("default_reps", 10)}
+                    for e in load_exercises()
+                ]
+                full_history = history + [{"role": "user", "content": message}]
+                result = coach.extract_plan_from_chat(full_history, exercise_library)
+                # Enrich with full exercise data
+                for day in result.get("plan", []):
+                    enriched = []
+                    for item in day.get("exercises", []):
+                        ex = get_exercise_by_id(item["id"])
+                        if ex:
+                            ex["sets"] = item.get("sets", ex["sets"])
+                            ex["reps"] = item.get("reps", ex["reps"])
+                            enriched.append(ex)
+                    day["exercises"] = enriched
+                database.save_apex_plan(uid, result["plan"])
+                plan_saved = True
+            except Exception:
+                pass  # Plan extraction failed — continue with normal chat response
+
         response = coach.chat(message, coaching_data, history)
-        # Persist chat history
+        if plan_saved:
+            response = "Done! I've saved that plan. Tap **📅 My Plan** anytime to see the full schedule and load today's workout."
+
         all_messages = history + [
             {"role": "user", "content": message},
             {"role": "assistant", "content": response},
         ]
         database.save_apex_chat(uid, all_messages)
-        return jsonify({"response": response})
+        return jsonify({"response": response, "plan_saved": plan_saved})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

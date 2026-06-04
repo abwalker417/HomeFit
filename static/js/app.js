@@ -60,7 +60,7 @@ if ('serviceWorker' in navigator) {
       if (data.messages && data.messages.length) {
         history = data.messages;
         messages.innerHTML = '';
-        history.forEach(m => addMsg(m.content, m.role, false));
+        history.forEach(m => addMsg(m.content, m.role === 'assistant' ? 'apex' : m.role, false));
       }
     } catch {}
   }
@@ -127,13 +127,31 @@ if ('serviceWorker' in navigator) {
     planBtn.textContent = '📅 My Plan';
   });
 
+  function renderMarkdown(text) {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/^### (.+)$/gm, '<strong>$1</strong>')
+      .replace(/^## (.+)$/gm, '<strong>$1</strong>')
+      .replace(/^- (.+)$/gm, '• $1')
+      .replace(/\n/g, '<br>');
+  }
+
   function addMsg(text, role, scroll = true) {
     const div = document.createElement('div');
     div.className = `msg msg-${role === 'user' ? 'user' : 'apex'}`;
-    div.textContent = text;
+    div.innerHTML = renderMarkdown(text);
     messages.appendChild(div);
     if (scroll) messages.scrollTop = messages.scrollHeight;
     return div;
+  }
+
+  function addPlanBanner() {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:8px 12px;';
+    div.innerHTML = '<a href="/apex-plan" style="display:block;text-align:center;padding:10px;background:var(--accent);color:#fff;border-radius:12px;font-weight:600;text-decoration:none;">📅 View My Plan →</a>';
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
   }
 
   async function send() {
@@ -180,9 +198,10 @@ if ('serviceWorker' in navigator) {
       });
       const data = await resp.json();
       const reply = data.response || data.error || 'Something went wrong.';
-      typing.textContent = reply;
+      typing.innerHTML = renderMarkdown(reply);
       typing.style.opacity = '1';
       history.push({ role: 'assistant', content: reply });
+      if (data.plan_saved) addPlanBanner();
     } catch {
       typing.textContent = 'Connection error.';
       typing.style.opacity = '1';

@@ -279,3 +279,76 @@ The plan array must have exactly 7 items (one per day). Training days need exact
     if len(result.get("plan", [])) != 7:
         raise ValueError(f"Expected 7 days, got {len(result.get('plan', []))}")
     return result
+
+
+PLAN_SAVE_PHRASES = [
+    "set this as my plan", "save this plan", "save this as my plan",
+    "use this plan", "make this my plan", "let's get after it",
+    "lets get after it", "save it", "set it", "commit to this",
+    "lock it in", "go with this", "implement this plan",
+]
+
+
+def wants_to_save_plan(message):
+    m = message.lower()
+    return any(phrase in m for phrase in PLAN_SAVE_PHRASES)
+
+
+def extract_plan_from_chat(history, exercise_library):
+    """Extract a structured 7-day plan from conversation history."""
+    conversation = "\n".join(
+        f"{m['role'].upper()}: {m['content']}" for m in history[-20:]
+    )
+
+    library_lines = "\n".join(
+        f'  {{"id":"{e["id"]}","name":"{e["name"]}","muscle":"{e["muscle_group"]}","sets":{e.get("default_sets",3)},"reps":{e.get("default_reps",10)}}}'
+        for e in exercise_library
+    )
+
+    prompt = f"""Based on this conversation, extract the workout plan and convert it to structured JSON.
+
+CONVERSATION:
+{conversation}
+
+Available exercises (use exact id values — match exercise names from the conversation to these IDs):
+[
+{library_lines}
+]
+
+Extract the 7-day plan from the conversation above. Map each day's exercises to the closest matching exercise IDs from the list.
+Rest days should have "rest": true and empty exercises array.
+
+Return ONLY raw JSON, no explanation:
+{{
+  "plan": [
+    {{
+      "day": 1,
+      "name": "Full-Body Strength Training",
+      "focus": "compound movements",
+      "rest": false,
+      "exercises": [
+        {{"id": "exercise_id", "sets": 3, "reps": 8}},
+        {{"id": "exercise_id", "sets": 3, "reps": 10}}
+      ]
+    }},
+    {{"day": 2, "name": "Active Recovery", "focus": "rest", "rest": true, "exercises": []}}
+  ]
+}}
+
+The plan array must have exactly 7 items."""
+
+    resp = requests.post(
+        f"{OLLAMA_URL}/api/generate",
+        json={"model": MODEL, "prompt": prompt, "stream": False},
+        timeout=90,
+    )
+    resp.raise_for_status()
+    raw = resp.json()["response"].strip()
+    start = raw.find("{")
+    end = raw.rfind("}") + 1
+    if start == -1 or end == 0:
+        raise ValueError("No JSON in response")
+    result = json.loads(raw[start:end])
+    if len(result.get("plan", [])) != 7:
+        raise ValueError(f"Expected 7 days, got {len(result.get('plan', []))}")
+    return result
