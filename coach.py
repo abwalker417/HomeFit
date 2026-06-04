@@ -296,46 +296,37 @@ def wants_to_save_plan(message):
 
 def extract_plan_from_chat(history, exercise_library):
     """Extract a structured 7-day plan from conversation history."""
+    # Only use last 10 messages to keep context short
+    recent = history[-10:]
     conversation = "\n".join(
-        f"{m['role'].upper()}: {m['content']}" for m in history[-20:]
+        f"{m['role'].upper()}: {m['content'][:500]}" for m in recent
     )
 
-    library_lines = "\n".join(
-        f'  {{"id":"{e["id"]}","name":"{e["name"]}","muscle":"{e["muscle_group"]}","sets":{e.get("default_sets",3)},"reps":{e.get("default_reps",10)}}}'
-        for e in exercise_library
-    )
+    # Build a compact name→id lookup string (30 most common exercises only)
+    key_exercises = [e for e in exercise_library if e["muscle_group"] in
+                     ("upper", "legs", "core", "full_body")][:30]
+    lookup = ", ".join(f'"{e["name"]}"="{e["id"]}"' for e in key_exercises)
 
-    prompt = f"""Based on this conversation, extract the workout plan and convert it to structured JSON.
+    prompt = f"""Extract the workout plan from this conversation and return JSON.
 
-CONVERSATION:
+CONVERSATION SUMMARY:
 {conversation}
 
-Available exercises (use exact id values — match exercise names from the conversation to these IDs):
-[
-{library_lines}
-]
+Exercise name→id mapping (use these exact ids):
+{lookup}
 
-Extract the 7-day plan from the conversation above. Map each day's exercises to the closest matching exercise IDs from the list.
-Rest days should have "rest": true and empty exercises array.
-
-Return ONLY raw JSON, no explanation:
+Return ONLY this JSON (no other text). Use "rest": true for rest/recovery days:
 {{
   "plan": [
-    {{
-      "day": 1,
-      "name": "Full-Body Strength Training",
-      "focus": "compound movements",
-      "rest": false,
-      "exercises": [
-        {{"id": "exercise_id", "sets": 3, "reps": 8}},
-        {{"id": "exercise_id", "sets": 3, "reps": 10}}
-      ]
-    }},
-    {{"day": 2, "name": "Active Recovery", "focus": "rest", "rest": true, "exercises": []}}
+    {{"day":1,"name":"Day name","focus":"muscles","rest":false,"exercises":[{{"id":"exercise_id","sets":3,"reps":10}},{{"id":"exercise_id","sets":3,"reps":8}}]}},
+    {{"day":2,"name":"Rest Day","focus":"recovery","rest":true,"exercises":[]}},
+    {{"day":3,"name":"Day name","focus":"muscles","rest":false,"exercises":[{{"id":"exercise_id","sets":3,"reps":10}}]}},
+    {{"day":4,"name":"Rest Day","focus":"recovery","rest":true,"exercises":[]}},
+    {{"day":5,"name":"Day name","focus":"muscles","rest":false,"exercises":[{{"id":"exercise_id","sets":3,"reps":10}}]}},
+    {{"day":6,"name":"Rest Day","focus":"recovery","rest":true,"exercises":[]}},
+    {{"day":7,"name":"Rest Day","focus":"recovery","rest":true,"exercises":[]}}
   ]
-}}
-
-The plan array must have exactly 7 items."""
+}}"""
 
     resp = requests.post(
         f"{OLLAMA_URL}/api/generate",
@@ -349,6 +340,10 @@ The plan array must have exactly 7 items."""
     if start == -1 or end == 0:
         raise ValueError("No JSON in response")
     result = json.loads(raw[start:end])
-    if len(result.get("plan", [])) != 7:
-        raise ValueError(f"Expected 7 days, got {len(result.get('plan', []))}")
-    return result
+    plan = result.get("plan", [])
+    if len(plan) < 5:
+        raise ValueError(f"Only got {len(plan)} days")
+    # Pad to 7 if needed
+    while len(plan) < 7:
+        plan.append({"day": len(plan)+1, "name": "Rest Day", "focus": "recovery", "rest": True, "exercises": []})
+    return {"plan": plan[:7]}

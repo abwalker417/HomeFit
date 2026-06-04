@@ -975,6 +975,7 @@ def coach_chat():
         plan_saved = False
 
         # Detect intent to save the plan — skip chat call if successful
+        extraction_error = None
         if coach.wants_to_save_plan(message):
             try:
                 from workout_logic import load_exercises
@@ -998,11 +999,13 @@ def coach_chat():
                 database.save_apex_plan(uid, result["plan"])
                 plan_saved = True
                 response = "Done! I've saved that as your weekly plan. Tap **📅 My Plan** to see the full schedule and load today's workout."
-            except Exception:
-                pass  # Extraction failed — fall through to normal chat
+            except Exception as e:
+                extraction_error = str(e)
 
         if not plan_saved:
             response = coach.chat(message, coaching_data, history)
+            if extraction_error:
+                response += f"\n\n*(Note: I tried to save your plan but hit an error: {extraction_error[:100]}. Try saying \"save my plan\" again.)*"
 
         all_messages = history + [
             {"role": "user", "content": message},
