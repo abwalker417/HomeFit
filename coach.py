@@ -1,15 +1,11 @@
-"""AI coaching for HomeFit — Claude API preferred, Ollama fallback."""
+"""AI coaching for HomeFit — routed through PeakAI (OpenAI-compatible)."""
 
 import json
-import os
 import requests
 
-OLLAMA_URL = "http://192.168.68.56:11434"
-OLLAMA_MODEL = "phi4-mini"
-
-# Claude API — used when ANTHROPIC_API_KEY is set
-CLAUDE_CHAT_MODEL = "claude-haiku-4-5-20251001"    # fast + cheap for chat
-CLAUDE_PLAN_MODEL = "claude-haiku-4-5-20251001"    # good enough for plans
+PEAKAI_URL = "http://192.168.68.33:4000"
+PEAKAI_API_KEY = "peak-homelab-key"
+PEAKAI_MODEL = "claude-haiku"
 
 SYSTEM_PROMPT = """You are APEX, a personal AI fitness coach embedded in HomeFit.
 You have access to the user's complete fitness profile and workout history.
@@ -20,45 +16,26 @@ When discussing weights, always use lbs.
 IMPORTANT: You cannot save plans yourself. When you propose a plan change, always end with "Say 'save the change' to commit it." Never claim a plan has been saved unless the user has explicitly asked you to save/commit/update it."""
 
 
-def _claude_client():
-    key = os.environ.get("ANTHROPIC_API_KEY")
-    if not key:
-        return None
-    try:
-        import anthropic
-        return anthropic.Anthropic(api_key=key)
-    except ImportError:
-        return None
-
-
-def _claude_available():
-    return _claude_client() is not None
-
-
-def _claude_generate(prompt, model=None, system=None, max_tokens=1024):
-    client = _claude_client()
-    if not client:
-        raise RuntimeError("No Claude API key")
-    import anthropic
-    msgs = [{"role": "user", "content": prompt}]
-    kwargs = {"model": model or CLAUDE_CHAT_MODEL, "max_tokens": max_tokens, "messages": msgs}
-    if system:
-        kwargs["system"] = system
-    resp = client.messages.create(**kwargs)
-    return resp.content[0].text
-
-
-def _ollama_generate(prompt, json_mode=False, timeout=90):
-    body = {"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}
-    if json_mode:
-        body["format"] = "json"
-    resp = requests.post(f"{OLLAMA_URL}/api/generate", json=body, timeout=timeout)
+def _peakai_call(messages, max_tokens=1024, timeout=90):
+    resp = requests.post(
+        f"{PEAKAI_URL}/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {PEAKAI_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": PEAKAI_MODEL,
+            "messages": messages,
+            "stream": False,
+        },
+        timeout=timeout,
+    )
     resp.raise_for_status()
-    return resp.json()["response"].strip()
+    return resp.json()["choices"][0]["message"]["content"]
 
 
 def _strip_code_fences(text):
-    """Remove markdown code fences Claude sometimes wraps JSON in."""
+    """Remove markdown code fences the model sometimes wraps JSON in."""
     import re
     text = text.strip()
     text = re.sub(r'^```(?:json)?\s*', '', text)
@@ -83,10 +60,19 @@ def _parse_json_safe(raw):
 
 
 def _generate(prompt, json_mode=False, system=None, max_tokens=1024, timeout=90):
-    """Route to Claude if available, else Ollama."""
-    if _claude_available():
-        return _claude_generate(prompt, system=system, max_tokens=max_tokens)
-    return _ollama_generate(prompt, json_mode=json_mode, timeout=timeout)
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+    return _peakai_call(messages, max_tokens=max_tokens, timeout=timeout)
+
+
+def is_available():
+    try:
+        resp = requests.get(f"{PEAKAI_URL}/v1/models", timeout=3)
+        return resp.ok
+    except Exception:
+        return False
 
 
 def _build_context(coaching_data):
@@ -176,48 +162,14 @@ def _build_context(coaching_data):
     return "\n".join(lines)
 
 
-def is_available():
-    if _claude_available():
-        return True
-    try:
-        resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
-        return resp.ok
-    except Exception:
-        return False
-
-
 def chat(message, coaching_data, history=None):
-    """Send a message to the coach and return the response."""
     context = _build_context(coaching_data)
     system = f"{SYSTEM_PROMPT}\n\n{context}"
-
-    if _claude_available():
-        import anthropic
-        client = _claude_client()
-        msgs = []
-        for turn in (history or []):
-            msgs.append({"role": turn["role"], "content": turn["content"]})
-        msgs.append({"role": "user", "content": message})
-        resp = client.messages.create(
-            model=CLAUDE_CHAT_MODEL,
-            max_tokens=1024,
-            system=system,
-            messages=msgs,
-        )
-        return resp.content[0].text
-
-    # Ollama fallback
     messages = [{"role": "system", "content": system}]
     for turn in (history or []):
         messages.append({"role": turn["role"], "content": turn["content"]})
     messages.append({"role": "user", "content": message})
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/chat",
-        json={"model": OLLAMA_MODEL, "messages": messages, "stream": False},
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.json()["message"]["content"]
+    return _peakai_call(messages, max_tokens=1024, timeout=60)
 
 
 def generate_workout(coaching_data, exercise_library, focus=None):
