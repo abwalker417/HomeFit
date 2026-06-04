@@ -433,11 +433,13 @@ def get_coaching_context(user_id):
     workouts = get_workout_history(user_id, limit=10)
     weight_history = get_weight_history(user_id, limit=10)
     exercise_history = get_exercise_history(user_id, limit=15)
+    plan_data = get_apex_plan(user_id)
     return {
         "profile": profile,
         "recent_workouts": workouts,
         "weight_history": weight_history,
         "exercise_history": exercise_history,
+        "apex_plan": plan_data["plan"] if plan_data else None,
     }
 
 

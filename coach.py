@@ -64,11 +64,19 @@ def _generate(prompt, json_mode=False, system=None, max_tokens=1024, timeout=90)
 
 
 def _build_context(coaching_data):
+    from datetime import date as _date
     profile = coaching_data.get("profile") or {}
     workouts = coaching_data.get("recent_workouts") or []
     weight_history = coaching_data.get("weight_history") or []
+    apex_plan = coaching_data.get("apex_plan") or None
+
+    today = _date.today()
+    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    today_name = day_names[today.weekday()]
 
     lines = [
+        f"Today is {today_name}, {today.isoformat()}.",
+        "",
         f"User profile:",
         f"- Fitness level: {profile.get('fitness_level', 'unknown')}",
         f"- Current weight: {profile.get('current_weight')} lbs, Goal: {profile.get('goal_weight')} lbs",
@@ -103,6 +111,18 @@ def _build_context(coaching_data):
                     ex_names.append(ex.get("id", "?"))
             duration = f"{w.get('duration_seconds', 0) // 60}min"
             lines.append(f"- {w.get('completed_at', '')[:10]} ({duration}): {', '.join(ex_names)}")
+        lines.append("")
+
+    if apex_plan:
+        today_idx = today.weekday()  # 0=Monday
+        lines.append("Weekly plan:")
+        for i, day in enumerate(apex_plan[:7]):
+            marker = " ← TODAY" if i == today_idx else ""
+            if day.get("rest"):
+                lines.append(f"- {day_names[i]}: Rest Day{marker}")
+            else:
+                ex_list = ", ".join(e.get("name", e.get("id", "?")) for e in day.get("exercises", [])[:4])
+                lines.append(f"- {day_names[i]}: {day.get('name', '')} — {ex_list}{marker}")
         lines.append("")
 
     return "\n".join(lines)
