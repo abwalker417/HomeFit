@@ -1000,7 +1000,9 @@ def coach_chat():
                     for e in load_exercises()
                 ]
                 full_history = history + [{"role": "user", "content": message}]
-                result = coach.extract_plan_from_chat(full_history, exercise_library)
+                existing = database.get_apex_plan(uid)
+                current_plan = existing["plan"] if existing else None
+                result = coach.extract_plan_from_chat(full_history, exercise_library, current_plan=current_plan)
                 for day in result.get("plan", []):
                     enriched = []
                     for item in day.get("exercises", []):

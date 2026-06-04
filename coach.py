@@ -377,39 +377,41 @@ def wants_to_save_plan(message):
     return any(phrase in m for phrase in PLAN_SAVE_PHRASES)
 
 
-def extract_plan_from_chat(history, exercise_library):
-    """Extract a structured 7-day plan from conversation history."""
-    # Only use last 10 messages to keep context short
-    recent = history[-10:]
-    conversation = "\n".join(
-        f"{m['role'].upper()}: {m['content'][:500]}" for m in recent
-    )
+def extract_plan_from_chat(history, exercise_library, current_plan=None):
+    """Extract or update a 7-day plan from conversation history."""
+    # Only look at recent APEX messages where the plan was described
+    recent = history[-8:]
+    apex_msgs = "\n\n".join(
+        m["content"][:1000] for m in recent if m["role"] == "assistant"
+    )[-2000:]
 
-    # Build a compact name→id lookup string (30 most common exercises only)
-    key_exercises = [e for e in exercise_library if e["muscle_group"] in
-                     ("upper", "legs", "core", "full_body")][:30]
-    lookup = ", ".join(f'"{e["name"]}"="{e["id"]}"' for e in key_exercises)
+    lookup = "\n".join(f'  "{e["name"]}" -> "{e["id"]}"' for e in exercise_library[:50])
 
-    prompt = f"""Extract the workout plan from this conversation and return JSON.
+    if current_plan:
+        current_json = json.dumps(current_plan, indent=2)
+        prompt = f"""Update this existing 7-day workout plan based on the changes APEX described.
 
-CONVERSATION SUMMARY:
-{conversation}
+CURRENT PLAN:
+{current_json}
 
-Exercise name→id mapping (use these exact ids):
+APEX PROPOSED THESE CHANGES:
+{apex_msgs}
+
+Apply ONLY the changes above. Keep all other days exactly the same.
+Map exercise names to IDs using:
 {lookup}
 
-Return ONLY this JSON (no other text). Use "rest": true for rest/recovery days:
-{{
-  "plan": [
-    {{"day":1,"name":"Day name","focus":"muscles","rest":false,"exercises":[{{"id":"exercise_id","sets":3,"reps":10}},{{"id":"exercise_id","sets":3,"reps":8}}]}},
-    {{"day":2,"name":"Rest Day","focus":"recovery","rest":true,"exercises":[]}},
-    {{"day":3,"name":"Day name","focus":"muscles","rest":false,"exercises":[{{"id":"exercise_id","sets":3,"reps":10}}]}},
-    {{"day":4,"name":"Rest Day","focus":"recovery","rest":true,"exercises":[]}},
-    {{"day":5,"name":"Day name","focus":"muscles","rest":false,"exercises":[{{"id":"exercise_id","sets":3,"reps":10}}]}},
-    {{"day":6,"name":"Rest Day","focus":"recovery","rest":true,"exercises":[]}},
-    {{"day":7,"name":"Rest Day","focus":"recovery","rest":true,"exercises":[]}}
-  ]
-}}"""
+Return ONLY raw JSON: {{"plan": [7 day objects, index 0=Monday]}}"""
+    else:
+        prompt = f"""Extract the 7-day workout plan from these APEX coach messages.
+
+APEX MESSAGES:
+{apex_msgs}
+
+Map exercise names to IDs:
+{lookup}
+
+Return ONLY raw JSON: {{"plan": [7 day objects, index 0=Monday, each has day/name/focus/rest/exercises]}}"""
 
     raw = _generate(prompt, json_mode=True, max_tokens=2048, timeout=90)
     start = raw.find("{")
