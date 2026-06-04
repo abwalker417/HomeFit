@@ -16,7 +16,8 @@ You have access to the user's complete fitness profile and workout history.
 Be concise, encouraging, and specific — always reference their actual data.
 Give practical advice they can act on immediately.
 Never suggest exercises outside their available equipment or that conflict with their limitations.
-When discussing weights, always use lbs."""
+When discussing weights, always use lbs.
+IMPORTANT: You cannot save plans yourself. When you propose a plan change, always end with "Say 'save the change' to commit it." Never claim a plan has been saved unless the user has explicitly asked you to save/commit/update it."""
 
 
 def _claude_client():
@@ -364,6 +365,10 @@ PLAN_SAVE_PHRASES = [
     "use this plan", "make this my plan", "let's get after it",
     "lets get after it", "save it", "set it", "commit to this",
     "lock it in", "go with this", "implement this plan",
+    "commit the change", "commit this change", "commit these changes",
+    "update my plan", "update the plan", "save the change", "save the update",
+    "save these changes", "apply this", "apply the change", "apply changes",
+    "sounds good", "save that", "save this schedule",
 ]
 
 
