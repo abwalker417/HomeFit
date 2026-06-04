@@ -1,17 +1,66 @@
-"""Ollama-backed coaching for HomeFit."""
+"""AI coaching for HomeFit — Claude API preferred, Ollama fallback."""
 
 import json
+import os
 import requests
 
 OLLAMA_URL = "http://192.168.68.56:11434"
-MODEL = "phi4-mini"
+OLLAMA_MODEL = "phi4-mini"
 
-SYSTEM_PROMPT = """You are Apex, a personal AI fitness coach embedded in HomeFit.
+# Claude API — used when ANTHROPIC_API_KEY is set
+CLAUDE_CHAT_MODEL = "claude-haiku-4-5-20251001"    # fast + cheap for chat
+CLAUDE_PLAN_MODEL = "claude-haiku-4-5-20251001"    # good enough for plans
+
+SYSTEM_PROMPT = """You are APEX, a personal AI fitness coach embedded in HomeFit.
 You have access to the user's complete fitness profile and workout history.
 Be concise, encouraging, and specific — always reference their actual data.
 Give practical advice they can act on immediately.
 Never suggest exercises outside their available equipment or that conflict with their limitations.
 When discussing weights, always use lbs."""
+
+
+def _claude_client():
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        return None
+    try:
+        import anthropic
+        return anthropic.Anthropic(api_key=key)
+    except ImportError:
+        return None
+
+
+def _claude_available():
+    return _claude_client() is not None
+
+
+def _claude_generate(prompt, model=None, system=None, max_tokens=1024):
+    client = _claude_client()
+    if not client:
+        raise RuntimeError("No Claude API key")
+    import anthropic
+    msgs = [{"role": "user", "content": prompt}]
+    kwargs = {"model": model or CLAUDE_CHAT_MODEL, "max_tokens": max_tokens, "messages": msgs}
+    if system:
+        kwargs["system"] = system
+    resp = client.messages.create(**kwargs)
+    return resp.content[0].text
+
+
+def _ollama_generate(prompt, json_mode=False, timeout=90):
+    body = {"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}
+    if json_mode:
+        body["format"] = "json"
+    resp = requests.post(f"{OLLAMA_URL}/api/generate", json=body, timeout=timeout)
+    resp.raise_for_status()
+    return resp.json()["response"].strip()
+
+
+def _generate(prompt, json_mode=False, system=None, max_tokens=1024, timeout=90):
+    """Route to Claude if available, else Ollama."""
+    if _claude_available():
+        return _claude_generate(prompt, system=system, max_tokens=max_tokens)
+    return _ollama_generate(prompt, json_mode=json_mode, timeout=timeout)
 
 
 def _build_context(coaching_data):
@@ -60,6 +109,8 @@ def _build_context(coaching_data):
 
 
 def is_available():
+    if _claude_available():
+        return True
     try:
         resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
         return resp.ok
@@ -72,14 +123,29 @@ def chat(message, coaching_data, history=None):
     context = _build_context(coaching_data)
     system = f"{SYSTEM_PROMPT}\n\n{context}"
 
+    if _claude_available():
+        import anthropic
+        client = _claude_client()
+        msgs = []
+        for turn in (history or []):
+            msgs.append({"role": turn["role"], "content": turn["content"]})
+        msgs.append({"role": "user", "content": message})
+        resp = client.messages.create(
+            model=CLAUDE_CHAT_MODEL,
+            max_tokens=1024,
+            system=system,
+            messages=msgs,
+        )
+        return resp.content[0].text
+
+    # Ollama fallback
     messages = [{"role": "system", "content": system}]
     for turn in (history or []):
         messages.append({"role": turn["role"], "content": turn["content"]})
     messages.append({"role": "user", "content": message})
-
     resp = requests.post(
         f"{OLLAMA_URL}/api/chat",
-        json={"model": MODEL, "messages": messages, "stream": False},
+        json={"model": OLLAMA_MODEL, "messages": messages, "stream": False},
         timeout=60,
     )
     resp.raise_for_status()
@@ -159,13 +225,7 @@ The "exercises" array must contain exactly {ex_count} objects.
   ]
 }}"""
 
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={"model": MODEL, "prompt": prompt, "stream": False},
-        timeout=90,
-    )
-    resp.raise_for_status()
-    raw = resp.json()["response"].strip()
+    raw = _generate(prompt, json_mode=True, max_tokens=2048, timeout=90)
 
     # Extract JSON — LLM sometimes adds surrounding text despite instructions
     start = raw.find("{")
@@ -194,13 +254,7 @@ The user just completed a workout: {last.get('day_name', 'Workout')} ({last.get(
 
 Give a 2-3 sentence post-workout insight. Mention one specific thing they did well and one actionable tip for next time. Be encouraging but direct."""
 
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={"model": MODEL, "prompt": prompt, "stream": False},
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.json()["response"]
+    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
 
 
 def generate_weekly_plan(coaching_data, exercise_library):
@@ -264,13 +318,7 @@ Respond with ONLY raw JSON — no markdown, no explanation:
 
 The plan array must have exactly 7 items (one per day). Training days need exactly {ex_count} exercises each."""
 
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={"model": MODEL, "prompt": prompt, "stream": False},
-        timeout=120,
-    )
-    resp.raise_for_status()
-    raw = resp.json()["response"].strip()
+    raw = _generate(prompt, json_mode=True, max_tokens=4096, timeout=120)
     start = raw.find("{")
     end = raw.rfind("}") + 1
     if start == -1 or end == 0:
@@ -328,13 +376,7 @@ Return ONLY this JSON (no other text). Use "rest": true for rest/recovery days:
   ]
 }}"""
 
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={"model": MODEL, "prompt": prompt, "stream": False, "format": "json"},
-        timeout=90,
-    )
-    resp.raise_for_status()
-    raw = resp.json()["response"].strip()
+    raw = _generate(prompt, json_mode=True, max_tokens=2048, timeout=90)
     start = raw.find("{")
     end = raw.rfind("}") + 1
     if start == -1 or end == 0:
@@ -343,7 +385,6 @@ Return ONLY this JSON (no other text). Use "rest": true for rest/recovery days:
     try:
         result = json.loads(raw_json)
     except json.JSONDecodeError:
-        # Strip trailing commas which are common model mistakes
         import re
         fixed = re.sub(r',\s*([}\]])', r'\1', raw_json)
         result = json.loads(fixed)
