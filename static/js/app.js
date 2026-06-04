@@ -194,7 +194,12 @@ if ('serviceWorker' in navigator) {
       const resp = await fetch('/api/coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+        body: JSON.stringify({
+          message: text,
+          history: history.slice(0, -1),
+          local_date: new Date().toLocaleDateString('en-CA'),
+          local_day: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+        }),
       });
       const data = await resp.json();
       const reply = data.response || data.error || 'Something went wrong.';

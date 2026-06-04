@@ -70,12 +70,22 @@ def _build_context(coaching_data):
     weight_history = coaching_data.get("weight_history") or []
     apex_plan = coaching_data.get("apex_plan") or None
 
-    today = _date.today()
     day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    today_name = day_names[today.weekday()]
+    # Prefer client-supplied local date (avoids UTC offset issues)
+    local_date_str = coaching_data.get("local_date")
+    local_day_str = coaching_data.get("local_day")
+    if local_date_str and local_day_str:
+        today_label = f"{local_day_str}, {local_date_str}"
+        try:
+            today = _date.fromisoformat(local_date_str)
+        except Exception:
+            today = _date.today()
+    else:
+        today = _date.today()
+        today_label = f"{day_names[today.weekday()]}, {today.isoformat()}"
 
     lines = [
-        f"Today is {today_name}, {today.isoformat()}.",
+        f"Today is {today_label} (user's local time).",
         "",
         f"User profile:",
         f"- Fitness level: {profile.get('fitness_level', 'unknown')}",

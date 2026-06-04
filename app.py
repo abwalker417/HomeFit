@@ -966,12 +966,18 @@ def coach_chat():
     data = request.get_json(force=True)
     message = data.get("message", "").strip()
     history = data.get("history", [])
+    local_date = data.get("local_date")
+    local_day = data.get("local_day")
     if not message:
         return jsonify({"error": "empty message"}), 400
     if not coach.is_available():
         return jsonify({"error": "APEX is offline — make sure Ollama is running on your Mac."}), 503
     try:
         coaching_data = database.get_coaching_context(uid)
+        if local_date:
+            coaching_data["local_date"] = local_date
+        if local_day:
+            coaching_data["local_day"] = local_day
         plan_saved = False
 
         # Detect intent to save the plan — skip chat call if successful
