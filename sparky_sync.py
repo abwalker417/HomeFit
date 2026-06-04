@@ -495,3 +495,50 @@ def sync_weight_async(weight, log_date=None):
         daemon=True,
     )
     t.start()
+
+
+def fetch_nutrition_log(days=7):
+    """Fetch recent food diary entries from Sparky. Returns list of daily summaries."""
+    config = load_config()
+    if not config:
+        return []
+    from datetime import date, timedelta
+    base = config["url"].rstrip("/")
+    headers = _headers(config["api_key"])
+    summaries = []
+    for i in range(days):
+        d = (date.today() - timedelta(days=i)).isoformat()
+        try:
+            r = requests.get(
+                f"{base}/api/food-entries",
+                headers=headers,
+                params={"selectedDate": d},
+                timeout=8,
+            )
+            if not r.ok:
+                continue
+            entries = r.json()
+            if not entries:
+                continue
+            totals = {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
+            by_meal = {}
+            for e in entries:
+                qty = float(e.get("quantity") or 0)
+                serving = float(e.get("serving_size") or 100)
+                factor = qty / serving if serving else 0
+                for key in totals:
+                    val = e.get(key)
+                    totals[key] += round((float(val) * factor if val else 0), 1)
+                meal = e.get("meal_type", "other")
+                by_meal.setdefault(meal, []).append(e.get("food_name", "?"))
+            summaries.append({
+                "date": d,
+                "calories": round(totals["calories"]),
+                "protein_g": round(totals["protein"]),
+                "carbs_g": round(totals["carbs"]),
+                "fat_g": round(totals["fat"]),
+                "meals": {m: names[:4] for m, names in by_meal.items()},
+            })
+        except Exception:
+            continue
+    return summaries

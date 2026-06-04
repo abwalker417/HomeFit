@@ -95,6 +95,7 @@ def _build_context(coaching_data):
     workouts = coaching_data.get("recent_workouts") or []
     weight_history = coaching_data.get("weight_history") or []
     apex_plan = coaching_data.get("apex_plan") or None
+    nutrition_log = coaching_data.get("nutrition_log") or []
 
     day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     # Prefer client-supplied local date (avoids UTC offset issues)
@@ -147,6 +148,17 @@ def _build_context(coaching_data):
                     ex_names.append(ex.get("id", "?"))
             duration = f"{w.get('duration_seconds', 0) // 60}min"
             lines.append(f"- {w.get('completed_at', '')[:10]} ({duration}): {', '.join(ex_names)}")
+        lines.append("")
+
+    if nutrition_log:
+        lines.append("Recent nutrition (from Sparky food diary):")
+        for day in nutrition_log[:5]:
+            meals = ", ".join(f"{m}: {', '.join(foods)}" for m, foods in day.get("meals", {}).items())
+            lines.append(
+                f"- {day['date']}: {day['calories']} kcal | "
+                f"{day['protein_g']}g protein | {day['carbs_g']}g carbs | {day['fat_g']}g fat"
+                + (f" | {meals}" if meals else "")
+            )
         lines.append("")
 
     if apex_plan:
