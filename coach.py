@@ -330,7 +330,7 @@ Return ONLY this JSON (no other text). Use "rest": true for rest/recovery days:
 
     resp = requests.post(
         f"{OLLAMA_URL}/api/generate",
-        json={"model": MODEL, "prompt": prompt, "stream": False},
+        json={"model": MODEL, "prompt": prompt, "stream": False, "format": "json"},
         timeout=90,
     )
     resp.raise_for_status()
@@ -339,11 +339,17 @@ Return ONLY this JSON (no other text). Use "rest": true for rest/recovery days:
     end = raw.rfind("}") + 1
     if start == -1 or end == 0:
         raise ValueError("No JSON in response")
-    result = json.loads(raw[start:end])
+    raw_json = raw[start:end]
+    try:
+        result = json.loads(raw_json)
+    except json.JSONDecodeError:
+        # Strip trailing commas which are common model mistakes
+        import re
+        fixed = re.sub(r',\s*([}\]])', r'\1', raw_json)
+        result = json.loads(fixed)
     plan = result.get("plan", [])
     if len(plan) < 5:
         raise ValueError(f"Only got {len(plan)} days")
-    # Pad to 7 if needed
     while len(plan) < 7:
         plan.append({"day": len(plan)+1, "name": "Rest Day", "focus": "recovery", "rest": True, "exercises": []})
     return {"plan": plan[:7]}
