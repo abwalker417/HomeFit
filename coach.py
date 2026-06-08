@@ -82,6 +82,7 @@ def _build_context(coaching_data):
     weight_history = coaching_data.get("weight_history") or []
     apex_plan = coaching_data.get("apex_plan") or None
     nutrition_log = coaching_data.get("nutrition_log") or []
+    hydration_log = coaching_data.get("hydration_log") or []
 
     day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     # Prefer client-supplied local date (avoids UTC offset issues)
@@ -145,6 +146,14 @@ def _build_context(coaching_data):
                 f"{day['protein_g']}g protein | {day['carbs_g']}g carbs | {day['fat_g']}g fat"
                 + (f" | {meals}" if meals else "")
             )
+        lines.append("")
+
+    if hydration_log:
+        lines.append("Recent hydration (from Sparky):")
+        for day in hydration_log[:5]:
+            liters = day["water_ml"] / 1000
+            flag = " (low)" if liters < 1.5 else ""
+            lines.append(f"- {day['date']}: {liters:.1f}L{flag}")
         lines.append("")
 
     if apex_plan:

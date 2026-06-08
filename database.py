@@ -436,10 +436,12 @@ def get_coaching_context(user_id):
     plan_data = get_apex_plan(user_id)
     profile = profile or {}
     nutrition = []
+    hydration = []
     if profile.get("sparky_sync"):
         try:
             import sparky_sync
             nutrition = sparky_sync.fetch_nutrition_log(days=7)
+            hydration = sparky_sync.fetch_hydration_log(days=7)
         except Exception:
             pass
     return {
@@ -449,6 +451,7 @@ def get_coaching_context(user_id):
         "exercise_history": exercise_history,
         "apex_plan": plan_data["plan"] if plan_data else None,
         "nutrition_log": nutrition,
+        "hydration_log": hydration,
     }
 
 

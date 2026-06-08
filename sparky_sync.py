@@ -497,6 +497,36 @@ def sync_weight_async(weight, log_date=None):
     t.start()
 
 
+def fetch_hydration_log(days=7):
+    """Fetch recent water intake from Sparky. Returns list of {date, water_ml} per day."""
+    config = load_config()
+    if not config:
+        return []
+    from datetime import date, timedelta
+    base = config["url"].rstrip("/")
+    headers = _headers(config["api_key"])
+    summaries = []
+    for i in range(days):
+        d = (date.today() - timedelta(days=i)).isoformat()
+        try:
+            r = requests.get(
+                f"{base}/v2/measurements/water-intake/{d}",
+                headers=headers,
+                timeout=8,
+            )
+            if not r.ok:
+                continue
+            entries = r.json()
+            if not entries:
+                continue
+            total_ml = sum(float(e.get("water_ml") or 0) for e in entries)
+            if total_ml > 0:
+                summaries.append({"date": d, "water_ml": round(total_ml)})
+        except Exception:
+            continue
+    return summaries
+
+
 def fetch_nutrition_log(days=7):
     """Fetch recent food diary entries from Sparky. Returns list of daily summaries."""
     config = load_config()
