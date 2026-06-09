@@ -171,10 +171,13 @@ def load_config():
         return json.load(f)
 
 
-def save_config(url, api_key):
+def save_config(url, api_key=None):
     os.makedirs(_DATA_DIR, exist_ok=True)
+    data = {"url": url.rstrip("/")}
+    if api_key:
+        data["api_key"] = api_key
     with open(_CONFIG_PATH, "w") as f:
-        json.dump({"url": url.rstrip("/"), "api_key": api_key}, f)
+        json.dump(data, f)
 
 
 def test_connection(url, api_key):
@@ -218,14 +221,17 @@ def _is_uuid(s):
 
 # ── Exercise library: push HomeFit → Sparky ──────────────────────────────────
 
-def push_exercises_to_sparky():
+def push_exercises_to_sparky(api_key=None):
     """Push all exercises from exercises.json to Sparky (skips ones already there)."""
     config = load_config()
-    if not config.get("url") or not config.get("api_key"):
+    if not config.get("url"):
         return False, "SparkyFitness not configured."
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return False, "No API key configured."
 
     base_url = config["url"]
-    api_key = config["api_key"]
+    api_key = effective_key
 
     with open(_EXERCISES_PATH) as f:
         exercises = json.load(f)
@@ -285,11 +291,14 @@ def push_exercises_to_sparky():
 
 # ── Exercise library: fetch Sparky → HomeFit ─────────────────────────────────
 
-def fetch_and_replace_exercises():
+def fetch_and_replace_exercises(api_key=None):
     """Pull all exercises from Sparky and overwrite exercises.json."""
     config = load_config()
-    if not config.get("url") or not config.get("api_key"):
+    if not config.get("url"):
         return False, "SparkyFitness not configured."
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return False, "No API key configured."
 
     try:
         skip_sources = {"HealthKit", "healthkit"}
@@ -301,7 +310,7 @@ def fetch_and_replace_exercises():
             r = requests.get(
                 f"{config['url']}/api/exercises",
                 params={"limit": page_size, "offset": offset},
-                headers=_headers(config["api_key"]),
+                headers=_headers(effective_key),
                 timeout=30,
             )
             if not r.ok:
@@ -447,15 +456,19 @@ def _sync_workout(config, exercises, workout_date, duration_seconds):
             pass
 
 
-def sync_workout_async(exercises, workout_date, duration_seconds):
+def sync_workout_async(exercises, workout_date, duration_seconds, api_key=None):
     """Fire-and-forget: push a completed workout to SparkyFitness in the background."""
     config = load_config()
-    if not config.get("url") or not config.get("api_key"):
+    if not config.get("url"):
         return
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return
+    effective_config = {**config, "api_key": effective_key}
 
     t = threading.Thread(
         target=_sync_workout,
-        args=(config, exercises, workout_date, duration_seconds),
+        args=(effective_config, exercises, workout_date, duration_seconds),
         daemon=True,
     )
     t.start()
@@ -477,11 +490,15 @@ def _sync_weight(config, weight, log_date):
         pass
 
 
-def sync_weight_async(weight, log_date=None):
+def sync_weight_async(weight, log_date=None, api_key=None):
     """Fire-and-forget: push a weight entry to SparkyFitness in the background."""
     config = load_config()
-    if not config.get("url") or not config.get("api_key"):
+    if not config.get("url"):
         return
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return
+    effective_config = {**config, "api_key": effective_key}
 
     if log_date is None:
         from datetime import date
@@ -491,20 +508,23 @@ def sync_weight_async(weight, log_date=None):
 
     t = threading.Thread(
         target=_sync_weight,
-        args=(config, weight, log_date),
+        args=(effective_config, weight, log_date),
         daemon=True,
     )
     t.start()
 
 
-def fetch_hydration_log(days=7):
+def fetch_hydration_log(days=7, api_key=None):
     """Fetch recent water intake from Sparky. Returns list of {date, water_ml} per day."""
     config = load_config()
     if not config:
         return []
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return []
     from datetime import date, timedelta
     base = config["url"].rstrip("/")
-    headers = _headers(config["api_key"])
+    headers = _headers(effective_key)
     summaries = []
     for i in range(days):
         d = (date.today() - timedelta(days=i)).isoformat()
@@ -527,14 +547,17 @@ def fetch_hydration_log(days=7):
     return summaries
 
 
-def fetch_nutrition_log(days=7):
+def fetch_nutrition_log(days=7, api_key=None):
     """Fetch recent food diary entries from Sparky. Returns list of daily summaries."""
     config = load_config()
     if not config:
         return []
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return []
     from datetime import date, timedelta
     base = config["url"].rstrip("/")
-    headers = _headers(config["api_key"])
+    headers = _headers(effective_key)
     summaries = []
     for i in range(days):
         d = (date.today() - timedelta(days=i)).isoformat()

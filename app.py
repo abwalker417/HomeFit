@@ -691,7 +691,7 @@ def complete_workout():
         e["sets_logged"] = sets_by_id.get(e["id"], [])
     profile = database.get_profile(uid)
     if enriched and (profile or {}).get("sparky_sync"):
-        sparky_sync.sync_workout_async(enriched, date.today(), duration)
+        sparky_sync.sync_workout_async(enriched, date.today(), duration, api_key=(profile or {}).get("sparky_api_key"))
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     session.pop("today_workout", None)
 
@@ -857,9 +857,11 @@ Focus on the most important things to watch. Be direct — no intro, just the cu
 
 @app.route("/settings/sparky", methods=["GET", "POST"])
 def sparky_settings():
+    uid = session["user_id"]
     message = None
     ok = False
     config = sparky_sync.load_config()
+    profile = database.get_profile(uid) or {}
 
     if request.method == "POST":
         action = request.form.get("action", "save")
@@ -867,23 +869,29 @@ def sparky_settings():
         api_key = request.form.get("api_key", "").strip()
 
         if action == "clear":
-            sparky_sync.save_config("", "")
-            config = {}
-            message = "SparkyFitness sync disconnected."
+            database.save_sparky_api_key(uid, "", enabled=False)
+            message = "SparkyFitness sync disconnected for your profile."
+            ok = True
         elif action == "test":
             ok, message = sparky_sync.test_connection(url, api_key)
         elif action == "push_exercises":
-            ok, message = sparky_sync.push_exercises_to_sparky()
+            user_key = api_key or profile.get("sparky_api_key") or ""
+            ok, message = sparky_sync.push_exercises_to_sparky(api_key=user_key)
         elif action == "refresh_exercises":
-            ok, message = sparky_sync.fetch_and_replace_exercises()
+            user_key = api_key or profile.get("sparky_api_key") or ""
+            ok, message = sparky_sync.fetch_and_replace_exercises(api_key=user_key)
         else:
-            sparky_sync.save_config(url, api_key)
+            sparky_sync.save_config(url)
+            if api_key:
+                database.save_sparky_api_key(uid, api_key, enabled=True)
             config = sparky_sync.load_config()
-            ok, message = sparky_sync.test_connection(url, api_key)
+            test_key = api_key or profile.get("sparky_api_key") or ""
+            ok, message = sparky_sync.test_connection(url, test_key)
             if ok:
                 message = "Settings saved and connection verified."
+        profile = database.get_profile(uid) or {}
 
-    return render_template("sparky_settings.html", config=config, message=message, ok=ok)
+    return render_template("sparky_settings.html", config=config, message=message, ok=ok, profile=profile)
 
 
 @app.route("/api/log_weight", methods=["POST"])
@@ -894,7 +902,7 @@ def log_weight():
     database.log_weight(uid, weight)
     profile = database.get_profile(uid)
     if (profile or {}).get("sparky_sync"):
-        sparky_sync.sync_weight_async(weight)
+        sparky_sync.sync_weight_async(weight, api_key=(profile or {}).get("sparky_api_key"))
     return jsonify({"ok": True})
 
 

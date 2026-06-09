@@ -128,6 +128,7 @@ def init_db():
         _ensure_column(conn, "profile", "target_muscles", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "preferred_equipment", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "sparky_sync", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "profile", "sparky_api_key", "TEXT")
         _ensure_column(conn, "profile", "ignored_exercises", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "fitness_goal", "TEXT NOT NULL DEFAULT 'general'")
         _ensure_column(conn, "profile", "workout_duration_target", "INTEGER NOT NULL DEFAULT 45")
@@ -427,6 +428,14 @@ def get_exercise_history(user_id, limit=10):
     return history
 
 
+def save_sparky_api_key(user_id, api_key, enabled=True):
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE profile SET sparky_api_key = ?, sparky_sync = ? WHERE user_id = ?",
+            (api_key or None, 1 if (enabled and api_key) else 0, user_id),
+        )
+
+
 def get_coaching_context(user_id):
     """Build full context for the AI coach — profile, history, progression."""
     profile = get_profile(user_id)
@@ -440,8 +449,9 @@ def get_coaching_context(user_id):
     if profile.get("sparky_sync"):
         try:
             import sparky_sync
-            nutrition = sparky_sync.fetch_nutrition_log(days=7)
-            hydration = sparky_sync.fetch_hydration_log(days=7)
+            sparky_key = profile.get("sparky_api_key") or None
+            nutrition = sparky_sync.fetch_nutrition_log(days=7, api_key=sparky_key)
+            hydration = sparky_sync.fetch_hydration_log(days=7, api_key=sparky_key)
         except Exception:
             pass
     return {

@@ -5,32 +5,38 @@
 <section class="card">
   <a class="back-link" href="{{ url_for('index') }}">← Back</a>
   <h1>SparkyFitness Sync</h1>
-  <p class="subtle">When connected, completed workouts are automatically pushed to SparkyFitness in the background.</p>
+  <p class="subtle">Each person connects their own SparkyFitness account so APEX can see their nutrition and hydration data.</p>
 
   {% if message %}
     <p class="{{ 'ok' if ok else 'warn' }}">{{ '✓' if ok else '⚠' }} {{ message }}</p>
   {% endif %}
 
   <form method="post" class="form">
-    <label>SparkyFitness URL
+    <label>SparkyFitness URL <span class="subtle">(shared by everyone on this HomeFit)</span>
       <input type="url" name="url" required placeholder="http://192.168.68.19:3004"
              value="{{ config.url or '' }}" autocomplete="off">
     </label>
 
-    <label>API Key
-      <input type="password" name="api_key" required placeholder="Paste your SparkyFitness API key"
-             value="{{ config.api_key or '' }}" autocomplete="off">
+    <label>Your API Key <span class="subtle">(from your SparkyFitness account settings)</span>
+      <input type="password" name="api_key" placeholder="Paste your personal SparkyFitness API key"
+             value="{{ profile.sparky_api_key or '' }}" autocomplete="off">
     </label>
 
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <button type="submit" name="action" value="save" class="btn btn-primary">Save</button>
       <button type="submit" name="action" value="test" class="btn btn-secondary">Test connection</button>
-      {% if config.url %}
+      {% if profile.sparky_api_key %}
       <button type="submit" name="action" value="clear" class="btn btn-danger"
-              onclick="return confirm('Disconnect SparkyFitness sync?')">Disconnect</button>
+              onclick="return confirm('Disconnect your SparkyFitness sync?')">Disconnect</button>
       {% endif %}
     </div>
   </form>
+
+  {% if profile.sparky_api_key %}
+  <p class="ok" style="margin-top:12px;">✓ Your account is connected. APEX can see your nutrition and hydration data.</p>
+  {% else %}
+  <p class="subtle" style="margin-top:12px;">Not connected. Enter your API key above to enable sync.</p>
+  {% endif %}
 </section>
 
 {% if config.url %}
@@ -39,7 +45,7 @@
   <p class="subtle">Keep HomeFit's exercise list in sync with what's in SparkyFitness.</p>
   <form method="post" class="form">
     <input type="hidden" name="url" value="{{ config.url }}">
-    <input type="hidden" name="api_key" value="{{ config.api_key }}">
+    <input type="hidden" name="api_key" value="{{ profile.sparky_api_key or '' }}">
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <button type="submit" name="action" value="push_exercises" class="btn btn-secondary">Push HomeFit → Sparky</button>
       <button type="submit" name="action" value="refresh_exercises" class="btn btn-primary"
@@ -54,8 +60,8 @@
 
 <section class="card">
   <h2>Status</h2>
-  <p class="subtle">Connected to <strong>{{ config.url }}</strong></p>
-  <p class="subtle">Completed workouts and weight logs sync to SparkyFitness automatically.</p>
+  <p class="subtle">Site URL: <strong>{{ config.url }}</strong></p>
+  <p class="subtle">Each user on this HomeFit can connect their own Sparky account by entering their personal API key above. Workouts and weight logs sync automatically when connected.</p>
 </section>
 {% endif %}
 {% endblock %}
