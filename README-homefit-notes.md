@@ -1,112 +1,139 @@
-# HomeFit — Current State (May 20, 2026)
+# HomeFit — Current State (June 2026)
 
-Multi-user home fitness PWA built with Flask + SQLite. Mobile-first, installable via PWA manifest.
+Multi-user home fitness PWA built with Flask + SQLite. Mobile-first, installable as a PWA. AI coaching via APEX (PeakAI / OpenAI-compatible). Nutrition sync from SparkyFitness (per-user API keys).
 
 ---
 
-## 1. High-level flow
+## Infrastructure
+
+| Service | LXC | Address |
+|---|---|---|
+| HomeFit | 115 | `192.168.68.15:5000` — gunicorn, systemd |
+| PeakAI | 133 | `192.168.68.33:4000` — LiteLLM proxy, model `claude-haiku` |
+| Sparky | 120 | `192.168.68.20:3004` — Docker compose |
+| Cloudflare | — | `homefit.hidethechaos.com` |
+
+Deploy: `git pull origin develop` from `/home/homefit/workout-app` (DNS fix: `140.82.114.4 github.com` in `/etc/hosts`)
+
+---
+
+## 1. Route map
 
 ```
 /profiles          → pick or create a profile
 /onboarding        → first-time setup (weight, fitness level, equipment, limitations)
-/                  → dashboard (plan summary, day cards, stats)
+/                  → dashboard (plan summary, day cards, stats, today's workout card)
 /build-day         → tap a day card → auto-builds that day's workout → /today-workout
 /start-workout     → manual focus picker or "surprise me" → /today-workout
 /today-workout     → active workout (timer, rest overlay, mark-complete, finish)
 /today-workout/add → add an exercise mid-workout
 /exercises         → full exercise library with availability status
 /progress          → weight log chart + workout history
-/profiles/<id>/edit → edit your profile; owner sees all profiles + add button
+/apex-plan         → full weekly plan view (today highlighted)
+/profiles/<id>/edit → edit profile; owner sees all profiles + add button
+/settings/sparky   → per-user Sparky API key + shared URL config
 ```
 
 ---
 
 ## 2. Auth / profiles
 
-- Session-based. `session["user_id"]` is set on profile select.
-- `session["is_owner"] = True` is set for user_id == 1 (first profile) automatically on switch.
+- Session-based. `session["user_id"]` set on profile select.
+- `session["is_owner"] = True` for user_id == 1 (first profile).
 - PIN lockout: 5 wrong attempts in 15 min → 10-min lockout.
-- Owner can add/edit all profiles from the Profile tab without touching URLs.
+- Owner can add/edit all profiles.
 
 ---
 
-## 3. Workout generation
+## 3. APEX AI Coach
 
-All logic lives in `workout_logic.py`.
+All AI calls route through PeakAI at `http://192.168.68.33:4000/v1/chat/completions`:
+- `is_available()` checks `GET /v1/models`
+- `chat()` uses full conversation history + system context
+- `_generate()` wraps prompt in messages array for structured calls
+- `_parse_json_safe()` strips code fences + repairs trailing commas
 
-- `filter_exercises(profile, focus)` — filters `data/exercises.json` by:
-  - Limitations (reads `contraindications` field, maps to VALID_LIMITATIONS via `_CONTRAINDICATION_TO_LIMITATION`)
-  - Available equipment (reads `equipment` string, maps via `_EQUIPMENT_ALIASES`, normalizes with `_norm()`)
-  - Focus muscles (maps coarse `category` to muscle groups via `CATEGORY_TO_MUSCLES`)
-- `build_workout(profile, label, muscles, equipment_focus)` — picks exercises by difficulty cap derived from fitness level; widens cap if too few matches.
-- `all_exercises_with_status(profile)` — returns every exercise with `available` bool and `reason` string for the library view.
-- `get_exercise_by_id(id)` — used by add-exercise endpoint to append a single exercise to the active session workout.
+**Coaching context** built per-conversation in `database.get_coaching_context()`:
+- Today's date/day (from browser local clock via `local_date`/`local_day` params)
+- User profile: weight, goal, fitness level, equipment, limitations, duration target
+- Weight trend from log
+- Last 5 workouts with exercise IDs and weights used
+- Sparky nutrition log: last 7 days (calories, protein, carbs, fat + meal breakdown)
+- Sparky hydration log: last 7 days (water_ml per day)
+- Full weekly plan
 
-Dashboard day labels map to muscles via `_LABEL_TO_MUSCLES` in `app.py`:
-- Upper body → arms, back, chest, shoulders
-- Lower body → legs, glutes
-- Core & cardio → core
+**Persistent chat**: `apex_chat` DB table, last 100 messages per user, shared across devices.
+
+**Plan saving**: `apex_plan` DB table. Triggers on ~15 phrases ("save the change", "sounds good", etc.).
+
+---
+
+## 4. SparkyFitness Integration
+
+- **Shared config**: `data/sparky_config.json` stores the Sparky base URL only.
+- **Per-user API keys**: each user's Sparky Bearer token stored in `profile.sparky_api_key`.
+- `profile.sparky_sync = 1` when a user has an active key.
+- All Sparky functions (`fetch_nutrition_log`, `fetch_hydration_log`, `sync_workout_async`, `sync_weight_async`) accept `api_key=None` — use user's key, fall back to global config if not set.
+- Workout completion → push to Sparky (background thread) using user's key.
+- Weight log → push to Sparky (background thread) using user's key.
+- Weight unit: HomeFit stores lbs, Sparky stores kg — converted on push.
+
+**Current Sparky users (live)**:
+- Brent: connected (key in profile)
+- Shay: connected (key in profile)
+- Kelsie: not connected
+
+**Sparky AI**: pointing to PeakAI (`openai_compatible`, `claude-haiku`, `http://192.168.68.33:4000/v1`). Set as global/public provider — all Sparky users share it. Private Anthropic entry deactivated.
+
+---
+
+## 5. Database schema
+
+| Table | Key columns |
+|---|---|
+| `users` | id, name, pin_hash, emoji (legacy), photo, api_token |
+| `profile` | user_id, fitness data, equipment, limitations, sparky_sync, **sparky_api_key**, ignored_exercises |
+| `workout_log` | user_id, day_name, day_number, exercises_json, duration_seconds, completed_at |
+| `weight_log` | user_id, weight (lbs), logged_at |
+| `apex_plan` | user_id (PK), plan_json, created_at |
+| `apex_chat` | user_id (PK), messages (JSON last 100), updated_at |
+
+Schema version: **5** (auto-migrated on app start via `init_db()`).
+
+---
+
+## 6. Workout generation
+
+All logic in `workout_logic.py`:
+
+- `filter_exercises(profile, focus)` — filters `data/exercises.json` by limitations, equipment, focus muscles
+- `build_workout(profile, label, muscles, equipment_focus)` — difficulty cap from fitness level
+- `all_exercises_with_status(profile)` — each exercise with `available` bool + `reason`
+
+Dashboard labels → muscles via `_LABEL_TO_MUSCLES` in `app.py`:
+- Upper Body → arms, back, chest, shoulders
+- Lower Body → legs, glutes
+- Core → core
 - Recovery → full body
 
 ---
 
-## 4. Templates
+## 7. Templates
 
 | Template | Purpose |
 |---|---|
-| `base.html` | Layout, top nav, app.js load, `{% block scripts %}` |
-| `dashboard.html` | Hero stats, day cards (tap → `/build-day`), quick CTAs |
-| `start_workout.html` | Manual focus picker (radio) + "surprise me" |
+| `base.html` | Layout, top nav, hamburger (mobile), APEX FAB |
+| `dashboard.html` | Stats, day cards, today's workout card (green border) |
 | `workout.html` | Exercise list, timer, rest overlay, finish button |
-| `add_exercise.html` | Searchable exercise picker for mid-workout adds |
-| `exercises.html` | Full library with availability badges |
-| `profile_edit.html` | Edit self; owner sees Manage Profiles + Add Profile + Danger Zone |
-| `profile_form_fields.html` | Shared form fields (weight, fitness level, equipment, limitations) |
-| `onboarding.html` | First-run wrapper around profile_form_fields |
-| `profiles.html` | Profile switcher |
+| `apex_plan.html` | Weekly plan (today highlighted via client JS clock) |
+| `sparky_settings.html` | Shared URL + per-user API key |
+| `profile_edit.html` | Edit self; owner sees Manage + Add + Danger Zone |
 
 ---
 
-## 5. CSS architecture (`static/css/style.css`)
+## 8. Known issues / pending
 
-- CSS variables for colors, radius, shadow.
-- Mobile-first; breakpoints at 640px and 720px.
-- Key classes: `.card`, `.pill-grid`, `.pill-option`, `.btn`, `.form`, `.exercise-list`, `.exercise-item`.
-- `.form label:not(.pill-option)` — the `:not()` is intentional; pill-options need `flex-direction: row`.
-- `setupLibraryFilter()` in `app.js` expects `.library-list .exercise-item` with `data-name` and `data-category` attributes.
-
----
-
-## 6. JavaScript (`static/js/app.js`)
-
-Key functions (all invoked by page-specific `{% block scripts %}` blocks):
-
-- `startWorkout()` — workout timer, rest overlay countdown, mark-complete tracking, finish → POST `/api/complete_workout`.
-- `setupLibraryFilter()` — live search + category filter for exercise lists (exercises.html and add_exercise.html).
-- `setupWeightForm()` — weight logging widget on progress page.
-
-`app.js` is loaded synchronously (no `defer`) so these are available when inline block scripts call them.
-
----
-
-## 7. Known issues
-
-1. **Upper-body muscle granularity** — exercises.json has coarse `category: "upper"` with no per-muscle field. Arms/back/chest/shoulders all draw from the same pool.
-2. **Empty workout** — no user-facing message when 0 exercises match the selected focus + profile constraints. Screen just renders an empty list.
-3. **`data/secret.key`** — untracked. Confirm it's in `.gitignore` before any public push.
-
----
-
-## 8. Deployment
-
-- LXC at `192.168.68.15`, gunicorn, managed by systemd (`homefit.service`).
-- Deploy: `git pull origin develop && systemctl restart homefit`
-- Branch: `develop` → `main`. Work on develop; deploy from develop.
-
----
-
-## 9. Next steps
-
-1. Add per-muscle tags to `exercises.json` (biceps, triceps, chest vs generic "upper").
-2. Empty-state message on workout screen when 0 exercises are generated.
-3. Persist completed workouts fully to DB (current log stores day name + count; could store full exercise list for history review).
+- Plan save occasionally fails if APEX response is very large (`max_tokens=4096` on extractions)
+- `fetch_and_replace_exercises()` deduplication bug — do not call
+- Profile photo upload not validated for file type server-side
+- Server has stale `ANTHROPIC_API_KEY` env var in systemd — harmless
