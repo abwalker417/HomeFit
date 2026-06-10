@@ -548,6 +548,40 @@ def fetch_goals(api_key=None):
         return {}
 
 
+def update_goals(calories=None, protein_g=None, carbs_g=None, fat_g=None, water_ml=None, api_key=None):
+    """Push updated calorie/macro goals to Sparky. Returns (ok, message)."""
+    config = load_config()
+    if not config.get("url"):
+        return False, "SparkyFitness not configured."
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return False, "No API key configured."
+    from datetime import date
+    payload = {"p_start_date": date.today().isoformat()}
+    if calories is not None:
+        payload["calories"] = round(calories)
+    if protein_g is not None:
+        payload["protein"] = round(protein_g, 1)
+    if carbs_g is not None:
+        payload["carbs"] = round(carbs_g, 1)
+    if fat_g is not None:
+        payload["fat"] = round(fat_g, 1)
+    if water_ml is not None:
+        payload["water_goal_ml"] = round(water_ml)
+    try:
+        r = requests.post(
+            f"{config['url'].rstrip('/')}/api/goals/manage-timeline",
+            headers={**_headers(effective_key), "Content-Type": "application/json"},
+            json=payload,
+            timeout=10,
+        )
+        if r.ok:
+            return True, "Goals updated in Sparky."
+        return False, f"Sparky returned {r.status_code}."
+    except Exception as e:
+        return False, str(e)
+
+
 def fetch_hydration_log(days=7, api_key=None):
     """Fetch recent water intake from Sparky. Returns list of {date, water_ml} per day."""
     config = load_config()

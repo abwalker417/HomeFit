@@ -148,6 +148,10 @@ def _build_context(coaching_data):
             + (f" | Water: {round(nutrition_goals['water_ml']/1000, 1)}L" if nutrition_goals.get('water_ml') else "")
         )
         lines.append("")
+        lines.append("Note: You can propose updated nutrition goals. When you do, state them clearly as:")
+        lines.append("  Calories: X kcal, Protein: Xg, Carbs: Xg, Fat: Xg")
+        lines.append("Then tell the user to say 'update my goals' to apply them to Sparky.")
+        lines.append("")
 
     if nutrition_log:
         lines.append("Recent nutrition (from Sparky food diary):")
@@ -375,6 +379,41 @@ PLAN_SAVE_PHRASES = [
 def wants_to_save_plan(message):
     m = message.lower()
     return any(phrase in m for phrase in PLAN_SAVE_PHRASES)
+
+
+GOAL_UPDATE_PHRASES = [
+    "update my goals", "update my macros", "update my calorie goal",
+    "update my calories", "set my goals", "set my macros",
+    "save my goals", "apply those goals", "apply the goals",
+    "use those numbers", "use those macros", "use those goals",
+    "change my goals", "change my macros",
+]
+
+
+def wants_to_update_goals(message):
+    m = message.lower()
+    return any(phrase in m for phrase in GOAL_UPDATE_PHRASES)
+
+
+def extract_goals_from_chat(history):
+    """Parse proposed calorie/macro targets from recent APEX messages. Returns dict."""
+    recent = history[-6:]
+    apex_msgs = "\n\n".join(
+        m["content"][:800] for m in recent if m["role"] == "assistant"
+    )[-1500:]
+
+    prompt = f"""Extract the most recently proposed nutrition goals from these coach messages.
+Return ONLY valid JSON. If no specific numbers were proposed, return {{}}.
+
+MESSAGES:
+{apex_msgs}
+
+Return: {{"calories": 2800, "protein_g": 190, "carbs_g": 250, "fat_g": 80}}
+Only include keys where a specific number was proposed. Omit keys with no proposed value."""
+
+    raw = _generate(prompt, json_mode=True, max_tokens=256, timeout=30)
+    result = _parse_json_safe(raw)
+    return {k: v for k, v in result.items() if isinstance(v, (int, float)) and v > 0}
 
 
 def extract_plan_from_chat(history, exercise_library, current_plan=None):

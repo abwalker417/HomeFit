@@ -1026,7 +1026,33 @@ def coach_chat():
             except Exception as e:
                 extraction_error = str(e)
 
-        if not plan_saved:
+        goals_updated = False
+        if not plan_saved and coach.wants_to_update_goals(message):
+            try:
+                full_history = history + [{"role": "user", "content": message}]
+                goals = coach.extract_goals_from_chat(full_history)
+                if goals:
+                    profile = database.get_profile(uid) or {}
+                    sparky_key = profile.get("sparky_api_key") or None
+                    ok, msg = sparky_sync.update_goals(
+                        calories=goals.get("calories"),
+                        protein_g=goals.get("protein_g"),
+                        carbs_g=goals.get("carbs_g"),
+                        fat_g=goals.get("fat_g"),
+                        api_key=sparky_key,
+                    )
+                    if ok:
+                        parts = [f"{round(goals[k])}{'g' if k != 'calories' else ' kcal'}"
+                                 for k in ("calories", "protein_g", "carbs_g", "fat_g") if k in goals]
+                        response = f"Done! Your Sparky goals have been updated: {', '.join(parts)}."
+                        goals_updated = True
+                    else:
+                        response = f"I couldn't update your goals in Sparky: {msg}. You can update them manually in Sparky settings."
+                        goals_updated = True  # suppress fallback chat
+            except Exception as e:
+                pass
+
+        if not plan_saved and not goals_updated:
             response = coach.chat(message, coaching_data, history)
             if extraction_error:
                 response += f"\n\n*(Note: I tried to save your plan but hit an error: {extraction_error[:100]}. Try saying \"save my plan\" again.)*"
@@ -1036,7 +1062,7 @@ def coach_chat():
             {"role": "assistant", "content": response},
         ]
         database.save_apex_chat(uid, all_messages)
-        return jsonify({"response": response, "plan_saved": plan_saved})
+        return jsonify({"response": response, "plan_saved": plan_saved, "goals_updated": goals_updated})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
