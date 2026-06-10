@@ -163,32 +163,6 @@ if ('serviceWorker' in navigator) {
     addMsg(text, 'user');
     const typing = addMsg('Thinking…', 'apex');
     typing.style.opacity = '0.5';
-    // Detect plan creation request
-    const wantsPlan = /weekly plan|create.*plan|build.*plan|plan.*week/i.test(text);
-    if (wantsPlan) {
-      typing.textContent = 'Building your 7-day plan… this takes ~30 seconds.';
-      try {
-        const resp = await fetch('/api/apex-plan/generate', { method: 'POST' });
-        const data = await resp.json();
-        if (data.ok) {
-          typing.textContent = 'Done! Your 7-day plan is saved. Tap 📅 My Plan to load today\'s workout anytime.';
-          typing.style.opacity = '1';
-          history.push({ role: 'user', content: text });
-          history.push({ role: 'assistant', content: typing.textContent });
-        } else {
-          typing.textContent = data.error || 'Could not generate plan.';
-          typing.style.opacity = '1';
-        }
-        sendBtn.disabled = false;
-        input.focus();
-        return;
-      } catch {
-        typing.textContent = 'Error generating plan.';
-        typing.style.opacity = '1';
-        sendBtn.disabled = false;
-        return;
-      }
-    }
     history.push({ role: 'user', content: text });
     try {
       const resp = await fetch('/api/coach', {
