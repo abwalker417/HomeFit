@@ -277,21 +277,35 @@ The "exercises" array must contain exactly {ex_count} objects.
     return result
 
 
-def generate_post_workout_insight(coaching_data, suggestions):
-    """Generate a brief post-workout insight based on the completed session."""
+def generate_post_workout_insight(coaching_data, suggestions, completed_exercises=None):
+    """Generate a post-workout insight based on the completed session."""
     context = _build_context(coaching_data)
     workouts = coaching_data.get("recent_workouts") or []
     last = workouts[0] if workouts else {}
 
+    # Build a readable summary of what was just done
+    ex_lines = []
+    if completed_exercises:
+        for ex in completed_exercises[:8]:
+            sets = ex.get("sets_logged") or []
+            if sets:
+                set_str = ", ".join(
+                    f"{s.get('weight', 0)}lbs×{s.get('reps', 0)}" if s.get("weight") else f"{s.get('reps', 0)} reps"
+                    for s in sets if s.get("reps")
+                )
+                if set_str:
+                    ex_lines.append(f"  - {ex.get('name', ex.get('id', ''))}: {set_str}")
+    ex_summary = "\nExercises completed:\n" + "\n".join(ex_lines) if ex_lines else ""
+
     overload_text = ""
     if suggestions:
         items = [f"{s['exercise_name']} ({s['current_weight']}→{s['suggested_weight']}lbs)" for s in suggestions[:3]]
-        overload_text = f"\nProgressive overload opportunities: {', '.join(items)}"
+        overload_text = f"\nReady to increase weight next session: {', '.join(items)}"
 
     prompt = f"""{context}
-The user just completed a workout: {last.get('day_name', 'Workout')} ({last.get('duration_seconds', 0) // 60} min).{overload_text}
+The user just finished: {last.get('day_name', 'Workout')} ({last.get('duration_seconds', 0) // 60} min).{ex_summary}{overload_text}
 
-Give a 2-3 sentence post-workout insight. Mention one specific thing they did well and one actionable tip for next time. Be encouraging but direct."""
+Write a 2-3 sentence post-workout insight. Reference something specific from their sets/weights if available. One thing done well, one concrete tip for next time. Be direct and brief — no greeting, no sign-off."""
 
     return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
 

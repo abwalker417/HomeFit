@@ -695,19 +695,36 @@ def complete_workout():
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     session.pop("today_workout", None)
 
-    # Generate post-workout insight if Ollama is available
-    insight = None
-    overload = []
-    if coach.is_available():
-        try:
-            coaching_data = database.get_coaching_context(uid)
-            ex_history = coaching_data.get("exercise_history", {})
-            overload = get_progressive_overload_suggestions(ex_history)
-            insight = coach.generate_post_workout_insight(coaching_data, overload)
-        except Exception:
-            pass
+    return jsonify({"ok": True, "kcal": kcal, "exercises_completed": len(enriched)})
 
-    return jsonify({"ok": True, "kcal": kcal, "insight": insight, "overload": overload})
+
+@app.route("/api/post-workout-insight", methods=["POST"])
+def post_workout_insight():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    if not coach.is_available():
+        return jsonify({"insight": None, "overload": []})
+
+    data = request.get_json(force=True)
+    exercises = data.get("exercises", [])
+
+    # Build a name→sets summary of what was just done
+    completed = [e for e in exercises if e.get("completed") and e.get("id")]
+    sets_by_id = {e["id"]: e.get("sets", []) for e in completed}
+    enriched = [get_exercise_by_id(e["id"]) for e in completed]
+    enriched = [e for e in enriched if e]
+    for e in enriched:
+        e["sets_logged"] = sets_by_id.get(e["id"], [])
+
+    try:
+        coaching_data = database.get_coaching_context(uid)
+        ex_history = coaching_data.get("exercise_history", {})
+        overload = get_progressive_overload_suggestions(ex_history)
+        insight = coach.generate_post_workout_insight(coaching_data, overload, enriched)
+        return jsonify({"insight": insight, "overload": overload})
+    except Exception:
+        return jsonify({"insight": None, "overload": []})
 
 
 _exercise_images = None

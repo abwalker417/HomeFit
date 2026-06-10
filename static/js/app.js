@@ -499,48 +499,65 @@ function startWorkout() {
           endTime: new Date().toISOString(),
         });
       }
-
-      showPostWorkoutInsight(data.insight, data.overload || [], duration, data.kcal);
+      showCompletionScreen(duration, data.kcal, data.exercises_completed, payload.day_name, payload.exercises);
     } catch (err) {
       finishBtn.disabled = false;
       finishBtn.textContent = 'Retry finish';
     }
   });
 
-  function showPostWorkoutInsight(insight, overload, durationSecs, kcal) {
-    // Populate the static workout-complete card
+  function showCompletionScreen(durationSecs, kcal, exerciseCount, dayName, exercises) {
     const wcSection = document.getElementById('workout-complete');
     const workoutSection = document.getElementById('workout-body');
-    if (wcSection) {
-      const mins = Math.floor(durationSecs / 60);
-      const secs = durationSecs % 60;
-      const timeEl = document.getElementById('wc-time');
-      const kcalEl = document.getElementById('wc-kcal');
-      if (timeEl) timeEl.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-      if (kcalEl) kcalEl.textContent = kcal ? Math.round(kcal) : '--';
-      if (workoutSection) workoutSection.style.display = 'none';
-      wcSection.classList.remove('hidden');
-    }
+    if (!wcSection) return;
 
-    // If Apex returned extra data, show it above the card
-    if (!insight && (!overload || !overload.length)) return;
-    const banner = document.createElement('div');
-    banner.style.cssText = 'padding:16px;';
-    let overloadHtml = '';
-    if (overload && overload.length) {
-      const items = overload.map(s =>
-        `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:14px;">
-          <strong>${s.exercise_name}</strong>
-          <span style="color:var(--accent);float:right">${s.current_weight} → ${s.suggested_weight} lbs</span>
-        </div>`
-      ).join('');
-      overloadHtml = `<div style="margin:10px 0 4px;font-weight:600;font-size:14px;">📈 Ready to progress:</div>${items}`;
-    }
-    banner.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;max-width:480px;margin:0 auto;">
-      ${insight ? `<p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:var(--subtle);">${insight}</p>` : ''}
-      ${overloadHtml}
-    </div>`;
-    if (wcSection) wcSection.insertAdjacentElement('afterbegin', banner);
+    // Populate stats immediately
+    const mins = Math.floor(durationSecs / 60);
+    const secs = durationSecs % 60;
+    const timeEl = document.getElementById('wc-time');
+    const kcalEl = document.getElementById('wc-kcal');
+    const exEl = document.getElementById('wc-exercises');
+    const nameEl = document.getElementById('wc-day-name');
+    if (timeEl) timeEl.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    if (kcalEl) kcalEl.textContent = kcal ? Math.round(kcal) : '--';
+    if (exEl) exEl.textContent = exerciseCount ?? '--';
+    if (nameEl) nameEl.textContent = dayName || 'Workout';
+    if (workoutSection) workoutSection.style.display = 'none';
+    wcSection.classList.remove('hidden');
+
+    // Fetch APEX insight asynchronously
+    fetch('/api/post-workout-insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exercises }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        const body = document.getElementById('apex-summary-body');
+        if (body) {
+          body.innerHTML = data.insight
+            ? `<p style="font-size:14px;line-height:1.65;margin:0;color:var(--text);">${data.insight}</p>`
+            : `<p style="color:var(--subtle);font-size:14px;margin:0;">No analysis available.</p>`;
+        }
+        if (data.overload && data.overload.length) {
+          const card = document.getElementById('overload-card');
+          const list = document.getElementById('overload-list');
+          if (card && list) {
+            list.innerHTML = data.overload.map(s =>
+              `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">
+                <span>${s.exercise_name}</span>
+                <span style="color:var(--accent);font-weight:600;">${s.current_weight} → ${s.suggested_weight} lbs</span>
+              </div>`
+            ).join('');
+            card.classList.remove('hidden');
+          }
+        }
+      })
+      .catch(() => {
+        const body = document.getElementById('apex-summary-body');
+        if (body) body.innerHTML = `<p style="color:var(--subtle);font-size:14px;margin:0;">Analysis unavailable.</p>`;
+      });
   }
 }
 

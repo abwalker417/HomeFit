@@ -107,22 +107,44 @@
   </div>
 </section>
 
-<div id="workout-complete" class="hidden" style="padding:24px 16px; text-align:center;">
-  <div class="card" style="max-width:360px; margin:40px auto; padding:32px 24px;">
-    <p style="font-size:2rem; margin:0 0 8px;">Done!</p>
-    <h2 style="margin:0 0 24px;">Workout complete</h2>
-    <div class="stat-row" style="margin-bottom:28px;">
+<div id="workout-complete" class="hidden" style="padding:16px 16px 32px;">
+
+  <div class="card" style="max-width:480px; margin:0 auto 14px; padding:24px;">
+    <p style="font-size:13px; font-weight:600; color:var(--accent); letter-spacing:.06em; margin:0 0 6px;">WORKOUT COMPLETE</p>
+    <p id="wc-day-name" style="font-size:20px; font-weight:700; margin:0 0 20px;"></p>
+    <div class="stat-row" style="margin:0;">
       <div class="stat-card">
         <strong id="wc-time">--:--</strong>
         <span>Time</span>
       </div>
       <div class="stat-card">
         <strong id="wc-kcal">--</strong>
-        <span>kcal burned</span>
+        <span>kcal</span>
+      </div>
+      <div class="stat-card">
+        <strong id="wc-exercises">--</strong>
+        <span>Exercises</span>
       </div>
     </div>
-    <a href="/progress" class="btn btn-primary" style="display:block; text-align:center;">See progress</a>
   </div>
+
+  <div id="apex-summary-card" class="card" style="max-width:480px; margin:0 auto 14px; padding:20px;">
+    <p style="font-size:13px; font-weight:600; color:var(--accent); letter-spacing:.06em; margin:0 0 12px;">APEX ANALYSIS</p>
+    <div id="apex-summary-body">
+      <p style="color:var(--subtle); font-size:14px; margin:0;">Analyzing your session...</p>
+    </div>
+  </div>
+
+  <div id="overload-card" class="card hidden" style="max-width:480px; margin:0 auto 14px; padding:20px;">
+    <p style="font-size:13px; font-weight:600; letter-spacing:.06em; margin:0 0 12px;">READY TO PROGRESS</p>
+    <div id="overload-list"></div>
+  </div>
+
+  <div style="max-width:480px; margin:0 auto; display:flex; flex-direction:column; gap:10px;">
+    <a href="/" class="btn btn-primary" style="display:block; text-align:center;">Back to Dashboard</a>
+    <a href="/apex" class="btn btn-secondary" style="display:block; text-align:center;">Chat with APEX</a>
+  </div>
+
 </div>
 
 <div id="rest-overlay" class="rest-overlay hidden">
