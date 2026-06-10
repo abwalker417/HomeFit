@@ -237,6 +237,7 @@ def _progress_stats(user_id):
     week_start = datetime.combine(today - timedelta(days=days_since_sunday), datetime.min.time()).isoformat()
     stats["last_7_days"] = sum(1 for item in history if (item.get("completed_at") or "") >= week_start)
     stats["total_minutes"] = sum((item.get("duration_seconds") or 0) // 60 for item in history)
+    stats["streak"] = database.get_streak(user_id)
     if stats["last_workout"]:
         try:
             last_dt = datetime.fromisoformat(stats["last_workout"])
@@ -725,6 +726,25 @@ def post_workout_insight():
         return jsonify({"insight": insight, "overload": overload})
     except Exception:
         return jsonify({"insight": None, "overload": []})
+
+
+@app.route("/api/weekly-digest", methods=["GET"])
+def weekly_digest():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    cached = database.get_weekly_digest(uid)
+    if cached:
+        return jsonify({"digest": cached, "cached": True})
+    if not coach.is_available():
+        return jsonify({"digest": None})
+    try:
+        coaching_data = database.get_coaching_context(uid)
+        digest = coach.generate_weekly_digest(coaching_data)
+        database.save_weekly_digest(uid, digest)
+        return jsonify({"digest": digest, "cached": False})
+    except Exception:
+        return jsonify({"digest": None})
 
 
 _exercise_images = None

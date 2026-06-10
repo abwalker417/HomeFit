@@ -148,6 +148,14 @@ def init_db():
                 updated_at  TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS apex_weekly_digest (
+                user_id      INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                digest_text  TEXT NOT NULL,
+                week_start   TEXT NOT NULL,
+                generated_at TEXT NOT NULL
+            )
+        """)
 
 
         conn.execute("DELETE FROM schema_version")
@@ -509,6 +517,61 @@ def get_stats(user_id):
         "weight_change": trend,
         "starting_weight": weights[0]["weight"] if weights else None,
     }
+
+
+def get_streak(user_id):
+    """Return the current consecutive-day workout streak (0 if broken)."""
+    from datetime import date, timedelta
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT date(completed_at) as d FROM workout_log WHERE user_id = ? ORDER BY d DESC",
+            (user_id,),
+        ).fetchall()
+    if not rows:
+        return 0
+    dates = [date.fromisoformat(row["d"]) for row in rows]
+    today = date.today()
+    if dates[0] < today - timedelta(days=1):
+        return 0
+    streak = 1
+    for i in range(1, len(dates)):
+        if dates[i] == dates[i - 1] - timedelta(days=1):
+            streak += 1
+        else:
+            break
+    return streak
+
+
+def get_weekly_digest(user_id):
+    """Return cached digest if it was generated for the current week, else None."""
+    from datetime import date, timedelta
+    today = date.today()
+    days_since_monday = today.weekday()
+    week_start = (today - timedelta(days=days_since_monday)).isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT digest_text FROM apex_weekly_digest WHERE user_id = ? AND week_start = ?",
+            (user_id, week_start),
+        ).fetchone()
+    return row["digest_text"] if row else None
+
+
+def save_weekly_digest(user_id, digest_text):
+    from datetime import date, timedelta
+    today = date.today()
+    days_since_monday = today.weekday()
+    week_start = (today - timedelta(days=days_since_monday)).isoformat()
+    now = datetime.utcnow().isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO apex_weekly_digest (user_id, digest_text, week_start, generated_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(user_id) DO UPDATE SET
+                 digest_text=excluded.digest_text,
+                 week_start=excluded.week_start,
+                 generated_at=excluded.generated_at""",
+            (user_id, digest_text, week_start, now),
+        )
 
 
 def get_apex_plan(user_id):

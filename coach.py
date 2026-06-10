@@ -310,6 +310,43 @@ Write a 2-3 sentence post-workout insight. Reference something specific from the
     return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
 
 
+def generate_weekly_digest(coaching_data):
+    """Generate a weekly summary digest for the dashboard card."""
+    from datetime import date, timedelta
+    context = _build_context(coaching_data)
+    workouts = coaching_data.get("recent_workouts") or []
+    profile = coaching_data.get("profile") or {}
+    today = date.today()
+    days_since_monday = today.weekday()
+    week_start_date = today - timedelta(days=days_since_monday)
+    week_start_str = week_start_date.isoformat()
+
+    this_week = [w for w in workouts if (w.get("completed_at") or "") >= week_start_str]
+    goal_days = int(profile.get("days_per_week") or 4)
+
+    nutrition_log = coaching_data.get("nutrition_log") or []
+    nutrition_note = ""
+    if nutrition_log:
+        week_nutrition = [d for d in nutrition_log if d.get("date", "") >= week_start_str]
+        if week_nutrition:
+            avg_cal = sum(d.get("calories", 0) for d in week_nutrition) // len(week_nutrition)
+            avg_protein = sum(d.get("protein_g", 0) for d in week_nutrition) // len(week_nutrition)
+            nutrition_note = f"\nThis week's average: {avg_cal} kcal/day, {avg_protein}g protein/day."
+
+    prompt = f"""{context}
+
+This week ({week_start_str} to today): {len(this_week)} of {goal_days} planned workouts completed.{nutrition_note}
+
+Write a weekly digest in 3 short bullet points (no headers, plain text bullets starting with -):
+1. How the week went vs the goal — specific, not generic
+2. One standout lift, improvement, or consistency highlight from this week's data
+3. One specific focus recommendation for next week
+
+Keep each bullet to one sentence. No greeting, no sign-off."""
+
+    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
+
+
 def generate_weekly_plan(coaching_data, exercise_library):
     """Generate a structured 7-day workout plan."""
     profile = coaching_data.get("profile") or {}

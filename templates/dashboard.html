@@ -97,6 +97,18 @@
     {% elif stats.days_since_workout %} · last workout {{ stats.days_since_workout }} days ago
     {% endif %}
   </p>
+  {% if stats.streak >= 2 %}
+  <p class="subtle" style="margin-top:4px; font-size:13px;">
+    <strong style="color:var(--accent);">{{ stats.streak }}-day streak</strong> — keep it going
+  </p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if ai_online %}
+<section id="weekly-digest-card" class="card" style="display:none;">
+  <p style="font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.06em; margin:0 0 10px;">APEX WEEKLY DIGEST</p>
+  <div id="weekly-digest-body" style="font-size:14px; line-height:1.65; color:var(--subtle);"></div>
 </section>
 {% endif %}
 {% endblock %}
@@ -104,5 +116,6 @@
 {% block scripts %}
 <script>
   setupWeightForm();
+  loadWeeklyDigest();
 </script>
 {% endblock %}

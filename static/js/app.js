@@ -262,6 +262,22 @@ function setupWeightForm() {
   });
 }
 
+/* ---------- Weekly APEX digest ---------- */
+function loadWeeklyDigest() {
+  const card = document.getElementById('weekly-digest-card');
+  const body = document.getElementById('weekly-digest-body');
+  if (!card || !body) return;
+  fetch('/api/weekly-digest')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.digest) return;
+      const lines = data.digest.split('\n').filter(l => l.trim());
+      body.innerHTML = lines.map(l => `<p style="margin:0 0 6px;">${l.replace(/^-\s*/, '').trim()}</p>`).join('');
+      card.style.display = '';
+    })
+    .catch(() => {});
+}
+
 /* ---------- APEX dashboard icon — plan or generate ---------- */
 const apexWorkoutBtn = document.getElementById('apex-workout-btn');
 if (apexWorkoutBtn) {
