@@ -60,11 +60,14 @@ All AI calls route through PeakAI at `http://192.168.68.33:4000/v1/chat/completi
 - Last 5 workouts with exercise IDs and weights used
 - Sparky nutrition log: last 7 days (calories, protein, carbs, fat + meal breakdown)
 - Sparky hydration log: last 7 days (water_ml per day)
+- **Sparky nutrition goals**: current calorie/macro targets
 - Full weekly plan
 
 **Persistent chat**: `apex_chat` DB table, last 100 messages per user, shared across devices.
 
-**Plan saving**: `apex_plan` DB table. Triggers on ~15 phrases ("save the change", "sounds good", etc.).
+**Plan saving**: `apex_plan` DB table. `wants_to_save_plan()` triggers on ~15 phrases. `extract_plan_from_chat()` parses plan from recent APEX messages.
+
+**Goal updates**: `wants_to_update_goals()` triggers on phrases like "update my goals". `extract_goals_from_chat()` uses AI to parse proposed numbers from recent APEX messages. `sparky_sync.update_goals()` pushes to Sparky via `POST /api/goals/manage-timeline`.
 
 ---
 
@@ -73,21 +76,27 @@ All AI calls route through PeakAI at `http://192.168.68.33:4000/v1/chat/completi
 - **Shared config**: `data/sparky_config.json` stores the Sparky base URL only.
 - **Per-user API keys**: each user's Sparky Bearer token stored in `profile.sparky_api_key`.
 - `profile.sparky_sync = 1` when a user has an active key.
-- All Sparky functions (`fetch_nutrition_log`, `fetch_hydration_log`, `sync_workout_async`, `sync_weight_async`) accept `api_key=None` — use user's key, fall back to global config if not set.
-- Workout completion → push to Sparky (background thread) using user's key.
-- Weight log → push to Sparky (background thread) using user's key.
-- Weight unit: HomeFit stores lbs, Sparky stores kg — converted on push.
+- All Sparky functions accept `api_key=None` — use user's key, fall back to global config if not set.
+
+| Function | Endpoint | Direction |
+|---|---|---|
+| `fetch_nutrition_log(days, api_key)` | GET `/api/food-entries` | Sparky → APEX context |
+| `fetch_hydration_log(days, api_key)` | GET `/v2/measurements/water-intake/:date` | Sparky → APEX context |
+| `fetch_goals(api_key)` | GET `/api/goals/by-date/:date` | Sparky → APEX context |
+| `update_goals(calories, protein_g, carbs_g, fat_g, api_key)` | POST `/api/goals/manage-timeline` | APEX → Sparky |
+| `sync_workout_async(..., api_key)` | POST `/api/exercise-entries` | HomeFit → Sparky |
+| `sync_weight_async(..., api_key)` | POST `/api/health-data` | HomeFit → Sparky (lbs→kg) |
 
 **Current Sparky users (live)**:
 - Brent: connected (key in profile)
 - Shay: connected (key in profile)
 - Kelsie: not connected
 
-**Sparky AI**: pointing to PeakAI (`openai_compatible`, `claude-haiku`, `http://192.168.68.33:4000/v1`). Set as global/public provider — all Sparky users share it. Private Anthropic entry deactivated.
+**Sparky AI**: global/public provider pointing to PeakAI (`openai_compatible`, `claude-haiku`, `http://192.168.68.33:4000/v1`). Signup disabled.
 
 ---
 
-## 5. Database schema
+## 5. Database schema (version 5)
 
 | Table | Key columns |
 |---|---|
@@ -97,8 +106,6 @@ All AI calls route through PeakAI at `http://192.168.68.33:4000/v1/chat/completi
 | `weight_log` | user_id, weight (lbs), logged_at |
 | `apex_plan` | user_id (PK), plan_json, created_at |
 | `apex_chat` | user_id (PK), messages (JSON last 100), updated_at |
-
-Schema version: **5** (auto-migrated on app start via `init_db()`).
 
 ---
 
@@ -110,30 +117,11 @@ All logic in `workout_logic.py`:
 - `build_workout(profile, label, muscles, equipment_focus)` — difficulty cap from fitness level
 - `all_exercises_with_status(profile)` — each exercise with `available` bool + `reason`
 
-Dashboard labels → muscles via `_LABEL_TO_MUSCLES` in `app.py`:
-- Upper Body → arms, back, chest, shoulders
-- Lower Body → legs, glutes
-- Core → core
-- Recovery → full body
-
 ---
 
-## 7. Templates
-
-| Template | Purpose |
-|---|---|
-| `base.html` | Layout, top nav, hamburger (mobile), APEX FAB |
-| `dashboard.html` | Stats, day cards, today's workout card (green border) |
-| `workout.html` | Exercise list, timer, rest overlay, finish button |
-| `apex_plan.html` | Weekly plan (today highlighted via client JS clock) |
-| `sparky_settings.html` | Shared URL + per-user API key |
-| `profile_edit.html` | Edit self; owner sees Manage + Add + Danger Zone |
-
----
-
-## 8. Known issues / pending
+## 7. Known issues / pending
 
 - Plan save occasionally fails if APEX response is very large (`max_tokens=4096` on extractions)
 - `fetch_and_replace_exercises()` deduplication bug — do not call
 - Profile photo upload not validated for file type server-side
-- Server has stale `ANTHROPIC_API_KEY` env var in systemd — harmless
+- Upper-body exercise granularity (arms/back/chest all from same pool)

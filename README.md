@@ -6,7 +6,8 @@ A self-hosted home-fitness PWA. Built for iPhone use — install it to your home
 
 - **Multiple profiles** — each person in the household has their own plan, weight log, workout history, and optional PIN.
 - **APEX AI coach** — conversational AI that builds weekly workout plans, adjusts for your limitations and equipment, and coaches you through progressive overload. Backed by an OpenAI-compatible LLM (PeakAI or any compatible endpoint).
-- **SparkyFitness sync** — each user connects their own Sparky account. APEX sees your last 7 days of calories, protein, carbs, fat, and hydration automatically.
+- **SparkyFitness sync** — each user connects their own Sparky account. APEX sees your last 7 days of calories, protein, carbs, fat, and hydration automatically, along with your current nutrition goals.
+- **Goal updates from chat** — APEX can propose updated calorie/macro targets and push them directly to Sparky when you confirm. Just say "update my goals".
 - **Workout generation** — rule-based fallback if AI is offline. Filters exercises by fitness level, available equipment, and physical limitations.
 - **Weight & workout logging** — tracks over time; weight syncs back to Sparky automatically.
 - **Exercise library** — 86+ exercises with form tips via APEX on demand.
@@ -56,9 +57,13 @@ Each HomeFit user connects their **own** Sparky account — so multiple family m
 1. Log into HomeFit under your profile.
 2. Go to **Settings → SparkyFitness Sync**.
 3. Enter the shared Sparky URL and **your personal API key** (from your Sparky account settings).
-4. Hit Save — APEX will now see your last 7 days of food diary and hydration.
+4. Hit Save — APEX will now see your last 7 days of food diary, hydration, and current nutrition goals.
 
-Completed workouts and weight entries sync back to Sparky automatically.
+**What APEX can do with Sparky:**
+- Read your food diary and hydration (last 7 days)
+- Read your current calorie/macro targets
+- Propose updated nutrition goals and push them to Sparky when you say "update my goals"
+- Push completed workouts and weight entries back to Sparky automatically
 
 ## Proxmox LXC — one-liner installer
 
