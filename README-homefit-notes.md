@@ -92,7 +92,7 @@ All AI calls route through PeakAI at `http://192.168.68.33:4000/v1/chat/completi
 - Shay: connected (key in profile)
 - Kelsie: not connected
 
-**Sparky AI**: global/public provider pointing to PeakAI (`openai_compatible`, `claude-haiku`, `http://192.168.68.33:4000/v1`). Signup disabled.
+**Sparky AI**: global/public provider pointing to PeakAI (`openai_compatible`, `claude-haiku`, `http://192.168.68.33:4000/v1`). Signup disabled. Food photo recognition and AI chat (which use tool calling) work — PeakAI passes `tools`, `tool_choice`, and streaming tool-call deltas through to Anthropic.
 
 ---
 
