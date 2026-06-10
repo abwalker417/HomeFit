@@ -514,6 +514,40 @@ def sync_weight_async(weight, log_date=None, api_key=None):
     t.start()
 
 
+def fetch_goals(api_key=None):
+    """Fetch current calorie and macro goals from Sparky. Returns a dict or {}."""
+    config = load_config()
+    if not config:
+        return {}
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return {}
+    from datetime import date
+    base = config["url"].rstrip("/")
+    headers = _headers(effective_key)
+    today = date.today().isoformat()
+    try:
+        r = requests.get(
+            f"{base}/api/goals/by-date/{today}",
+            headers=headers,
+            timeout=8,
+        )
+        if not r.ok:
+            return {}
+        data = r.json()
+        if not data:
+            return {}
+        return {
+            "calories": data.get("calories"),
+            "protein_g": data.get("protein"),
+            "carbs_g": data.get("carbs"),
+            "fat_g": data.get("fat"),
+            "water_ml": data.get("water_goal_ml"),
+        }
+    except Exception:
+        return {}
+
+
 def fetch_hydration_log(days=7, api_key=None):
     """Fetch recent water intake from Sparky. Returns list of {date, water_ml} per day."""
     config = load_config()

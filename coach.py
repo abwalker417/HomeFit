@@ -83,6 +83,7 @@ def _build_context(coaching_data):
     apex_plan = coaching_data.get("apex_plan") or None
     nutrition_log = coaching_data.get("nutrition_log") or []
     hydration_log = coaching_data.get("hydration_log") or []
+    nutrition_goals = coaching_data.get("nutrition_goals") or {}
 
     day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     # Prefer client-supplied local date (avoids UTC offset issues)
@@ -135,6 +136,17 @@ def _build_context(coaching_data):
                     ex_names.append(ex.get("id", "?"))
             duration = f"{w.get('duration_seconds', 0) // 60}min"
             lines.append(f"- {w.get('completed_at', '')[:10]} ({duration}): {', '.join(ex_names)}")
+        lines.append("")
+
+    if nutrition_goals:
+        lines.append("Nutrition targets (from Sparky goals):")
+        lines.append(
+            f"- Calories: {nutrition_goals.get('calories')} kcal | "
+            f"Protein: {nutrition_goals.get('protein_g')}g | "
+            f"Carbs: {nutrition_goals.get('carbs_g')}g | "
+            f"Fat: {nutrition_goals.get('fat_g')}g"
+            + (f" | Water: {round(nutrition_goals['water_ml']/1000, 1)}L" if nutrition_goals.get('water_ml') else "")
+        )
         lines.append("")
 
     if nutrition_log:
