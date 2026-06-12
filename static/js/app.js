@@ -90,6 +90,12 @@ if ('serviceWorker' in navigator) {
   closeBtn && closeBtn.addEventListener('click', safeToggle);
   closeBtn && closeBtn.addEventListener('touchend', safeToggle);
 
+  // ?apex=1 opens the panel on load (used by the /apex and /coach redirects)
+  if (new URLSearchParams(window.location.search).get('apex') === '1') {
+    togglePanel();
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   clearBtn && clearBtn.addEventListener('click', async () => {
     if (!confirm('Clear chat history?')) return;
     await fetch('/api/apex-chat/clear', { method: 'POST' });
@@ -124,7 +130,7 @@ if ('serviceWorker' in navigator) {
       addMsg('Could not load plan.', 'apex');
     }
     planBtn.disabled = false;
-    planBtn.textContent = '📅 My Plan';
+    planBtn.textContent = 'My Plan';
   });
 
   function renderMarkdown(text) {
@@ -149,7 +155,7 @@ if ('serviceWorker' in navigator) {
   function addPlanBanner() {
     const div = document.createElement('div');
     div.style.cssText = 'padding:8px 12px;';
-    div.innerHTML = '<a href="/apex-plan" style="display:block;text-align:center;padding:10px;background:var(--accent);color:#fff;border-radius:12px;font-weight:600;text-decoration:none;">📅 View My Plan →</a>';
+    div.innerHTML = '<a href="/apex-plan" style="display:block;text-align:center;padding:10px;background:var(--accent);color:#fff;border-radius:12px;font-weight:600;text-decoration:none;">View My Plan →</a>';
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
   }
@@ -205,16 +211,16 @@ document.querySelectorAll('.apex-cue-btn').forEach(btn => {
     const cueEl = body.querySelector('.ex-cue-body');
     if (wrap.style.display !== 'none') {
       wrap.style.display = 'none';
-      btn.textContent = '🏔️ Form tips';
+      btn.textContent = 'Form tips';
       return;
     }
     if (cueEl.dataset.loaded) {
       wrap.style.display = 'block';
-      btn.textContent = '🏔️ Hide tips';
+      btn.textContent = 'Hide tips';
       return;
     }
     btn.disabled = true;
-    btn.textContent = '🏔️ Thinking…';
+    btn.textContent = 'Thinking…';
     const name = body.dataset.exName;
     const id = body.dataset.exId;
     try {
@@ -224,12 +230,12 @@ document.querySelectorAll('.apex-cue-btn').forEach(btn => {
         cueEl.textContent = data.cue;
         cueEl.dataset.loaded = '1';
         wrap.style.display = 'block';
-        btn.textContent = '🏔️ Hide tips';
+        btn.textContent = 'Hide tips';
       } else {
-        btn.textContent = '🏔️ Apex offline';
+        btn.textContent = 'Apex offline';
       }
     } catch {
-      btn.textContent = '🏔️ Error';
+      btn.textContent = 'Error';
     }
     btn.disabled = false;
   });
@@ -273,6 +279,37 @@ function loadWeeklyDigest() {
       if (!data.digest) return;
       const lines = data.digest.split('\n').filter(l => l.trim());
       body.innerHTML = lines.map(l => `<p style="margin:0 0 6px;">${l.replace(/^-\s*/, '').trim()}</p>`).join('');
+      card.style.display = '';
+    })
+    .catch(() => {});
+}
+
+function loadEnergyBalance() {
+  const card = document.getElementById('energy-card');
+  const rows = document.getElementById('energy-rows');
+  if (!card || !rows) return;
+  fetch('/api/energy-balance')
+    .then(r => r.json())
+    .then(data => {
+      const days = data.days || [];
+      if (!days.some(d => d.eaten || d.burned)) return;
+      const maxVal = Math.max(...days.map(d => Math.max(d.eaten, d.burned)), 1);
+      rows.innerHTML = days.map(d => {
+        const inW = Math.round((d.eaten / maxVal) * 100);
+        const outW = Math.round((d.burned / maxVal) * 100);
+        return `
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12px;">
+            <span style="width:32px; color:var(--subtle); flex-shrink:0;">${d.day}</span>
+            <div style="flex:1;">
+              <div style="height:8px; border-radius:4px; width:${inW}%; min-width:2px; background:var(--accent);"></div>
+              <div style="height:8px; border-radius:4px; width:${outW}%; min-width:2px; background:var(--success); margin-top:3px;"></div>
+            </div>
+            <span style="width:112px; text-align:right; color:var(--subtle); flex-shrink:0;">${d.eaten} in · ${d.burned} out</span>
+          </div>`;
+      }).join('') +
+      '<p class="subtle" style="font-size:12px; margin:10px 0 0;">' +
+      '<span style="color:var(--accent);">&#9632;</span> eaten &nbsp; ' +
+      '<span style="color:var(--success);">&#9632;</span> burned</p>';
       card.style.display = '';
     })
     .catch(() => {});
@@ -330,10 +367,10 @@ if (regenBtn) {
       if (resp.ok) {
         window.location.reload();
       } else {
-        regenBtn.textContent = '⚠ Coach offline';
+        regenBtn.textContent = 'Coach offline';
       }
     } catch {
-      regenBtn.textContent = '⚠ Error';
+      regenBtn.textContent = 'Error';
     }
   });
 }
@@ -458,7 +495,7 @@ function startWorkout() {
     toggleBtn.addEventListener('click', () => {
       const open = body.style.display === 'none';
       body.style.display = open ? 'block' : 'none';
-      toggleBtn.textContent = open ? '📊 Hide weight log' : '📊 Log weights (optional)';
+      toggleBtn.textContent = open ? 'Hide weight log' : 'Log weights';
       if (open && setsContainer.children.length === 0) {
         const suggestedWeight = parseFloat(wl.dataset.suggestedWeight) || null;
         for (let i = 0; i < defaultSets; i++) {
@@ -470,6 +507,9 @@ function startWorkout() {
     });
 
     addSetBtn.addEventListener('click', () => setsContainer.appendChild(makeSetRow(defaultReps)));
+
+    // APEX says it's time to increase — open the log with the suggested weight prefilled
+    if (wl.dataset.hintReady === 'true') toggleBtn.click();
   });
 
   function getLoggedSets(li) {

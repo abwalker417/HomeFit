@@ -7,6 +7,9 @@
     <div>
       <p class="eyebrow">Your plan</p>
     </div>
+    {% if stats.streak >= 2 %}
+    <span class="streak-badge">{{ stats.streak }}-day streak</span>
+    {% endif %}
   </div>
 
   <div class="hero-stats">
@@ -31,6 +34,9 @@
     {{ stats.weight_progress_pct }}% to goal
     {% if stats.weight_change %} · {{ "+" if stats.weight_change > 0 else "" }}{{ stats.weight_change }} lbs total{% endif %}
   </p>
+  {% if stats.streak >= 2 and not stats.today_workout %}
+  <p class="streak-nudge">Work out today to keep your {{ stats.streak }}-day streak alive</p>
+  {% endif %}
 </section>
 
 <section class="card">
@@ -77,14 +83,19 @@
 
 {% if stats.today_workout %}
 <section class="card" style="border-color:var(--success);">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-    <span style="font-size:22px;">🏆</span>
-    <div>
-      <strong>{{ stats.today_workout.name }}</strong>
-      <span class="subtle" style="font-size:13px;"> · {{ stats.today_workout.duration_min }} min · {{ stats.today_workout.kcal }} kcal</span>
-    </div>
+  <p class="card-eyebrow" style="color:var(--success);">WORKOUT COMPLETE</p>
+  <div style="margin-bottom:8px;">
+    <strong>{{ stats.today_workout.name }}</strong>
+    <span class="subtle" style="font-size:13px;"> · {{ stats.today_workout.duration_min }} min · {{ stats.today_workout.kcal }} kcal</span>
   </div>
   <p class="subtle" style="margin:0;font-size:13px;">Workout complete for today — great work!</p>
+</section>
+{% endif %}
+
+{% if ai_online %}
+<section id="weekly-digest-card" class="card" style="display:none;">
+  <p class="card-eyebrow">APEX WEEKLY DIGEST</p>
+  <div id="weekly-digest-body" style="font-size:14px; line-height:1.65; color:var(--subtle);"></div>
 </section>
 {% endif %}
 
@@ -97,18 +108,6 @@
     {% elif stats.days_since_workout %} · last workout {{ stats.days_since_workout }} days ago
     {% endif %}
   </p>
-  {% if stats.streak >= 2 %}
-  <p class="subtle" style="margin-top:4px; font-size:13px;">
-    <strong style="color:var(--accent);">{{ stats.streak }}-day streak</strong> — keep it going
-  </p>
-  {% endif %}
-</section>
-{% endif %}
-
-{% if ai_online %}
-<section id="weekly-digest-card" class="card" style="display:none;">
-  <p style="font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.06em; margin:0 0 10px;">APEX WEEKLY DIGEST</p>
-  <div id="weekly-digest-body" style="font-size:14px; line-height:1.65; color:var(--subtle);"></div>
 </section>
 {% endif %}
 {% endblock %}

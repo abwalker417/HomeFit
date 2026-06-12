@@ -1005,10 +1005,10 @@ def api_last_weight():
 
 
 @app.route("/coach")
+@app.route("/apex")
 def coach_page():
-    uid = session["user_id"]
-    available = coach.is_available()
-    return render_template("coach.html", available=available)
+    # Legacy full-page chat removed — the APEX panel on the dashboard replaces it.
+    return redirect(url_for("index", apex=1))
 
 
 @app.route("/api/coach", methods=["POST"])
@@ -1022,7 +1022,7 @@ def coach_chat():
     if not message:
         return jsonify({"error": "empty message"}), 400
     if not coach.is_available():
-        return jsonify({"error": "APEX is offline — make sure Ollama is running on your Mac."}), 503
+        return jsonify({"error": "APEX is offline — check that PeakAI is running."}), 503
     try:
         import logging
         logging.warning(f"APEX chat: local_date={local_date!r} local_day={local_day!r}")
@@ -1106,6 +1106,7 @@ def coach_chat():
 
 @app.route("/progress")
 def progress():
+    from datetime import date, datetime, timedelta
     uid = session["user_id"]
     profile = database.get_profile(uid)
     history = database.get_weight_history(uid)
@@ -1118,7 +1119,68 @@ def progress():
         enriched = [get_exercise_by_id(eid) for eid in eids]
         w["kcal"] = _calc_kcal([e for e in enriched if e], weight_lbs, w.get("duration_seconds"))
     stats["total_kcal"] = sum(w["kcal"] for w in workouts)
-    return render_template("progress.html", profile=profile, weights=weights, history=workouts, stats=stats)
+
+    # Group history by ISO week (Monday start), newest first
+    today = date.today()
+    this_monday = today - timedelta(days=today.weekday())
+    history_weeks = []
+    for w in workouts:
+        try:
+            d = datetime.fromisoformat(w["completed_at"][:10]).date()
+        except (ValueError, TypeError):
+            continue
+        monday = d - timedelta(days=d.weekday())
+        if monday == this_monday:
+            label = "This week"
+        elif monday == this_monday - timedelta(days=7):
+            label = "Last week"
+        else:
+            label = "Week of " + monday.strftime("%b %-d")
+        if not history_weeks or history_weeks[-1]["label"] != label:
+            history_weeks.append({"label": label, "workouts": []})
+        history_weeks[-1]["workouts"].append(w)
+    return render_template("progress.html", profile=profile, weights=weights,
+                           history=workouts, history_weeks=history_weeks, stats=stats,
+                           sparky_enabled=bool((profile or {}).get("sparky_sync")))
+
+
+@app.route("/api/energy-balance")
+def energy_balance():
+    """Last-7-days calories in (Sparky food log) vs burned (HomeFit workouts)."""
+    from datetime import date, timedelta
+    uid = session["user_id"]
+    profile = database.get_profile(uid) or {}
+    if not profile.get("sparky_sync"):
+        return jsonify({"days": []})
+    try:
+        nutrition = sparky_sync.fetch_nutrition_log(days=7, api_key=profile.get("sparky_api_key"))
+    except Exception:
+        nutrition = []
+    eaten = {n["date"]: n["calories"] for n in nutrition}
+
+    weight_lbs = profile.get("current_weight") or 0
+    cutoff = (date.today() - timedelta(days=6)).isoformat()
+    burned = {}
+    for w in database.get_workout_history(uid):
+        d = (w.get("completed_at") or "")[:10]
+        if d < cutoff:
+            continue
+        eids = [e["id"] for e in w.get("exercises", []) if e.get("id")]
+        enriched = [get_exercise_by_id(eid) for eid in eids]
+        kcal = _calc_kcal([e for e in enriched if e], weight_lbs, w.get("duration_seconds"))
+        burned[d] = burned.get(d, 0) + (kcal or 0)
+
+    days = []
+    for i in range(6, -1, -1):
+        d = date.today() - timedelta(days=i)
+        ds = d.isoformat()
+        days.append({
+            "date": ds,
+            "day": d.strftime("%a"),
+            "eaten": eaten.get(ds, 0),
+            "burned": burned.get(ds, 0),
+        })
+    return jsonify({"days": days})
 
 
 @app.route("/manifest.json")

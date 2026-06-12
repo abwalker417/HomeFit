@@ -7,7 +7,7 @@
   <h1>Ready to train?</h1>
   <p class="subtle">
     {% if ai_online %}Apex will build a personalised workout based on your history.
-    {% else %}Apex is offline — start Ollama on your Mac to activate.{% endif %}
+    {% else %}Apex is offline — check that PeakAI is running.{% endif %}
   </p>
 </section>
 
@@ -35,7 +35,7 @@
   document.getElementById('ai-form').addEventListener('submit', () => {
     const btn = document.getElementById('ai-btn');
     btn.disabled = true;
-    btn.textContent = '🏔️ Apex is building your workout…';
+    btn.textContent = 'Apex is building your workout…';
   });
 </script>
 {% endif %}

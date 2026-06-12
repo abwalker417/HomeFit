@@ -7,13 +7,13 @@
     <a href="{{ url_for('index') }}" class="back-link" style="margin:0;">← Home</a>
     <div style="display:flex; gap:8px;">
       {% if day.ai_generated %}
-      <button id="regen-btn" class="pill" style="font-size:12px; cursor:pointer; border:none; background:var(--surface);">🔄 Regenerate</button>
+      <button id="regen-btn" class="pill" style="cursor:pointer; border:none; background:var(--surface);">Regenerate</button>
       {% endif %}
-      <a href="{{ url_for('index') }}" class="pill" style="font-size:12px;">Change workout</a>
+      <a href="{{ url_for('index') }}" class="pill">Change workout</a>
     </div>
   </div>
   <p class="eyebrow">
-    {% if day.ai_generated %}<span style="color:var(--accent);">🏔️ Apex pick</span> · {% endif %}
+    {% if day.ai_generated %}<span style="color:var(--accent);">Apex pick</span> · {% endif %}
     {% if day.focus %}{{ day.focus }}{% endif %}
   </p>
   <h1>{{ day.name }}</h1>
@@ -39,7 +39,7 @@
                 · {{ ex.rest }}s rest
               </span>
             </div>
-            <input type="checkbox" class="ex-done" aria-label="Mark complete">
+            <label class="ex-done-wrap"><input type="checkbox" class="ex-done" aria-label="Mark complete"></label>
           </div>
         </summary>
         <div class="ex-body"
@@ -58,10 +58,10 @@
             <a class="btn btn-secondary demo-link" target="_blank" rel="noopener"
                href="https://www.youtube.com/results?search_query={{ ex.name|replace(' ', '+') }}+proper+form"
                style="flex:1; text-align:center;">
-              ▶ YouTube
+              YouTube
             </a>
             <button type="button" class="btn btn-secondary apex-cue-btn" style="flex:1;">
-              🏔️ Form tips
+              Form tips
             </button>
           </div>
           <button type="button" class="btn btn-secondary rest-btn"
@@ -71,7 +71,7 @@
           {% if ex.weight_hint %}
           <div class="weight-hint-bar {% if ex.weight_hint.ready %}weight-hint-ready{% endif %}">
             {% if ex.weight_hint.ready %}
-              📈 <strong>Time to increase!</strong> Last: {{ ex.weight_hint.last_weight }} lbs × {{ ex.weight_hint.last_reps }} reps · Try <strong>{{ ex.weight_hint.suggested_weight }} lbs</strong> today
+              <strong>Time to increase!</strong> Last: {{ ex.weight_hint.last_weight }} lbs × {{ ex.weight_hint.last_reps }} reps · Try <strong>{{ ex.weight_hint.suggested_weight }} lbs</strong> today
             {% else %}
               Last session: {{ ex.weight_hint.last_weight }} lbs × {{ ex.weight_hint.last_reps }} reps
             {% endif %}
@@ -80,10 +80,9 @@
           <div class="weight-log"
                data-sets="{{ ex.sets }}"
                data-reps="{{ ex.reps }}"
+               data-hint-ready="{{ 'true' if ex.weight_hint and ex.weight_hint.ready else 'false' }}"
                data-suggested-weight="{{ ex.weight_hint.suggested_weight if ex.weight_hint else '' }}">
-            <button type="button" class="btn btn-secondary weight-log-toggle">
-              📊 Log weights (optional)
-            </button>
+            <button type="button" class="btn btn-secondary weight-log-toggle">Log weights</button>
             <div class="weight-log-body" style="display:none; margin-top:10px;">
               <p class="hint" style="margin-bottom:8px;">Recommended: {{ ex.sets }} sets × {% if ex.unit == 'seconds' %}{{ ex.reps }}s{% else %}{{ ex.reps }} reps{% endif %}</p>
               <div class="weight-sets"></div>
@@ -110,7 +109,7 @@
 <div id="workout-complete" class="hidden" style="padding:16px 16px 32px;">
 
   <div class="card" style="max-width:480px; margin:0 auto 14px; padding:24px;">
-    <p style="font-size:13px; font-weight:600; color:var(--accent); letter-spacing:.06em; margin:0 0 6px;">WORKOUT COMPLETE</p>
+    <p class="card-eyebrow" style="margin-bottom:6px;">WORKOUT COMPLETE</p>
     <p id="wc-day-name" style="font-size:20px; font-weight:700; margin:0 0 20px;"></p>
     <div class="stat-row" style="margin:0;">
       <div class="stat-card">
@@ -129,14 +128,14 @@
   </div>
 
   <div id="apex-summary-card" class="card" style="max-width:480px; margin:0 auto 14px; padding:20px;">
-    <p style="font-size:13px; font-weight:600; color:var(--accent); letter-spacing:.06em; margin:0 0 12px;">APEX ANALYSIS</p>
+    <p class="card-eyebrow">APEX ANALYSIS</p>
     <div id="apex-summary-body">
       <p style="color:var(--subtle); font-size:14px; margin:0;">Analyzing your session...</p>
     </div>
   </div>
 
   <div id="overload-card" class="card hidden" style="max-width:480px; margin:0 auto 14px; padding:20px;">
-    <p style="font-size:13px; font-weight:600; letter-spacing:.06em; margin:0 0 12px;">READY TO PROGRESS</p>
+    <p class="card-eyebrow" style="color:var(--success);">READY TO PROGRESS</p>
     <div id="overload-list"></div>
   </div>
 

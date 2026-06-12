@@ -14,10 +14,17 @@
       <strong>{{ stats.last_7_days }}</strong>
       <span>Last 7 days</span>
     </div>
+    {% if stats.streak >= 2 %}
+    <div class="stat-card">
+      <strong style="color:var(--accent);">{{ stats.streak }}</strong>
+      <span>Day streak</span>
+    </div>
+    {% else %}
     <div class="stat-card">
       <strong>{{ stats.total_minutes }}</strong>
       <span>Minutes</span>
     </div>
+    {% endif %}
     <div class="stat-card">
       <strong>{{ stats.total_kcal }}</strong>
       <span>kcal burned</span>
@@ -35,11 +42,21 @@
   {% endif %}
 </section>
 
+{% if sparky_enabled %}
+<section id="energy-card" class="card" style="display:none;">
+  <h2 style="margin-top:0;">Calories in vs burned</h2>
+  <p class="subtle" style="margin:0 0 10px; font-size:13px;">Last 7 days · food from SparkyFitness, burn from workouts</p>
+  <div id="energy-rows"></div>
+</section>
+{% endif %}
+
 <section>
   <h2 class="section-title">Workout history</h2>
-  {% if history %}
+  {% if history_weeks %}
+    {% for week in history_weeks %}
+    <p class="eyebrow" style="margin:18px 0 6px;">{{ week.label }} — {{ week.workouts|length }} workout{{ 's' if week.workouts|length != 1 else '' }}</p>
     <ul class="history-list">
-      {% for w in history %}
+      {% for w in week.workouts %}
       <li class="history-item">
         <div>
           <strong>{{ w.day_name }}</strong>
@@ -52,6 +69,7 @@
       </li>
       {% endfor %}
     </ul>
+    {% endfor %}
   {% else %}
     <p class="subtle">No workouts logged yet. Finish one to see it here.</p>
   {% endif %}
@@ -59,5 +77,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script>drawWeightChart();</script>
+<script>
+  drawWeightChart();
+  loadEnergyBalance();
+</script>
 {% endblock %}

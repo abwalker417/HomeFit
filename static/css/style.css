@@ -81,6 +81,36 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
   margin: 14px 0;
 }
 
+/* Small uppercase label at the top of feature cards (APEX WEEKLY DIGEST, etc.) */
+.card-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: .06em;
+  margin: 0 0 10px;
+}
+
+/* Workout streak badge in the dashboard hero */
+.streak-badge {
+  display: inline-block;
+  background: rgba(249, 115, 22, 0.14);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.streak-nudge {
+  color: var(--warn);
+  font-size: 13px;
+  text-align: center;
+  margin: 8px 0 0;
+}
+
 .hero {
   background: linear-gradient(160deg, var(--surface-2), var(--surface));
   border: 1px solid var(--border);
@@ -354,7 +384,18 @@ fieldset.field { border: none; padding: 0; }
 .ex-title { flex: 1; min-width: 0; }
 .ex-title strong { display: block; }
 .ex-meta { color: var(--subtle); font-size: 12px; }
-.ex-done { width: 22px; height: 22px; accent-color: var(--success); }
+.ex-done { width: 24px; height: 24px; accent-color: var(--success); }
+/* 44px tap target around the done-checkbox so mis-taps don't expand the row */
+.ex-done-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -11px -10px -11px 0;
+  flex-shrink: 0;
+  cursor: pointer;
+}
 .ex-body { padding: 0 14px 14px 14px; }
 .ex-gif {
   width: 100%;
