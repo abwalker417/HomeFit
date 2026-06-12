@@ -405,6 +405,26 @@ def _find_or_create_exercise(base_url, api_key, exercise):
     return None
 
 
+def _existing_entry_ids(base_url, api_key, date_str):
+    """Return the set of exercise_ids already logged in Sparky for this date.
+
+    Used as a dedup guard: prevents double-posting when a workout is re-finished,
+    a sync retries, or another source (e.g. HealthKit) already logged the exercise.
+    """
+    try:
+        r = requests.get(
+            f"{base_url}/api/exercise-entries/by-date",
+            params={"selectedDate": date_str},
+            headers=_headers(api_key),
+            timeout=10,
+        )
+        if r.ok:
+            return {e.get("exercise_id") for e in r.json() if e.get("exercise_id")}
+    except Exception:
+        pass
+    return set()
+
+
 def _sync_workout(config, exercises, workout_date, duration_seconds):
     base_url = config["url"]
     api_key = config["api_key"]
@@ -418,11 +438,15 @@ def _sync_workout(config, exercises, workout_date, duration_seconds):
     total_seconds = duration_seconds or 0
     duration_per_exercise = max(1, total_seconds // exercise_count // 60)
 
+    already_logged = _existing_entry_ids(base_url, api_key, date_str)
+
     for exercise in exercises:
         try:
             exercise_id = _find_or_create_exercise(base_url, api_key, exercise)
             if not exercise_id:
                 continue
+            if exercise_id in already_logged:
+                continue  # dedup: this exercise is already in Sparky for today
 
             logged_sets = exercise.get("sets_logged") or []
             sets_count = len(logged_sets) or int(exercise.get("sets") or exercise.get("default_sets") or 3)
@@ -449,6 +473,7 @@ def _sync_workout(config, exercises, workout_date, duration_seconds):
                     "entry_date": date_str,
                     "duration_minutes": duration_per_exercise,
                     "sets": sets_data,
+                    "notes": "Synced from HomeFit",
                 },
                 timeout=10,
             )
