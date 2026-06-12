@@ -568,19 +568,30 @@ fieldset.field { border: none; padding: 0; }
   outline: none;
 }
 .profile-tile:active { transform: scale(0.97); }
-.profile-emoji { font-size: 48px; line-height: 1; }
+.profile-photo {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.profile-initial {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.14);
+  color: var(--accent);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 56px;
+  text-align: center;
+}
 .profile-name { font-weight: 600; font-size: 15px; color: var(--text); }
 .profile-lock {
   position: absolute;
   top: 8px; right: 10px;
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   color: var(--subtle);
 }
-.profile-add {
-  background: var(--bg-2);
-  border-style: dashed;
-}
-.profile-add .profile-emoji { color: var(--accent); }
 
 /* ---------- User chip in header ---------- */
 .user-chip-wrap {

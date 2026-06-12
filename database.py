@@ -186,7 +186,7 @@ def load_or_create_secret_key() -> bytes:
 def list_users():
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT id, name, emoji, (pin_hash IS NOT NULL) AS has_pin FROM users ORDER BY id"
+            "SELECT id, name, emoji, photo, (pin_hash IS NOT NULL) AS has_pin FROM users ORDER BY id"
         ).fetchall()
         return [dict(r) for r in rows]
 
