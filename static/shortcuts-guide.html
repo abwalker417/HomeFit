@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeFit — Apple Shortcuts Setup Guide</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --bg-2: #0f1a2e;
+    --surface: #131f36;
+    --border: #1f2d47;
+    --text: #e6ecf5;
+    --subtle: #8fa1bb;
+    --accent: #f97316;
+    --green: #34d399;
+    --blue: #3b82f6;
+    --red: #ef4444;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 {
+    font-size: 21px; margin: 48px 0 6px;
+    padding-top: 24px; border-top: 1px solid var(--border);
+  }
+  h3 { font-size: 16px; margin: 28px 0 8px; color: var(--accent); }
+  p { color: var(--subtle); margin: 8px 0; }
+  p strong, li strong { color: var(--text); }
+  ol, ul { color: var(--subtle); padding-left: 22px; }
+  li { margin: 6px 0; }
+  code {
+    background: var(--bg-2); border: 1px solid var(--border);
+    padding: 2px 6px; border-radius: 6px; font-size: 13px; color: var(--text);
+    word-break: break-all;
+  }
+  .lead { font-size: 16px; }
+
+  /* Flow diagram */
+  .flow {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px; margin: 20px 0;
+    overflow-x: auto;
+  }
+  .flow table { border-collapse: collapse; width: 100%; min-width: 560px; }
+  .flow th {
+    text-align: left; font-size: 12px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--subtle); padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .flow td { padding: 9px 10px; font-size: 14px; border-bottom: 1px solid var(--border); }
+  .flow tr:last-child td { border-bottom: none; }
+  .ok { color: var(--green); font-weight: 600; }
+  .via { color: var(--subtle); font-size: 12px; display: block; }
+
+  /* Callouts */
+  .note, .warn {
+    border-radius: var(--radius); padding: 14px 16px; margin: 16px 0;
+    font-size: 14px; border: 1px solid;
+  }
+  .note { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.35); }
+  .warn { background: rgba(249,115,22,0.08); border-color: rgba(249,115,22,0.35); }
+  .note b, .warn b { display: block; margin-bottom: 4px; }
+  .note b { color: #93c5fd; }
+  .warn b { color: var(--accent); }
+
+  /* Faux-iOS Shortcuts action cards */
+  .phone {
+    background: #000; border: 1px solid var(--border);
+    border-radius: 24px; padding: 18px 14px; margin: 18px 0;
+    max-width: 420px;
+  }
+  .phone-title {
+    text-align: center; font-size: 13px; color: var(--subtle);
+    margin-bottom: 12px; letter-spacing: 0.04em;
+  }
+  .action {
+    border-radius: 12px; padding: 11px 13px; margin: 8px 0;
+    font-size: 13.5px; color: #fff;
+  }
+  .action .a-head { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .a-icon {
+    width: 22px; height: 22px; border-radius: 6px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+  }
+  .action .a-body {
+    margin-top: 7px; padding-top: 7px;
+    border-top: 1px solid rgba(255,255,255,0.18);
+    font-weight: 400; font-size: 13px;
+  }
+  .a-body .kv { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+  .a-body .kv span:first-child { opacity: 0.75; flex: none; }
+  .a-body .kv span:last-child { text-align: right; font-weight: 600; word-break: break-all; }
+  .pill {
+    background: rgba(255,255,255,0.22); border-radius: 6px;
+    padding: 1px 7px; font-size: 12px; white-space: nowrap;
+  }
+  .act-health  { background: #b8334a; }
+  .act-health .a-icon { background: rgba(255,255,255,0.25); }
+  .act-web     { background: #2f5ed1; }
+  .act-web .a-icon { background: rgba(255,255,255,0.25); }
+  .act-script  { background: #4a4a55; }
+  .act-script .a-icon { background: rgba(255,255,255,0.25); }
+  .act-dict    { background: #b06a1f; }
+  .act-dict .a-icon { background: rgba(255,255,255,0.25); }
+  .act-trigger { background: #1b8a5a; }
+  .act-trigger .a-icon { background: rgba(255,255,255,0.25); }
+  .indent { margin-left: 22px; }
+
+  .step-label {
+    display: inline-block; background: var(--accent); color: #0b1220;
+    font-weight: 700; font-size: 12px; border-radius: 999px;
+    padding: 2px 10px; margin-right: 8px; vertical-align: middle;
+  }
+  .check { color: var(--green); font-weight: 700; }
+
+  /* Troubleshooting table */
+  table.ts { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+  table.ts th, table.ts td {
+    text-align: left; padding: 9px 10px; border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.ts th { background: var(--bg-2); font-size: 13px; }
+  table.ts td { color: var(--subtle); }
+  table.ts td:first-child { color: var(--text); font-weight: 600; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>HomeFit ↔ Apple Health Shortcuts</h1>
+<p class="lead">Two shortcuts keep all three apps in sync — HomeFit, Sparky, and Apple Health — with no duplicate workouts. This guide walks through building both, step by step.</p>
+
+<div class="flow">
+<table>
+  <tr><th>Activity</th><th>HomeFit</th><th>Sparky</th><th>Apple Health</th></tr>
+  <tr>
+    <td>Gym session (HomeFit)</td>
+    <td class="ok">&#10003; <span class="via">native</span></td>
+    <td class="ok">&#10003; <span class="via">auto-sync (built in)</span></td>
+    <td class="ok">&#10003; <span class="via">Shortcut 1 (below)</span></td>
+  </tr>
+  <tr>
+    <td>Walk / run / cardio (Watch, Oura)</td>
+    <td class="ok">&#10003; <span class="via">Shortcut 2 (below)</span></td>
+    <td class="ok">&#10003; <span class="via">Shortcut 2 forwards it</span></td>
+    <td class="ok">&#10003; <span class="via">native</span></td>
+  </tr>
+</table>
+</div>
+
+<div class="note">
+<b>How duplicates are prevented</b>
+Shortcut 2 sends <em>every</em> finished workout to HomeFit, and the HomeFit server decides what to do. If the workout overlaps a session already logged in HomeFit (within 20 minutes), it is skipped — because that session already synced to Sparky with full details. Only genuinely external activity (walks, runs, rides) gets forwarded to Sparky. You never have to filter anything by hand.
+</div>
+
+<h2>Before you start: get your token</h2>
+<ol>
+  <li>Open HomeFit and go to <strong>Profile</strong> (hamburger menu → Profile).</li>
+  <li>Scroll to the <strong>Integrations</strong> section.</li>
+  <li>You'll see a URL like:<br>
+  <code>http://192.168.68.15:5000/api/last_workout?token=AbC123...</code></li>
+  <li>The long string after <code>token=</code> is your personal API token. You'll paste it into both shortcuts below. Keep it private — it identifies you to HomeFit.</li>
+</ol>
+<div class="warn">
+<b>Use the public address in shortcuts</b>
+Walks happen away from home, so always use <code>https://homefit.hidethechaos.com</code> in the shortcuts — not the <code>192.168.x.x</code> address. The Cloudflare address works from anywhere.
+</div>
+
+<!-- ============================================================ -->
+<h2>Shortcut 1 — Gym credit in Apple Health</h2>
+<p>Pulls your latest HomeFit workout and logs it into Apple Health so you get ring credit. Runs automatically every evening; it only logs if you actually trained that day.</p>
+
+<h3><span class="step-label">1</span>Create the shortcut</h3>
+<ol>
+  <li>Open the <strong>Shortcuts</strong> app → <strong>Shortcuts</strong> tab → <strong>+</strong> (top right).</li>
+  <li>Rename it (tap the title at the top): <strong>HomeFit to Health</strong>.</li>
+  <li>Add the actions below, in order. Use the search bar at the bottom to find each action by name.</li>
+</ol>
+
+<div class="phone">
+  <div class="phone-title">HomeFit to Health</div>
+
+  <div class="action act-web">
+    <div class="a-head"><span class="a-icon">URL</span>Get Contents of URL</div>
+    <div class="a-body">
+      <div class="kv"><span>URL</span><span>https://homefit.hidethechaos.com/api/last_workout?token=<span class="pill">YOUR TOKEN</span></span></div>
+      <div class="kv"><span>Method</span><span>GET</span></div>
+    </div>
+  </div>
+
+  <div class="action act-dict">
+    <div class="a-head"><span class="a-icon">{ }</span>Get Dictionary Value</div>
+    <div class="a-body">
+      <div class="kv"><span>Get</span><span>Value for <span class="pill">end_time</span> in <span class="pill">Contents of URL</span></span></div>
+    </div>
+  </div>
+
+  <div class="action act-script">
+    <div class="a-head"><span class="a-icon">IF</span>If</div>
+    <div class="a-body">
+      <div class="kv"><span>Input</span><span><span class="pill">Dictionary Value</span> contains <span class="pill">Current Date</span></span></div>
+      <div class="kv"><span></span><span>(format Current Date as Custom: yyyy-MM-dd)</span></div>
+    </div>
+  </div>
+
+  <div class="action act-health indent">
+    <div class="a-head"><span class="a-icon">+</span>Log Workout</div>
+    <div class="a-body">
+      <div class="kv"><span>Type</span><span>Traditional Strength Training</span></div>
+      <div class="kv"><span>Start</span><span><span class="pill">start_time</span> from Contents of URL</span></div>
+      <div class="kv"><span>End</span><span><span class="pill">end_time</span> from Contents of URL</span></div>
+      <div class="kv"><span>Calories</span><span><span class="pill">kcal</span> from Contents of URL</span></div>
+    </div>
+  </div>
+
+  <div class="action act-script">
+    <div class="a-head"><span class="a-icon">IF</span>End If</div>
+  </div>
+</div>
+
+<p>Tips while building:</p>
+<ul>
+  <li>For the <strong>If</strong> action: tap the input field → select the <strong>Dictionary Value</strong> variable → condition <strong>contains</strong> → tap the text field → insert the <strong>Current Date</strong> variable → tap the inserted variable → set <strong>Date Format: Custom</strong> → <code>yyyy-MM-dd</code>. This makes the shortcut do nothing on rest days (so it never double-logs an old workout).</li>
+  <li>In <strong>Log Workout</strong>, the start/end/calories values come from the URL response: tap each field → <strong>Select Variable</strong> → choose <strong>Contents of URL</strong> → set <strong>Get Value for Key</strong> to <code>start_time</code>, <code>end_time</code>, or <code>kcal</code>.</li>
+  <li>The first run will ask for Health permission — allow <strong>write access to Workouts</strong>.</li>
+</ul>
+
+<h3><span class="step-label">2</span>Automate it</h3>
+<ol>
+  <li>Shortcuts app → <strong>Automation</strong> tab → <strong>+</strong>.</li>
+  <li>Choose <strong>Time of Day</strong> → set <strong>9:00 PM</strong>, repeat <strong>Daily</strong>.</li>
+  <li>Select <strong>Run Immediately</strong> (so it doesn't ask each night).</li>
+  <li>Pick the <strong>HomeFit to Health</strong> shortcut → Done.</li>
+</ol>
+
+<div class="phone">
+  <div class="phone-title">Automation</div>
+  <div class="action act-trigger">
+    <div class="a-head"><span class="a-icon">9PM</span>Time of Day — 9:00 PM, Daily</div>
+    <div class="a-body">
+      <div class="kv"><span>Run</span><span>Immediately</span></div>
+      <div class="kv"><span>Do</span><span>Run <span class="pill">HomeFit to Health</span></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+<b>Why 9 PM?</b>
+By then the day's workout is finished and logged in HomeFit. If you trained, it lands in Apple Health that evening; if you rested, the date check fails quietly and nothing happens. You can also run the shortcut manually right after a workout if you want instant ring credit.
+</div>
+
+<!-- ============================================================ -->
+<h2>Shortcut 2 — Cardio into HomeFit &amp; Sparky</h2>
+<p>Fires automatically whenever a workout ends on your Watch (or lands in Apple Health from Oura). Sends it to HomeFit, which skips anything that overlaps a HomeFit session and forwards the rest to Sparky.</p>
+
+<h3><span class="step-label">1</span>Create the shortcut</h3>
+<ol>
+  <li>Shortcuts app → <strong>Shortcuts</strong> tab → <strong>+</strong> → rename to <strong>Health to HomeFit</strong>.</li>
+  <li>Add these two actions:</li>
+</ol>
+
+<div class="phone">
+  <div class="phone-title">Health to HomeFit</div>
+
+  <div class="action act-health">
+    <div class="a-head"><span class="a-icon">HK</span>Find Workouts</div>
+    <div class="a-body">
+      <div class="kv"><span>Sort by</span><span>End Date</span></div>
+      <div class="kv"><span>Order</span><span>Latest First</span></div>
+      <div class="kv"><span>Limit</span><span>1</span></div>
+    </div>
+  </div>
+
+  <div class="action act-web">
+    <div class="a-head"><span class="a-icon">URL</span>Get Contents of URL</div>
+    <div class="a-body">
+      <div class="kv"><span>URL</span><span>https://homefit.hidethechaos.com/api/external-workout?token=<span class="pill">YOUR TOKEN</span></span></div>
+      <div class="kv"><span>Method</span><span>POST</span></div>
+      <div class="kv"><span>Body</span><span>JSON</span></div>
+      <div class="kv"><span>type</span><span><span class="pill">Workout Type</span></span></div>
+      <div class="kv"><span>start</span><span><span class="pill">Start Date</span> (ISO 8601)</span></div>
+      <div class="kv"><span>end</span><span><span class="pill">End Date</span> (ISO 8601)</span></div>
+      <div class="kv"><span>kcal</span><span><span class="pill">Active Energy</span> (number)</span></div>
+      <div class="kv"><span>distance_mi</span><span><span class="pill">Distance</span> (number)</span></div>
+    </div>
+  </div>
+</div>
+
+<p>Tips while building:</p>
+<ul>
+  <li>In <strong>Get Contents of URL</strong>, tap <strong>Show More</strong> to reveal Method and Request Body. Set Method to <strong>POST</strong> and Request Body to <strong>JSON</strong>.</li>
+  <li>Add each JSON field with <strong>Add new field → Text</strong> (for <code>type</code> and the dates) or <strong>→ Number</strong> (for <code>kcal</code> and <code>distance_mi</code>).</li>
+  <li>For each value, tap the field → <strong>Select Variable</strong> → pick <strong>Workouts</strong> (the Find Workouts result) → choose the property (Workout Type, Start Date, End Date, Active Energy, Distance).</li>
+  <li>For <strong>Start Date</strong> and <strong>End Date</strong>: after inserting the variable, tap it and set <strong>Date Format: ISO 8601</strong>, and turn on <strong>ISO 8601 Time</strong>.</li>
+  <li>The first run asks for Health permission — allow <strong>read access to Workouts</strong>.</li>
+</ul>
+
+<h3><span class="step-label">2</span>Automate it</h3>
+<ol>
+  <li>Shortcuts app → <strong>Automation</strong> tab → <strong>+</strong>.</li>
+  <li>Choose <strong>Workout</strong> (Apple Watch) → <strong>Ends</strong> → any workout type.</li>
+  <li>Select <strong>Run Immediately</strong>.</li>
+  <li>Pick the <strong>Health to HomeFit</strong> shortcut → Done.</li>
+</ol>
+
+<div class="phone">
+  <div class="phone-title">Automation</div>
+  <div class="action act-trigger">
+    <div class="a-head"><span class="a-icon">END</span>When any Workout ends</div>
+    <div class="a-body">
+      <div class="kv"><span>Run</span><span>Immediately</span></div>
+      <div class="kv"><span>Do</span><span>Run <span class="pill">Health to HomeFit</span></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="warn">
+<b>Oura workouts</b>
+The Watch automation only fires for Apple Watch workouts. Oura writes its workouts into Apple Health, but that won't trigger the automation. To catch those, add a second automation: <strong>Time of Day → 10:00 PM Daily → Run Immediately → Health to HomeFit</strong>. Bump the Find Workouts limit from 1 to 3 if you want the nightly sweep to catch multiple activities — the server ignores anything it has already received, so re-sending is always safe.
+</div>
+
+<!-- ============================================================ -->
+<h2>Test it</h2>
+<ol>
+  <li>Open <strong>Health to HomeFit</strong> in the Shortcuts app and tap <strong>Run</strong> (the play button).</li>
+  <li>It grabs your most recent workout and posts it. Add a <strong>Quick Look</strong> action at the end temporarily to see the server's reply:</li>
+</ol>
+<ul>
+  <li><span class="check">&#10003;</span> <code>{"status": "synced", ...}</code> — forwarded to Sparky. Check Sparky's exercise diary.</li>
+  <li><span class="check">&#10003;</span> <code>{"status": "skipped", "reason": "overlaps HomeFit workout..."}</code> — correctly recognized as a HomeFit session. No duplicate created.</li>
+  <li><span class="check">&#10003;</span> <code>{"status": "duplicate"}</code> — this exact workout was already received. Safe to ignore.</li>
+  <li><code>{"error": "invalid token"}</code> — re-check the token in the URL.</li>
+</ul>
+
+<h2>Troubleshooting</h2>
+<table class="ts">
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr>
+    <td>invalid token (401)</td>
+    <td>The <code>token=</code> value doesn't match. Copy it again from Profile → Integrations. No spaces or line breaks.</td>
+  </tr>
+  <tr>
+    <td>unparseable start (400)</td>
+    <td>The date variable isn't formatted as ISO 8601. Tap the Start/End Date variable in the shortcut and set Date Format to ISO 8601 with time enabled.</td>
+  </tr>
+  <tr>
+    <td>Walk shows in HomeFit but not Sparky</td>
+    <td>Response said <code>"status": "recorded"</code> — Sparky sync is off or the Sparky API key is missing. Check Profile → Integrations → Sparky in HomeFit.</td>
+  </tr>
+  <tr>
+    <td>Gym session duplicated in Sparky</td>
+    <td>Shouldn't happen — the server skips overlaps within 20 minutes. If the watch workout and the HomeFit log are more than 20 minutes apart, the window missed it; mention it to Claude to widen the window.</td>
+  </tr>
+  <tr>
+    <td>Automation never fires</td>
+    <td>Make sure "Run Immediately" is selected and notifications for Shortcuts are allowed. Watch automations need the iPhone nearby/online.</td>
+  </tr>
+  <tr>
+    <td>Two walks same day merged in Sparky</td>
+    <td>Known Sparky limitation: it dedups manual entries by exercise + date, so a second walk on the same day updates the first entry's stats instead of adding a new row. HomeFit still records both.</td>
+  </tr>
+</table>
+
+<p style="margin-top:40px; font-size:13px; color:var(--subtle); border-top:1px solid var(--border); padding-top:16px;">
+HomeFit — generated June 2026. Server endpoints: <code>GET /api/last_workout</code>, <code>POST /api/external-workout</code> (token auth).
+</p>
+
+</div>
+</body>
+</html>
