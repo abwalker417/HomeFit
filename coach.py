@@ -364,6 +364,34 @@ Keep each bullet to one sentence. No greeting, no sign-off."""
     return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
 
 
+def generate_daily_brief(coaching_data):
+    """Short morning push: yesterday's training + nutrition, today's focus."""
+    from datetime import date, timedelta
+    context = _build_context(coaching_data)
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+
+    workouts = coaching_data.get("recent_workouts") or []
+    trained = [w for w in workouts if (w.get("completed_at") or "").startswith(yesterday)]
+    trained_note = f"trained ({trained[0].get('day_name', 'workout')})" if trained else "did not train"
+
+    nutrition_note = ""
+    for d in coaching_data.get("nutrition_log") or []:
+        if d.get("date") == yesterday:
+            nutrition_note = f" Ate {d.get('calories', 0)} kcal, {d.get('protein_g', 0)}g protein."
+            break
+
+    prompt = f"""{context}
+
+Yesterday ({yesterday}) the user {trained_note}.{nutrition_note}
+
+Write a daily brief for a push notification: exactly 2 short sentences, plain text,
+no bullets, no greeting, no sign-off, under 200 characters total.
+Sentence 1: one specific observation about yesterday (training or nutrition).
+Sentence 2: today's focus based on the weekly plan."""
+
+    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
+
+
 def generate_weekly_plan(coaching_data, exercise_library):
     """Generate a structured 7-day workout plan."""
     profile = coaching_data.get("profile") or {}
