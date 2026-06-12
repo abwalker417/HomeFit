@@ -539,6 +539,57 @@ def sync_weight_async(weight, log_date=None, api_key=None):
     t.start()
 
 
+def push_external_workout(name, date_str, duration_minutes, kcal=None,
+                          distance_mi=None, avg_hr=None, api_key=None):
+    """Push an external (Apple Health) cardio workout to Sparky as one entry.
+
+    Synchronous — the /api/external-workout relay reports the result back to
+    the Shortcut that posted it. Returns True if Sparky accepted the entry.
+    Note: Sparky dedups Manual entries by exercise_id + date, so a second
+    workout of the same type on the same day updates the first entry.
+    """
+    config = load_config()
+    if not config.get("url"):
+        return False
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return False
+    base_url = config["url"]
+
+    exercise_id = _find_or_create_exercise(base_url, effective_key, {
+        "name": name,
+        "category": "cardio",
+        "equipment": "bodyweight",
+        "instructions": "Imported from Apple Health",
+    })
+    if not exercise_id:
+        return False
+
+    notes = "Synced from Apple Health via HomeFit"
+    if distance_mi:
+        notes += f" — {distance_mi} mi"
+    payload = {
+        "exercise_id": exercise_id,
+        "entry_date": date_str,
+        "duration_minutes": max(1, int(duration_minutes or 1)),
+        "notes": notes,
+    }
+    if kcal:
+        payload["calories_burned"] = int(kcal)
+    if avg_hr:
+        payload["avg_heart_rate"] = int(avg_hr)
+    try:
+        r = requests.post(
+            f"{base_url}/api/exercise-entries",
+            headers={**_headers(effective_key), "Content-Type": "application/json"},
+            json=payload,
+            timeout=10,
+        )
+        return r.ok
+    except Exception:
+        return False
+
+
 def fetch_goals(api_key=None):
     """Fetch current calorie and macro goals from Sparky. Returns a dict or {}."""
     config = load_config()

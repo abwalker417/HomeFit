@@ -9,7 +9,7 @@ import json
 import os
 import secrets
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from typing import Optional
@@ -162,6 +162,23 @@ def init_db():
                 user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 subscription_json TEXT NOT NULL,
                 created_at        TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS external_workouts (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                source           TEXT NOT NULL DEFAULT 'apple_health',
+                workout_type     TEXT NOT NULL,
+                started_at       TEXT NOT NULL,
+                ended_at         TEXT,
+                duration_minutes INTEGER NOT NULL DEFAULT 0,
+                kcal             INTEGER,
+                distance_mi      REAL,
+                avg_hr           INTEGER,
+                status           TEXT NOT NULL,
+                created_at       TEXT NOT NULL,
+                UNIQUE(user_id, workout_type, started_at)
             )
         """)
 
@@ -504,6 +521,63 @@ def get_user_id_by_token(token):
     with get_connection() as conn:
         row = conn.execute("SELECT id FROM users WHERE api_token = ?", (token,)).fetchone()
         return row["id"] if row else None
+
+
+# ── External workouts (Apple Health relay) ──────────────────────────────────
+
+def find_external_workout(user_id, workout_type, started_at):
+    """Idempotency check: has this exact workout already been received?"""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT id, status FROM external_workouts WHERE user_id = ? AND workout_type = ? AND started_at = ?",
+            (user_id, workout_type, started_at),
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def record_external_workout(user_id, source, workout_type, started_at, ended_at,
+                            duration_minutes, kcal, distance_mi, avg_hr, status):
+    with get_connection() as conn:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO external_workouts
+                (user_id, source, workout_type, started_at, ended_at,
+                 duration_minutes, kcal, distance_mi, avg_hr, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, source, workout_type, started_at, ended_at,
+             duration_minutes, kcal, distance_mi, avg_hr, status,
+             datetime.utcnow().isoformat()),
+        )
+
+
+def find_overlapping_homefit_workout(user_id, start, end, pad_minutes=20):
+    """Return the HomeFit workout whose time window overlaps [start, end], or None.
+
+    Used to dedup external (HealthKit) workouts: a gym session recorded on the
+    watch overlaps the HomeFit session that already synced to Sparky.
+    start/end are naive-UTC datetimes; workout_log.completed_at is naive-UTC ISO.
+    """
+    pad = timedelta(minutes=pad_minutes)
+    day_lo = (start - timedelta(days=1)).isoformat()
+    day_hi = (end + timedelta(days=1)).isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, day_name, duration_seconds, completed_at FROM workout_log
+            WHERE user_id = ? AND completed_at BETWEEN ? AND ?
+            """,
+            (user_id, day_lo, day_hi),
+        ).fetchall()
+    for r in rows:
+        try:
+            hf_end = datetime.fromisoformat(r["completed_at"])
+        except (ValueError, TypeError):
+            continue
+        hf_start = hf_end - timedelta(seconds=r["duration_seconds"] or 0)
+        if hf_start - pad <= end and start <= hf_end + pad:
+            return dict(r)
+    return None
 
 
 def get_stats(user_id):

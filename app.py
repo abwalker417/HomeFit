@@ -60,7 +60,7 @@ def no_cache(response):
 PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
-    "api_last_workout", "api_last_weight",
+    "api_last_workout", "api_last_weight", "api_external_workout",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
@@ -1017,6 +1017,91 @@ def api_last_weight():
         "weight_lbs": entry["weight"],
         "logged_at": entry["logged_at"],
     })
+
+
+@app.route("/api/external-workout", methods=["POST"])
+def api_external_workout():
+    """Relay for Apple Health workouts (posted by an iOS Shortcut).
+
+    Dedups against HomeFit's own sessions (which already sync to Sparky with
+    full details), then forwards genuinely external cardio to Sparky.
+    Body: {type, start, [end], [duration_minutes], [kcal], [distance_mi], [avg_hr], [source]}
+    """
+    from datetime import datetime, timedelta, timezone
+    token = request.args.get("token", "") or \
+        request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
+    uid = database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "invalid token"}), 401
+
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("type") or data.get("name") or "").strip()
+    raw_start = str(data.get("start") or "").strip()
+    if not name or not raw_start:
+        return jsonify({"error": "required fields: type, start (ISO 8601)"}), 400
+
+    def _parse(ts):
+        # Returns (naive-UTC datetime, date-as-written-locally)
+        dt = datetime.fromisoformat(ts.strip().replace("Z", "+00:00"))
+        local_date = dt.date()
+        if dt.tzinfo:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt, local_date
+
+    try:
+        start, local_date = _parse(raw_start)
+    except ValueError:
+        return jsonify({"error": f"unparseable start: {raw_start}"}), 400
+    end = None
+    if data.get("end"):
+        try:
+            end, _ = _parse(str(data["end"]))
+        except ValueError:
+            return jsonify({"error": f"unparseable end: {data['end']}"}), 400
+
+    def _num(key, cast):
+        try:
+            return cast(float(data.get(key)))
+        except (TypeError, ValueError):
+            return None
+
+    duration_minutes = _num("duration_minutes", int) or 0
+    if not duration_minutes and end:
+        duration_minutes = max(1, int((end - start).total_seconds() // 60))
+    if end is None:
+        end = start + timedelta(minutes=duration_minutes or 1)
+    kcal = _num("kcal", int)
+    distance_mi = _num("distance_mi", float)
+    avg_hr = _num("avg_hr", int)
+    source = str(data.get("source") or "apple_health").strip()
+
+    started_iso = start.isoformat()
+    existing = database.find_external_workout(uid, name, started_iso)
+    if existing:
+        return jsonify({"status": "duplicate", "detail": "this workout was already received"}), 200
+
+    overlap = database.find_overlapping_homefit_workout(uid, start, end)
+    if overlap:
+        database.record_external_workout(
+            uid, source, name, started_iso, end.isoformat(),
+            duration_minutes, kcal, distance_mi, avg_hr, "skipped_overlap")
+        return jsonify({
+            "status": "skipped",
+            "reason": f"overlaps HomeFit workout '{overlap['day_name']}' (already synced to Sparky)",
+        }), 200
+
+    profile = database.get_profile(uid) or {}
+    synced = False
+    if profile.get("sparky_sync"):
+        synced = sparky_sync.push_external_workout(
+            name, local_date.isoformat(), duration_minutes,
+            kcal=kcal, distance_mi=distance_mi, avg_hr=avg_hr,
+            api_key=profile.get("sparky_api_key"))
+    status = "synced" if synced else "recorded"
+    database.record_external_workout(
+        uid, source, name, started_iso, end.isoformat(),
+        duration_minutes, kcal, distance_mi, avg_hr, status)
+    return jsonify({"status": status, "workout": name, "date": local_date.isoformat()}), 201
 
 
 @app.route("/coach")
