@@ -172,6 +172,23 @@ def _build_context(coaching_data):
             lines.append(f"- {day['date']}: {liters:.1f}L{flag}")
         lines.append("")
 
+    other_activity = coaching_data.get("other_activity") or []
+    if other_activity:
+        lines.append("Other activity (Apple Health / Oura / manual — NOT HomeFit workouts):")
+        for day in other_activity[:5]:
+            parts = []
+            for a in day.get("activities", []):
+                desc = a["name"]
+                if a.get("minutes"):
+                    desc += f" {a['minutes']}min"
+                if a.get("kcal"):
+                    desc += f" {a['kcal']}kcal"
+                if a.get("avg_hr"):
+                    desc += f" avgHR {a['avg_hr']}"
+                parts.append(desc)
+            lines.append(f"- {day['date']}: {'; '.join(parts)}")
+        lines.append("")
+
     if apex_plan:
         today_idx = today.weekday()  # 0=Monday
         lines.append("Weekly plan:")

@@ -7,7 +7,9 @@
     <div>
       <p class="eyebrow">Your plan</p>
     </div>
-    {% if stats.streak >= 2 %}
+    {% if stats.week_streak >= 2 %}
+    <span class="streak-badge">{{ stats.week_streak }}-week streak</span>
+    {% elif stats.streak >= 2 %}
     <span class="streak-badge">{{ stats.streak }}-day streak</span>
     {% endif %}
   </div>
@@ -34,8 +36,10 @@
     {{ stats.weight_progress_pct }}% to goal
     {% if stats.weight_change %} · {{ "+" if stats.weight_change > 0 else "" }}{{ stats.weight_change }} lbs total{% endif %}
   </p>
-  {% if stats.streak >= 2 and not stats.today_workout %}
-  <p class="streak-nudge">Work out today to keep your {{ stats.streak }}-day streak alive</p>
+  {% if stats.must_train_today %}
+  <p class="streak-nudge">Train today to hit your {{ stats.target_days }}-day week{% if stats.week_streak >= 2 %} — your {{ stats.week_streak }}-week streak is on the line{% endif %}</p>
+  {% elif stats.week_workouts and stats.week_workouts < stats.target_days %}
+  <p class="progress-label">{{ stats.week_workouts }} of {{ stats.target_days }} workouts this week</p>
   {% endif %}
 </section>
 

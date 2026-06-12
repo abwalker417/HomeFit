@@ -284,6 +284,156 @@ function loadWeeklyDigest() {
     .catch(() => {});
 }
 
+/* ---------- Push notifications opt-in (profile page) ---------- */
+function setupPushToggle() {
+  const btn = document.getElementById('push-toggle');
+  const status = document.getElementById('push-status');
+  if (!btn) return;
+
+  const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  if (!supported) {
+    btn.disabled = true;
+    btn.textContent = 'Not supported on this device';
+    if (status) status.textContent = 'On iPhone, add HomeFit to your Home Screen first (Share → Add to Home Screen), then enable here.';
+    return;
+  }
+
+  function urlB64ToUint8Array(b64) {
+    const pad = '='.repeat((4 - (b64.length % 4)) % 4);
+    const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+  }
+
+  async function refresh() {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    btn.textContent = sub ? 'Disable notifications' : 'Enable notifications';
+    btn.dataset.enabled = sub ? '1' : '';
+    return sub;
+  }
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) {
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: existing.endpoint }),
+        });
+        await existing.unsubscribe();
+        if (status) status.textContent = 'Notifications disabled.';
+      } else {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+          if (status) status.textContent = 'Permission denied — enable notifications for this site in your browser settings.';
+          btn.disabled = false;
+          return;
+        }
+        const keyResp = await fetch('/api/push/public-key');
+        const { publicKey } = await keyResp.json();
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlB64ToUint8Array(publicKey),
+        });
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sub.toJSON()),
+        });
+        if (status) status.textContent = 'Notifications enabled on this device.';
+      }
+    } catch (e) {
+      if (status) status.textContent = 'Could not update notifications: ' + e.message;
+    }
+    btn.disabled = false;
+    refresh();
+  });
+
+  refresh().catch(() => {
+    btn.textContent = 'Enable notifications';
+  });
+}
+
+function loadStrengthChart() {
+  const card = document.getElementById('strength-card');
+  const select = document.getElementById('strength-select');
+  const canvas = document.getElementById('strength-chart');
+  if (!card || !select || !canvas) return;
+  fetch('/api/strength-history')
+    .then(r => r.json())
+    .then(data => {
+      const exercises = data.exercises || [];
+      if (!exercises.length) return;
+      select.innerHTML = exercises.map((e, i) =>
+        `<option value="${i}">${e.name} (${e.points.length} sessions)</option>`).join('');
+      const draw = () => drawStrengthSeries(canvas, exercises[parseInt(select.value, 10) || 0].points);
+      select.addEventListener('change', draw);
+      card.style.display = '';
+      draw();
+    })
+    .catch(() => {});
+}
+
+function drawStrengthSeries(canvas, points) {
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || 600;
+  const cssH = 200;
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const padding = { t: 16, r: 16, b: 26, l: 40 };
+  const innerW = cssW - padding.l - padding.r;
+  const innerH = cssH - padding.t - padding.b;
+  const weights = points.map(p => p.weight);
+  const min = Math.min(...weights) - 2.5;
+  const max = Math.max(...weights) + 2.5;
+  const range = Math.max(1, max - min);
+
+  ctx.clearRect(0, 0, cssW, cssH);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px -apple-system, system-ui, sans-serif';
+  for (let i = 0; i <= 4; i++) {
+    const v = min + (range * i) / 4;
+    const y = padding.t + innerH - (innerH * i) / 4;
+    ctx.fillText(v.toFixed(0), 4, y + 4);
+    ctx.strokeStyle = 'rgba(38, 56, 89, 0.4)';
+    ctx.beginPath();
+    ctx.moveTo(padding.l, y);
+    ctx.lineTo(padding.l + innerW, y);
+    ctx.stroke();
+  }
+  const xy = (p, i) => [
+    padding.l + (innerW * i) / Math.max(1, points.length - 1),
+    padding.t + innerH - ((p.weight - min) / range) * innerH,
+  ];
+  ctx.strokeStyle = '#f97316';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const [x, y] = xy(p, i);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.fillStyle = '#fb923c';
+  points.forEach((p, i) => {
+    const [x, y] = xy(p, i);
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  // first/last date labels
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText(points[0].date.slice(5), padding.l, cssH - 8);
+  const lastLabel = points[points.length - 1].date.slice(5);
+  ctx.fillText(lastLabel, padding.l + innerW - ctx.measureText(lastLabel).width, cssH - 8);
+}
+
 function loadEnergyBalance() {
   const card = document.getElementById('energy-card');
   const rows = document.getElementById('energy-rows');
@@ -658,8 +808,12 @@ function drawWeightChart() {
   const innerH = cssH - padding.t - padding.b;
 
   const weights = points.map((p) => p.weight);
-  const min = Math.min(...weights) - 1;
-  const max = Math.max(...weights) + 1;
+  const goal = parseFloat(canvas.dataset.goal) || null;
+  // Include the goal in the scale so the goal line is always visible
+  const lo = goal ? Math.min(...weights, goal) : Math.min(...weights);
+  const hi = goal ? Math.max(...weights, goal) : Math.max(...weights);
+  const min = lo - 1;
+  const max = hi + 1;
   const range = Math.max(1, max - min);
 
   // Axis
@@ -682,6 +836,38 @@ function drawWeightChart() {
     ctx.beginPath();
     ctx.moveTo(padding.l, y);
     ctx.lineTo(padding.l + innerW, y);
+    ctx.stroke();
+  }
+
+  // Goal line (dashed green)
+  if (goal) {
+    const gy = padding.t + innerH - ((goal - min) / range) * innerH;
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padding.l, gy);
+    ctx.lineTo(padding.l + innerW, gy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#34d399';
+    ctx.fillText('goal', padding.l + innerW - 26, gy - 5);
+  }
+
+  // 7-day moving average (smooth trend behind the raw line)
+  if (points.length >= 3) {
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const start = Math.max(0, i - 6);
+      const slice = points.slice(start, i + 1);
+      const avg = slice.reduce((s, q) => s + q.weight, 0) / slice.length;
+      const x = padding.l + (innerW * i) / Math.max(1, points.length - 1);
+      const y = padding.t + innerH - ((avg - min) / range) * innerH;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
     ctx.stroke();
   }
 

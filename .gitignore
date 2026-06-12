@@ -10,6 +10,7 @@ __pycache__/
 .DS_Store
 data/secret.key
 data/sparky_config.json
+.mcp.json
 data/sparky_exercise_cache.json
 data/workout.db
 data/exercise_images.json

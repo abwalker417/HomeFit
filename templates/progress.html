@@ -14,7 +14,12 @@
       <strong>{{ stats.last_7_days }}</strong>
       <span>Last 7 days</span>
     </div>
-    {% if stats.streak >= 2 %}
+    {% if stats.week_streak >= 2 %}
+    <div class="stat-card">
+      <strong style="color:var(--accent);">{{ stats.week_streak }}</strong>
+      <span>Week streak</span>
+    </div>
+    {% elif stats.streak >= 2 %}
     <div class="stat-card">
       <strong style="color:var(--accent);">{{ stats.streak }}</strong>
       <span>Day streak</span>
@@ -36,10 +41,19 @@
   <h2>Weight over time</h2>
   {% if weights %}
     <canvas id="weight-chart" width="600" height="220"
-            data-points='{{ weights | tojson }}'></canvas>
+            data-points='{{ weights | tojson }}'
+            data-goal="{{ profile.goal_weight or '' }}"></canvas>
   {% else %}
     <p class="subtle">No weight logged yet. Log one from the home screen.</p>
   {% endif %}
+</section>
+
+<section id="strength-card" class="card" style="display:none;">
+  <h2 style="margin-top:0;">Strength</h2>
+  <p class="subtle" style="margin:0 0 10px; font-size:13px;">Heaviest logged weight per session</p>
+  <select id="strength-select"
+          style="width:100%; background:var(--bg-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:10px 14px; font-size:15px; margin-bottom:12px; -webkit-appearance:none;"></select>
+  <canvas id="strength-chart" width="600" height="200"></canvas>
 </section>
 
 {% if sparky_enabled %}
@@ -58,14 +72,30 @@
     <ul class="history-list">
       {% for w in week.workouts %}
       <li class="history-item">
-        <div>
-          <strong>{{ w.day_name }}</strong>
-          <span class="subtle">Day {{ w.day_number }} · {{ w.exercises|length }} exercises</span>
-        </div>
-        <div class="history-meta">
-          <span>{{ (w.duration_seconds or 0) // 60 }} min{% if w.kcal %} · {{ w.kcal }} kcal{% endif %}</span>
-          <span class="subtle">{{ w.completed_at[:10] }}</span>
-        </div>
+        <details>
+          <summary>
+            <div>
+              <strong>{{ w.day_name }}</strong>
+              <span class="subtle" style="display:block; font-size:12px;">Day {{ w.day_number }} · {{ w.exercises|length }} exercises</span>
+            </div>
+            <div class="history-meta">
+              <span>{{ (w.duration_seconds or 0) // 60 }} min{% if w.kcal %} · {{ w.kcal }} kcal{% endif %}</span>
+              <span class="subtle">{{ w.completed_at[:10] }}</span>
+            </div>
+          </summary>
+          <div class="history-detail">
+            {% for ex in w.detail %}
+            <div class="history-detail-row {% if not ex.completed %}skipped{% endif %}">
+              <span>{{ ex.name }}{% if not ex.completed %} (skipped){% endif %}</span>
+              <span class="sets">
+                {%- for s in ex.sets -%}
+                  {{ s.weight ~ ' lbs' if s.weight else '' }}{{ ' × ' ~ s.reps if s.reps else '' }}{{ ', ' if not loop.last }}
+                {%- endfor -%}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+        </details>
       </li>
       {% endfor %}
     </ul>
@@ -79,6 +109,7 @@
 {% block scripts %}
 <script>
   drawWeightChart();
+  loadStrengthChart();
   loadEnergyBalance();
 </script>
 {% endblock %}

@@ -156,6 +156,14 @@ def init_db():
                 generated_at TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                endpoint          TEXT PRIMARY KEY,
+                user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                subscription_json TEXT NOT NULL,
+                created_at        TEXT NOT NULL
+            )
+        """)
 
 
         conn.execute("DELETE FROM schema_version")
@@ -455,6 +463,7 @@ def get_coaching_context(user_id):
     nutrition = []
     hydration = []
     goals = {}
+    other_activity = []
     if profile.get("sparky_sync"):
         try:
             import sparky_sync
@@ -462,6 +471,8 @@ def get_coaching_context(user_id):
             nutrition = sparky_sync.fetch_nutrition_log(days=7, api_key=sparky_key)
             hydration = sparky_sync.fetch_hydration_log(days=7, api_key=sparky_key)
             goals = sparky_sync.fetch_goals(api_key=sparky_key)
+            # Activity from outside HomeFit — Apple Health, Oura, manual logs
+            other_activity = sparky_sync.fetch_external_activity(days=7, api_key=sparky_key)
         except Exception:
             pass
     return {
@@ -473,6 +484,7 @@ def get_coaching_context(user_id):
         "nutrition_log": nutrition,
         "hydration_log": hydration,
         "nutrition_goals": goals,
+        "other_activity": other_activity,
     }
 
 
@@ -542,6 +554,50 @@ def get_streak(user_id):
     return streak
 
 
+def get_week_streak(user_id, target_days):
+    """Consecutive weeks (Monday start) hitting the days_per_week target.
+
+    The current week counts if the target is already met, or is still
+    achievable (workouts so far + days left >= target) — an in-flight week
+    shouldn't break the streak before it's lost.
+    """
+    from datetime import date, timedelta
+    target_days = max(1, int(target_days or 1))
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT date(completed_at) as d FROM workout_log WHERE user_id = ? ORDER BY d DESC",
+            (user_id,),
+        ).fetchall()
+    if not rows:
+        return 0
+    by_week = {}
+    for row in rows:
+        d = date.fromisoformat(row["d"])
+        monday = d - timedelta(days=d.weekday())
+        by_week[monday] = by_week.get(monday, 0) + 1
+
+    today = date.today()
+    this_monday = today - timedelta(days=today.weekday())
+    days_left = 7 - today.weekday()  # includes today
+    done_this_week = by_week.get(this_monday, 0)
+
+    streak = 0
+    week = this_monday
+    if done_this_week >= target_days:
+        streak = 1
+        week = this_monday - timedelta(days=7)
+    elif done_this_week + days_left >= target_days:
+        # current week still winnable — skip it without breaking the chain
+        week = this_monday - timedelta(days=7)
+    else:
+        return 0
+
+    while by_week.get(week, 0) >= target_days:
+        streak += 1
+        week -= timedelta(days=7)
+    return streak
+
+
 def get_weekly_digest(user_id):
     """Return cached digest if it was generated for the current week, else None."""
     from datetime import date, timedelta
@@ -554,6 +610,44 @@ def get_weekly_digest(user_id):
             (user_id, week_start),
         ).fetchone()
     return row["digest_text"] if row else None
+
+
+def save_push_subscription(user_id, subscription):
+    """Store a web-push subscription (one row per browser endpoint)."""
+    endpoint = subscription.get("endpoint")
+    if not endpoint:
+        return False
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO push_subscriptions (endpoint, user_id, subscription_json, created_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(endpoint) DO UPDATE SET
+                 user_id=excluded.user_id,
+                 subscription_json=excluded.subscription_json""",
+            (endpoint, user_id, json.dumps(subscription), datetime.utcnow().isoformat()),
+        )
+    return True
+
+
+def get_push_subscriptions(user_id=None):
+    """All subscriptions, or just one user's."""
+    with get_connection() as conn:
+        if user_id is None:
+            rows = conn.execute("SELECT * FROM push_subscriptions").fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM push_subscriptions WHERE user_id = ?", (user_id,)
+            ).fetchall()
+    return [
+        {"user_id": r["user_id"], "endpoint": r["endpoint"],
+         "subscription": json.loads(r["subscription_json"])}
+        for r in rows
+    ]
+
+
+def delete_push_subscription(endpoint):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", (endpoint,))
 
 
 def save_weekly_digest(user_id, digest_text):

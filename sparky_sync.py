@@ -640,6 +640,94 @@ def fetch_hydration_log(days=7, api_key=None):
     return summaries
 
 
+def scan_nutrition_issues(days=7, api_key=None):
+    """Sanity-check recent Sparky food entries. Returns human-readable issue strings.
+
+    Catches the two failure modes we've hit before: foods stored with NULL
+    calories, and serving-math blowups where a single item displays >2000 kcal."""
+    config = load_config()
+    if not config:
+        return []
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return []
+    from datetime import date, timedelta
+    base = config["url"].rstrip("/")
+    headers = _headers(effective_key)
+    issues = []
+    null_count = 0
+    for i in range(days):
+        d = (date.today() - timedelta(days=i)).isoformat()
+        try:
+            r = requests.get(
+                f"{base}/api/food-entries",
+                headers=headers,
+                params={"selectedDate": d},
+                timeout=8,
+            )
+            if not r.ok:
+                continue
+            for e in r.json():
+                name = e.get("food_name") or "?"
+                if e.get("calories") is None:
+                    null_count += 1
+                    continue
+                qty = float(e.get("quantity") or 0)
+                serving = float(e.get("serving_size") or 100)
+                display_kcal = float(e["calories"]) * qty / serving if serving else 0
+                if display_kcal > 2000:
+                    issues.append(f"'{name}' on {d} shows {round(display_kcal)} kcal — check serving math")
+        except Exception:
+            continue
+    if null_count:
+        issues.append(f"{null_count} food entr{'y' if null_count == 1 else 'ies'} logged with no calories")
+    return issues
+
+
+def fetch_external_activity(days=7, api_key=None):
+    """Fetch exercise entries that did NOT come from HomeFit (Apple Health, Oura,
+    manual Sparky logs). Returns per-day summaries for the APEX coaching context."""
+    config = load_config()
+    if not config:
+        return []
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return []
+    from datetime import date, timedelta
+    base = config["url"].rstrip("/")
+    headers = _headers(effective_key)
+    summaries = []
+    for i in range(days):
+        d = (date.today() - timedelta(days=i)).isoformat()
+        try:
+            r = requests.get(
+                f"{base}/api/exercise-entries/by-date",
+                params={"selectedDate": d},
+                headers=headers,
+                timeout=8,
+            )
+            if not r.ok:
+                continue
+            activities = []
+            for e in r.json():
+                if "Synced from HomeFit" in (e.get("notes") or ""):
+                    continue
+                name = e.get("exercise_name") or e.get("name") or "Activity"
+                item = {"name": name}
+                if e.get("duration_minutes"):
+                    item["minutes"] = round(float(e["duration_minutes"]))
+                if e.get("calories_burned"):
+                    item["kcal"] = round(float(e["calories_burned"]))
+                if e.get("avg_heart_rate"):
+                    item["avg_hr"] = round(float(e["avg_heart_rate"]))
+                activities.append(item)
+            if activities:
+                summaries.append({"date": d, "activities": activities[:6]})
+        except Exception:
+            continue
+    return summaries
+
+
 def fetch_nutrition_log(days=7, api_key=None):
     """Fetch recent food diary entries from Sparky. Returns list of daily summaries."""
     config = load_config()

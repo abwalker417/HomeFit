@@ -62,6 +62,13 @@
 </section>
 
 <section class="card">
+  <h2>Notifications</h2>
+  <p class="subtle" style="font-size:13px;">Weekly digest on Monday mornings, plus a heads-up when your weekly streak is on the line.</p>
+  <button type="button" id="push-toggle" class="btn btn-secondary" style="display:block; width:100%;">Checking…</button>
+  <p id="push-status" class="subtle" style="font-size:12px; margin:8px 0 0;"></p>
+</section>
+
+<section class="card">
   <h2>Integrations</h2>
   <p class="subtle">Connect HomeFit to external services.</p>
   <a class="btn btn-secondary" href="{{ url_for('sparky_settings') }}" style="display:block; text-align:center;">SparkyFitness Sync</a>
@@ -118,5 +125,6 @@
         r.value === 'set' ? 'block' : 'none';
     });
   });
+  setupPushToggle();
 </script>
 {% endblock %}

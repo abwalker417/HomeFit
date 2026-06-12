@@ -1,6 +1,6 @@
 /* HomeFit service worker — offline-first for app shell */
 
-const CACHE = 'homefit-v39';
+const CACHE = 'homefit-v40';
 const APP_SHELL = [
   '/static/css/style.css',
   '/static/js/app.js',
@@ -51,5 +51,32 @@ self.addEventListener('fetch', (event) => {
         return res;
       })
     )
+  );
+});
+
+/* ---------- Web push ---------- */
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data.json(); } catch { data = { title: 'HomeFit', body: event.data && event.data.text() }; }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'HomeFit', {
+      body: data.body || '',
+      icon: '/static/icons/icon-192.png',
+      badge: '/static/icons/icon-192.png',
+      data: { url: data.url || '/' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if ('focus' in w) { w.navigate(url); return w.focus(); }
+      }
+      return clients.openWindow(url);
+    })
   );
 });

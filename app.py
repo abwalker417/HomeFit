@@ -238,6 +238,25 @@ def _progress_stats(user_id):
     stats["last_7_days"] = sum(1 for item in history if (item.get("completed_at") or "") >= week_start)
     stats["total_minutes"] = sum((item.get("duration_seconds") or 0) // 60 for item in history)
     stats["streak"] = database.get_streak(user_id)
+    profile = database.get_profile(user_id) or {}
+    stats["target_days"] = profile.get("days_per_week") or 4
+    stats["week_streak"] = database.get_week_streak(user_id, stats["target_days"])
+    # Weekly-target tracking (Monday start, matching get_week_streak)
+    monday = today - timedelta(days=today.weekday())
+    week_dates = {(item.get("completed_at") or "")[:10] for item in history
+                  if (item.get("completed_at") or "")[:10] >= monday.isoformat()}
+    week_dates.discard("")
+    trained_today = today.isoformat() in week_dates
+    days_left = 7 - today.weekday()  # includes today
+    done = len(week_dates)
+    stats["week_workouts"] = done
+    # Today is the last chance to keep the weekly target reachable
+    stats["must_train_today"] = (
+        not trained_today
+        and done < stats["target_days"]
+        and done + days_left >= stats["target_days"]
+        and done + days_left - 1 < stats["target_days"]
+    )
     if stats["last_workout"]:
         try:
             last_dt = datetime.fromisoformat(stats["last_workout"])
@@ -733,16 +752,10 @@ def weekly_digest():
     uid = session.get("user_id")
     if not uid:
         return jsonify({"error": "unauthorized"}), 401
-    cached = database.get_weekly_digest(uid)
-    if cached:
-        return jsonify({"digest": cached, "cached": True})
-    if not coach.is_available():
-        return jsonify({"digest": None})
     try:
-        coaching_data = database.get_coaching_context(uid)
-        digest = coach.generate_weekly_digest(coaching_data)
-        database.save_weekly_digest(uid, digest)
-        return jsonify({"digest": digest, "cached": False})
+        import digest_service
+        digest = digest_service.get_or_generate(uid)
+        return jsonify({"digest": digest})
     except Exception:
         return jsonify({"digest": None})
 
@@ -1118,6 +1131,16 @@ def progress():
         eids = [e["id"] for e in w.get("exercises", []) if e.get("id")]
         enriched = [get_exercise_by_id(eid) for eid in eids]
         w["kcal"] = _calc_kcal([e for e in enriched if e], weight_lbs, w.get("duration_seconds"))
+        # Per-exercise detail for the expandable history row
+        detail = []
+        for e in w.get("exercises", []):
+            ex = get_exercise_by_id(e.get("id") or "")
+            detail.append({
+                "name": (ex or {}).get("name") or "Unknown exercise",
+                "completed": e.get("completed", True),
+                "sets": [s for s in (e.get("sets") or []) if s.get("weight") or s.get("reps")],
+            })
+        w["detail"] = detail
     stats["total_kcal"] = sum(w["kcal"] for w in workouts)
 
     # Group history by ISO week (Monday start), newest first
@@ -1142,6 +1165,56 @@ def progress():
     return render_template("progress.html", profile=profile, weights=weights,
                            history=workouts, history_weeks=history_weeks, stats=stats,
                            sparky_enabled=bool((profile or {}).get("sparky_sync")))
+
+
+@app.route("/api/push/public-key")
+def push_public_key():
+    import push_notify
+    if not push_notify.is_available():
+        return jsonify({"error": "push not available"}), 503
+    return jsonify({"publicKey": push_notify.get_public_key()})
+
+
+@app.route("/api/push/subscribe", methods=["POST"])
+def push_subscribe():
+    uid = session["user_id"]
+    sub = request.get_json(force=True)
+    if not sub or not sub.get("endpoint"):
+        return jsonify({"error": "invalid subscription"}), 400
+    database.save_push_subscription(uid, sub)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/push/unsubscribe", methods=["POST"])
+def push_unsubscribe():
+    data = request.get_json(force=True)
+    if data.get("endpoint"):
+        database.delete_push_subscription(data["endpoint"])
+    return jsonify({"ok": True})
+
+
+@app.route("/api/strength-history")
+def strength_history():
+    """Per-exercise max logged weight per session — feeds the strength chart."""
+    uid = session["user_id"]
+    by_exercise = {}
+    for w in reversed(database.get_workout_history(uid, limit=200)):
+        d = (w.get("completed_at") or "")[:10]
+        for e in w.get("exercises", []):
+            weights = [s.get("weight") for s in (e.get("sets") or []) if s.get("weight")]
+            if not weights or not e.get("id"):
+                continue
+            ex = get_exercise_by_id(e["id"])
+            name = (ex or {}).get("name") or e["id"]
+            entry = by_exercise.setdefault(e["id"], {"id": e["id"], "name": name, "points": []})
+            # one point per session date — keep the heaviest
+            if entry["points"] and entry["points"][-1]["date"] == d:
+                entry["points"][-1]["weight"] = max(entry["points"][-1]["weight"], max(weights))
+            else:
+                entry["points"].append({"date": d, "weight": max(weights)})
+    exercises = [v for v in by_exercise.values() if len(v["points"]) >= 2]
+    exercises.sort(key=lambda v: len(v["points"]), reverse=True)
+    return jsonify({"exercises": exercises})
 
 
 @app.route("/api/energy-balance")

@@ -504,15 +504,32 @@ fieldset.field { border: none; padding: 0; }
 
 .history-list { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-direction: column; gap: 8px; }
 .history-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 14px;
 }
+.history-item summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.history-item summary::-webkit-details-marker { display: none; }
 .history-meta { text-align: right; display: flex; flex-direction: column; }
+.history-detail { padding: 0 14px 12px; border-top: 1px solid var(--border); }
+.history-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(30, 77, 128, 0.3);
+}
+.history-detail-row:last-child { border-bottom: none; }
+.history-detail-row .sets { color: var(--subtle); text-align: right; }
+.history-detail-row.skipped { opacity: 0.45; }
 
 #weight-chart { width: 100%; height: auto; }
 
