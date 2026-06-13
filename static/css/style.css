@@ -8,7 +8,7 @@
   --surface-2: #161618;
   --border: #26262a;
   --text: #f4f4f5;
-  --subtle: #8a8a90;
+  --subtle: #aab0ba;
   --accent: #22d3ee;
   --accent-rgb: 34, 211, 238;
   /* lighter shade derived from the accent so per-profile colors carry through */
@@ -98,7 +98,7 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
 .subtle { color: var(--subtle); }
 
 .card {
-  background: rgba(48, 50, 56, 0.38);
+  background: rgba(20, 22, 26, 0.6);
   -webkit-backdrop-filter: blur(18px) saturate(1.1);
   backdrop-filter: blur(18px) saturate(1.1);
   border: 1px solid rgba(255, 255, 255, 0.13);
@@ -138,7 +138,7 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
 }
 
 .hero {
-  background: rgba(48, 50, 56, 0.38);
+  background: rgba(20, 22, 26, 0.6);
   -webkit-backdrop-filter: blur(18px) saturate(1.1);
   backdrop-filter: blur(18px) saturate(1.1);
   border: 1px solid rgba(255, 255, 255, 0.13);
@@ -153,7 +153,7 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
   margin-top: 14px;
 }
 .hero-stats div {
-  background: rgba(48, 50, 56, 0.34);
+  background: rgba(20, 22, 26, 0.56);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
