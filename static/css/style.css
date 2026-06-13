@@ -451,6 +451,36 @@ fieldset.field { border: none; padding: 0; }
 .rest-label { color: var(--subtle); text-transform: uppercase; letter-spacing: 2px; }
 .rest-count { font-size: 96px; font-weight: 800; margin: 0; color: var(--accent); font-variant-numeric: tabular-nums; }
 
+/* Skip-confirmation modal */
+.confirm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(5, 10, 24, 0.92);
+  display: grid; place-items: center;
+  z-index: 60;
+  padding: 20px;
+}
+.confirm-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  max-width: 380px;
+  width: 100%;
+}
+.confirm-title { margin: 0 0 6px; font-size: 19px; }
+.confirm-sub { margin: 0 0 14px; color: var(--subtle); font-size: 14px; }
+.confirm-list {
+  list-style: none; margin: 0 0 18px; padding: 0;
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.confirm-list li {
+  padding: 10px 14px; font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.confirm-list li:last-child { border-bottom: none; }
+.confirm-actions { display: flex; flex-direction: column; gap: 10px; }
+.confirm-actions .btn { width: 100%; }
+
 /* Bottom nav */
 .bottom-nav {
   position: fixed;

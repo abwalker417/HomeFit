@@ -671,7 +671,36 @@ function startWorkout() {
 
   // Finish workout
   const finishBtn = document.getElementById('finish-btn');
-  finishBtn.addEventListener('click', async () => {
+  finishBtn.addEventListener('click', () => {
+    // Guard against the common slip: doing the last exercise, hitting finish,
+    // but forgetting to tick its checkbox. Surface the unchecked ones first.
+    const unchecked = Array.from(root.querySelectorAll('.exercise-item'))
+      .filter((li) => !li.querySelector('.ex-done').checked);
+    if (unchecked.length) {
+      const list = document.getElementById('skip-list');
+      list.innerHTML = '';
+      unchecked.forEach((li) => {
+        const name = (li.querySelector('.ex-title strong') || {}).textContent || 'Exercise';
+        const item = document.createElement('li');
+        item.textContent = name.trim();
+        list.appendChild(item);
+      });
+      document.getElementById('skip-confirm').classList.remove('hidden');
+      return;
+    }
+    doFinish();
+  });
+
+  const skipConfirm = document.getElementById('skip-confirm');
+  document.getElementById('skip-back').addEventListener('click', () => {
+    skipConfirm.classList.add('hidden');
+  });
+  document.getElementById('skip-finish').addEventListener('click', () => {
+    skipConfirm.classList.add('hidden');
+    doFinish();
+  });
+
+  async function doFinish() {
     clearInterval(timerInterval);
     localStorage.removeItem(STORE_KEY);
     const duration = elapsed();
@@ -710,7 +739,7 @@ function startWorkout() {
       finishBtn.disabled = false;
       finishBtn.textContent = 'Retry finish';
     }
-  });
+  }
 
   function showCompletionScreen(durationSecs, kcal, exerciseCount, dayName, exercises) {
     const wcSection = document.getElementById('workout-complete');

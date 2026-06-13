@@ -153,6 +153,18 @@
     <button id="rest-skip" class="btn btn-secondary">Skip</button>
   </div>
 </div>
+
+<div id="skip-confirm" class="confirm-overlay hidden">
+  <div class="confirm-card">
+    <h3 class="confirm-title">Finish without these?</h3>
+    <p class="confirm-sub">These exercises aren't checked off. If you did them, go back and check them so they sync.</p>
+    <ul id="skip-list" class="confirm-list"></ul>
+    <div class="confirm-actions">
+      <button id="skip-back" class="btn btn-primary">Go back &amp; check</button>
+      <button id="skip-finish" class="btn btn-secondary">They were skipped — finish</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
