@@ -37,19 +37,6 @@
       rgba(5,5,6,0.06) 66%, rgba(5,5,6,0.22) 100%);
 }
 
-/* Grey frosted glass cards so the scene reads behind/through them */
-.card, .hero {
-  background: rgba(48, 50, 56, 0.38);
-  -webkit-backdrop-filter: blur(18px) saturate(1.1);
-  backdrop-filter: blur(18px) saturate(1.1);
-  border: 1px solid rgba(255, 255, 255, 0.13);
-}
-.hero-stats div {
-  background: rgba(48, 50, 56, 0.34);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
 
 * { box-sizing: border-box; }
 
@@ -109,8 +96,10 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
 .subtle { color: var(--subtle); }
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: rgba(48, 50, 56, 0.38);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: var(--radius);
   padding: 16px;
   margin: 14px 0;
@@ -147,8 +136,10 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
 }
 
 .hero {
-  background: linear-gradient(160deg, var(--surface-2), var(--surface));
-  border: 1px solid var(--border);
+  background: rgba(48, 50, 56, 0.38);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: var(--radius);
   padding: 18px;
 }
@@ -160,8 +151,10 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
   margin-top: 14px;
 }
 .hero-stats div {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: rgba(48, 50, 56, 0.34);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 10px;
   text-align: center;
