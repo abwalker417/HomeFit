@@ -284,16 +284,55 @@ def require_profile():
     return None
 
 
+# Per-profile accent palette: label -> (hex, "r, g, b"). The hex is stored on
+# the profile; both values are injected as CSS vars so the whole app re-tints.
+ACCENT_PALETTE = {
+    "orange": ("#f97316", "249, 115, 22"),
+    "ice":    ("#22d3ee", "34, 211, 238"),
+    "blue":   ("#3b82f6", "59, 130, 246"),
+    "green":  ("#22c55e", "34, 197, 94"),
+    "violet": ("#a855f7", "168, 85, 247"),
+    "red":    ("#ef4444", "239, 68, 68"),
+}
+DEFAULT_ACCENT = "#f97316"
+
+
+def _accent_rgb(hex_color):
+    h = (hex_color or DEFAULT_ACCENT).lstrip("#")
+    try:
+        r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+        return f"{r}, {g}, {b}"
+    except (ValueError, IndexError):
+        return "249, 115, 22"
+
+
 @app.context_processor
 def inject_globals():
     uid = session.get("user_id")
     user = database.get_user(uid) if uid else None
+    accent = (database.get_accent_color(uid) if uid else None) or DEFAULT_ACCENT
     return {
         "current_user": user,
         "can_manage_profiles": can_manage_profiles(),
         "is_owner": session.get("is_owner") is True,
         "static_version": STATIC_VERSION,
+        "accent": accent,
+        "accent_rgb": _accent_rgb(accent),
+        "accent_palette": ACCENT_PALETTE,
     }
+
+
+@app.route("/api/accent", methods=["POST"])
+def set_accent():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    color = (request.get_json(silent=True) or {}).get("color", "")
+    valid = {hex_ for hex_, _ in ACCENT_PALETTE.values()}
+    if color not in valid:
+        return jsonify({"error": "invalid color"}), 400
+    database.set_accent_color(uid, color)
+    return jsonify({"ok": True, "color": color, "accent_rgb": _accent_rgb(color)})
 
 
 @app.route("/profiles")

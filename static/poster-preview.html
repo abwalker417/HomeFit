@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeFit — poster concept</title>
+<style>
+  :root {
+    --bg: #050506;
+    --surface: #0f0f11;
+    --surface-2: #161618;
+    --border: #26262a;
+    --text: #f4f4f5;
+    --subtle: #8a8a90;
+    --accent: #22d3ee;
+    --accent-rgb: 34, 211, 238;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* The phone frame just so the screenshot reads as a device */
+  .device {
+    width: 390px;
+    min-height: 844px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* Spotlight + vignette — pure CSS, no image asset */
+  .device::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(120% 55% at 50% 8%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 26%, rgba(0,0,0,0) 55%),
+      radial-gradient(140% 100% at 50% 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Faint concrete grain */
+  .device::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    pointer-events: none;
+    z-index: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* The room: concrete floor seam low on the screen */
+  .floor {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 240px;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(255,255,255,0.018) 38%, rgba(255,255,255,0.04) 100%);
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  /* Garage-gym props — faint silhouettes in the dark, like gear in the room */
+  .props { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .props svg { position: absolute; stroke: #62626a; fill: none; }
+  .prop-rack   { left: 50%; top: 26px; width: 300px; transform: translateX(-50%); opacity: 0.09; }
+  .prop-plates { left: -10px; bottom: 92px; width: 150px; opacity: 0.26; }
+  .prop-db     { right: -22px; bottom: 64px; width: 184px; opacity: 0.22; }
+
+  .screen {
+    position: relative;
+    z-index: 1;
+    padding: 64px 26px 40px;
+    display: flex;
+    flex-direction: column;
+    min-height: 844px;
+  }
+
+  /* Brand lockup */
+  .brand {
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px; height: 60px;
+    border-radius: 16px;
+    background: linear-gradient(160deg, #1c1c1f, #0c0c0d);
+    border: 1px solid var(--border);
+    box-shadow: 0 0 40px rgba(var(--accent-rgb),0.18);
+    margin-bottom: 18px;
+  }
+  .brand-mark span {
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: 0.02em;
+    color: var(--accent);
+  }
+  .brand-mark svg { width: 34px; height: 34px; display: block; stroke: var(--accent); }
+  .wordmark {
+    font-size: 13px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .prompt {
+    text-align: center;
+    margin: 38px 0 22px;
+  }
+  .prompt h1 {
+    font-size: 23px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .prompt p {
+    margin: 0;
+    color: var(--subtle);
+    font-size: 14px;
+  }
+
+  /* Profile tiles */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .tile {
+    background: linear-gradient(180deg, var(--surface-2), var(--surface));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 12px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+  .tile.is-active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(var(--accent-rgb),0.35), 0 0 30px rgba(var(--accent-rgb),0.12);
+  }
+  .avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+    font-weight: 700;
+    background: rgba(var(--accent-rgb),0.14);
+    color: var(--accent);
+  }
+  .avatar.photo { background-size: cover; background-position: center; color: transparent; }
+  .tile .name { font-weight: 600; font-size: 15px; }
+  .tile .pin {
+    position: absolute; top: 9px; right: 11px;
+    font-size: 10px; letter-spacing: 0.08em; font-weight: 700;
+    color: var(--subtle);
+  }
+
+  .spacer { flex: 1; }
+
+  /* Slogan — clean, legible, NOT brush. Grit comes from the scene. */
+  .slogan { text-align: center; margin-top: 34px; }
+  .slogan .rule {
+    width: 34px; height: 2px; background: var(--accent);
+    border-radius: 2px; margin: 0 auto 16px;
+    box-shadow: 0 0 12px rgba(var(--accent-rgb),0.5);
+  }
+  .slogan p {
+    margin: 4px 0;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #cfcfd4;
+  }
+  .slogan .dim { color: var(--subtle); }
+</style>
+</head>
+<body>
+  <div class="device">
+    <div class="floor"></div>
+    <div class="props">
+      <!-- large power-rack silhouette framing the spotlight -->
+      <svg class="prop-rack" viewBox="0 0 200 150" stroke-width="2.2">
+        <line x1="34" y1="8" x2="34" y2="148"/>
+        <line x1="166" y1="8" x2="166" y2="148"/>
+        <line x1="34" y1="12" x2="166" y2="12"/>
+        <line x1="34" y1="30" x2="166" y2="30"/>
+        <line x1="16" y1="148" x2="52" y2="148"/>
+        <line x1="148" y1="148" x2="184" y2="148"/>
+        <!-- racked bar with plates -->
+        <line x1="8" y1="64" x2="192" y2="64"/>
+        <rect x="28" y="50" width="9" height="28"/>
+        <rect x="40" y="46" width="9" height="36"/>
+        <rect x="151" y="50" width="9" height="28"/>
+        <rect x="163" y="46" width="9" height="36"/>
+      </svg>
+      <!-- bumper plates leaning in the corner -->
+      <svg class="prop-plates" viewBox="0 0 130 150" stroke-width="3">
+        <ellipse cx="52" cy="96" rx="34" ry="50" transform="rotate(-12 52 96)"/>
+        <ellipse cx="52" cy="96" rx="9"  ry="13" transform="rotate(-12 52 96)"/>
+        <ellipse cx="78" cy="92" rx="32" ry="48" transform="rotate(-8 78 92)"/>
+        <ellipse cx="78" cy="92" rx="8"  ry="12" transform="rotate(-8 78 92)"/>
+      </svg>
+      <!-- a dumbbell resting on the floor -->
+      <svg class="prop-db" viewBox="0 0 168 70" stroke-width="3">
+        <rect x="14" y="20" width="20" height="34" rx="4"/>
+        <rect x="4"  y="12" width="12" height="50" rx="4"/>
+        <rect x="34" y="30" width="100" height="12" rx="6"/>
+        <rect x="134" y="20" width="20" height="34" rx="4"/>
+        <rect x="152" y="12" width="12" height="50" rx="4"/>
+      </svg>
+    </div>
+    <div class="screen">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <!-- uprights -->
+            <line x1="6" y1="4" x2="6" y2="21"/>
+            <line x1="18" y1="4" x2="18" y2="21"/>
+            <!-- top crossmember -->
+            <line x1="6" y1="5" x2="18" y2="5"/>
+            <!-- base feet -->
+            <line x1="3.5" y1="21" x2="8.5" y2="21"/>
+            <line x1="15.5" y1="21" x2="20.5" y2="21"/>
+            <!-- J-hooks -->
+            <line x1="6" y1="10" x2="7.8" y2="10"/>
+            <line x1="18" y1="10" x2="16.2" y2="10"/>
+            <!-- barbell -->
+            <line x1="2.5" y1="10" x2="21.5" y2="10"/>
+            <!-- plates -->
+            <line x1="4.3" y1="7.7" x2="4.3" y2="12.3" stroke-width="2.6"/>
+            <line x1="19.7" y1="7.7" x2="19.7" y2="12.3" stroke-width="2.6"/>
+          </svg>
+        </div>
+        <p class="wordmark">HomeFit</p>
+      </div>
+
+      <div class="prompt">
+        <h1>Who's training?</h1>
+        <p>Pick a profile to continue.</p>
+      </div>
+
+      <div class="grid">
+        <div class="tile is-active">
+          <div class="avatar">B</div>
+          <div class="name">Brent</div>
+          <div class="pin">PIN</div>
+        </div>
+        <div class="tile">
+          <div class="avatar">S</div>
+          <div class="name">Shay</div>
+        </div>
+        <div class="tile">
+          <div class="avatar">K</div>
+          <div class="name">Kelsie</div>
+        </div>
+        <div class="tile">
+          <div class="avatar" style="background:rgba(255,255,255,0.06); color:var(--subtle);">+</div>
+          <div class="name" style="color:var(--subtle);">Add</div>
+        </div>
+      </div>
+
+      <div class="spacer"></div>
+
+      <div class="slogan">
+        <div class="rule"></div>
+        <p>No Mirror. <span class="dim">No Membership.</span></p>
+        <p>No Mercy. <span class="dim">No Days Off.</span></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

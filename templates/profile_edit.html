@@ -62,6 +62,18 @@
 </section>
 
 <section class="card">
+  <h2>Accent color</h2>
+  <p class="subtle" style="font-size:13px;">Pick the color that tints your HomeFit. Saved to your profile.</p>
+  <div class="accent-swatches" id="accent-swatches">
+    {% for label, pair in accent_palette.items() %}
+    <button type="button" class="accent-swatch{{ ' is-selected' if pair[0] == accent else '' }}"
+            data-color="{{ pair[0] }}" data-rgb="{{ pair[1] }}"
+            style="--sw: {{ pair[0] }};" aria-label="{{ label }}"></button>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
   <h2>Notifications</h2>
   <p class="subtle" style="font-size:13px;">Weekly digest on Monday mornings, plus a heads-up when your weekly streak is on the line.</p>
   <button type="button" id="push-toggle" class="btn btn-secondary" style="display:block; width:100%;">Checking…</button>
@@ -126,5 +138,25 @@
     });
   });
   setupPushToggle();
+
+  // Accent picker — apply live and persist immediately
+  document.querySelectorAll('.accent-swatch').forEach((sw) => {
+    sw.addEventListener('click', async () => {
+      const color = sw.dataset.color;
+      const rgb = sw.dataset.rgb;
+      // Apply instantly for feedback
+      document.documentElement.style.setProperty('--accent', color);
+      document.documentElement.style.setProperty('--accent-rgb', rgb);
+      document.querySelectorAll('.accent-swatch').forEach((s) => s.classList.remove('is-selected'));
+      sw.classList.add('is-selected');
+      try {
+        await fetch('/api/accent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ color }),
+        });
+      } catch (_) { /* visual already applied; will persist on next save attempt */ }
+    });
+  });
 </script>
 {% endblock %}

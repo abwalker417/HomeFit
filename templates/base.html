@@ -9,6 +9,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}?v={{ static_version }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}?v={{ static_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ static_version }}">
+  <style id="accent-vars">:root { --accent: {{ accent }}; --accent-rgb: {{ accent_rgb }}; }</style>
 </head>
 <body>
   <header class="app-header">

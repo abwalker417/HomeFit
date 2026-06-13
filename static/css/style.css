@@ -9,7 +9,9 @@
   --text: #e2e8f0;
   --subtle: #94a3b8;
   --accent: #f97316;
-  --accent-2: #fb923c;
+  --accent-rgb: 249, 115, 22;
+  /* lighter shade derived from the accent so per-profile colors carry through */
+  --accent-2: color-mix(in srgb, var(--accent) 78%, white);
   --success: #34d399;
   --warn: #f59e0b;
   --danger: #f87171;
@@ -93,7 +95,7 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
 /* Workout streak badge in the dashboard hero */
 .streak-badge {
   display: inline-block;
-  background: rgba(249, 115, 22, 0.14);
+  background: rgba(var(--accent-rgb), 0.14);
   border: 1px solid var(--accent);
   color: var(--accent);
   font-size: 12px;
@@ -451,6 +453,39 @@ fieldset.field { border: none; padding: 0; }
 .rest-label { color: var(--subtle); text-transform: uppercase; letter-spacing: 2px; }
 .rest-count { font-size: 96px; font-weight: 800; margin: 0; color: var(--accent); font-variant-numeric: tabular-nums; }
 
+/* Accent color picker */
+.accent-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+.accent-swatch {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--sw);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.08s ease;
+  position: relative;
+}
+.accent-swatch:active { transform: scale(0.92); }
+.accent-swatch.is-selected {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 12px var(--sw);
+}
+.accent-swatch.is-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  mix-blend-mode: difference;
+}
+
 /* Skip-confirmation modal */
 .confirm-overlay {
   position: fixed; inset: 0;
@@ -606,7 +641,7 @@ fieldset.field { border: none; padding: 0; }
 .profile-initial {
   width: 56px; height: 56px;
   border-radius: 50%;
-  background: rgba(249, 115, 22, 0.14);
+  background: rgba(var(--accent-rgb), 0.14);
   color: var(--accent);
   font-size: 26px;
   font-weight: 700;
@@ -885,7 +920,7 @@ fieldset.field { border: none; padding: 0; }
   color: var(--text-muted);
 }
 .weight-hint-ready {
-  background: rgba(249, 115, 22, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   border-color: var(--accent);
   color: var(--text);
 }

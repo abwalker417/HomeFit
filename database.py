@@ -132,6 +132,7 @@ def init_db():
         _ensure_column(conn, "profile", "ignored_exercises", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "fitness_goal", "TEXT NOT NULL DEFAULT 'general'")
         _ensure_column(conn, "profile", "workout_duration_target", "INTEGER NOT NULL DEFAULT 45")
+        _ensure_column(conn, "profile", "accent_color", "TEXT NOT NULL DEFAULT '#f97316'")
         _ensure_column(conn, "users", "api_token", "TEXT")
         _ensure_column(conn, "users", "photo", "TEXT")
         conn.execute("""
@@ -521,6 +522,35 @@ def get_user_id_by_token(token):
     with get_connection() as conn:
         row = conn.execute("SELECT id FROM users WHERE api_token = ?", (token,)).fetchone()
         return row["id"] if row else None
+
+
+def set_accent_color(user_id, color):
+    """Set a profile's accent color. Profile row may not exist yet during
+    onboarding, so upsert a minimal row if needed."""
+    now = datetime.now().isoformat()
+    with get_connection() as conn:
+        cur = conn.execute(
+            "UPDATE profile SET accent_color = ? WHERE user_id = ?", (color, user_id)
+        )
+        if cur.rowcount == 0:
+            # No profile yet (pre-onboarding) — stash on the row so it survives.
+            conn.execute(
+                """INSERT INTO profile (user_id, current_weight, goal_weight,
+                       fitness_level, days_per_week, accent_color, updated_at)
+                   VALUES (?, 0, 0, 'beginner', 4, ?, ?)
+                   ON CONFLICT(user_id) DO UPDATE SET accent_color=excluded.accent_color""",
+                (user_id, color, now),
+            )
+
+
+def get_accent_color(user_id):
+    if not user_id:
+        return None
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT accent_color FROM profile WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        return row["accent_color"] if row and row["accent_color"] else None
 
 
 # ── External workouts (Apple Health relay) ──────────────────────────────────
