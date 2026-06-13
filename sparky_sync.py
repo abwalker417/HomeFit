@@ -587,14 +587,32 @@ def _sync_weight(config, weight, log_date):
     # SparkyFitness stores weight in kg; HomeFit uses lbs
     weight_kg = round(weight / 2.20462, 4)
     try:
-        requests.post(
+        r = requests.post(
             f"{config['url']}/api/health-data",
             headers={**_headers(config["api_key"]), "Content-Type": "application/json"},
             json=[{"type": "weight", "value": weight_kg, "date": log_date}],
             timeout=10,
         )
+        return r.ok
     except Exception:
-        pass
+        return False
+
+
+def sync_weight(weight, log_date=None, api_key=None):
+    """Synchronous weight push. Returns True if Sparky accepted it, False on
+    failure, None if Sparky isn't configured for this user (nothing to do)."""
+    config = load_config()
+    if not config.get("url"):
+        return None
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return None
+    if log_date is None:
+        from datetime import date
+        log_date = date.today().isoformat()
+    elif hasattr(log_date, "isoformat"):
+        log_date = log_date.isoformat()
+    return _sync_weight({**config, "api_key": effective_key}, weight, log_date)
 
 
 def sync_weight_async(weight, log_date=None, api_key=None):

@@ -697,14 +697,35 @@ def complete_workout():
     data = request.get_json(force=True)
     exercises = data.get("exercises", [])
     duration = data.get("duration_seconds")
+    day_name = data.get("day_name", "Workout")
+
+    from datetime import date, datetime
+    # Idempotency: a failed-then-retried Finish (or a double tap) would otherwise
+    # log the same session twice. Skip if an identical workout was just saved.
+    last = database.get_last_workout(uid)
+    if last and last.get("day_name") == day_name:
+        try:
+            age = (datetime.now() - datetime.fromisoformat(last["completed_at"])).total_seconds()
+        except (ValueError, TypeError, KeyError):
+            age = 999
+        if 0 <= age < 120:
+            profile = database.get_profile(uid)
+            completed_n = len([e for e in last.get("exercises", []) if e.get("completed")])
+            enriched = [get_exercise_by_id(e["id"]) for e in last.get("exercises", [])
+                        if e.get("id") and e.get("completed")]
+            kcal = _calc_kcal([e for e in enriched if e],
+                              (profile or {}).get("current_weight") or 0,
+                              last.get("duration_seconds"))
+            return jsonify({"ok": True, "kcal": kcal,
+                            "exercises_completed": completed_n, "duplicate": True})
+
     database.log_workout(
         uid,
-        data.get("day_name", "Workout"),
+        day_name,
         int(data.get("day_number", 1)),
         exercises,
         duration,
     )
-    from datetime import date
     completed = [e for e in exercises if e.get("completed") and e.get("id")]
     sets_by_id = {e["id"]: e.get("sets", []) for e in completed}
     enriched = [get_exercise_by_id(e["id"]) for e in completed]
@@ -949,9 +970,12 @@ def log_weight():
     weight = float(data.get("weight", 0))
     database.log_weight(uid, weight)
     profile = database.get_profile(uid)
+    synced = None
     if (profile or {}).get("sparky_sync"):
-        sparky_sync.sync_weight_async(weight, api_key=(profile or {}).get("sparky_api_key"))
-    return jsonify({"ok": True})
+        # Synchronous so we can tell the user if it didn't reach Sparky, instead
+        # of silently showing "Logged" while the sync failed in the background.
+        synced = sparky_sync.sync_weight(weight, api_key=(profile or {}).get("sparky_api_key"))
+    return jsonify({"ok": True, "sparky_synced": synced})
 
 
 @app.route("/exercises")

@@ -261,7 +261,13 @@ function setupWeightForm() {
       if (data.ok && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.healthKit) {
         window.webkit.messageHandlers.healthKit.postMessage({ type: 'logWeight', pounds: weight });
       }
-      status.textContent = data.ok ? 'Logged ✓' : 'Could not save.';
+      if (!data.ok) {
+        status.textContent = 'Could not save.';
+      } else if (data.sparky_synced === false) {
+        status.textContent = 'Logged ✓ (Sparky sync failed)';
+      } else {
+        status.textContent = 'Logged ✓';
+      }
     } catch (err) {
       status.textContent = 'Could not reach server.';
     }
