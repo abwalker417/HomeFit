@@ -620,7 +620,7 @@ function startWorkout() {
   });
 
   // Weight logging
-  function makeSetRow(reps) {
+  function makeSetRow(reps, weight) {
     const row = document.createElement('div');
     row.className = 'weight-set-row';
     row.innerHTML = `
@@ -630,8 +630,25 @@ function startWorkout() {
       <span style="margin-left:4px; color:#94a3b8; font-size:13px;">reps</span>
       <button type="button" class="remove-set-btn" style="margin-left:8px; background:none; border:none; color:#f87171; cursor:pointer; font-size:16px;">×</button>
     `;
-    row.querySelector('.remove-set-btn').addEventListener('click', () => row.remove());
+    if (weight != null && weight !== '') row.querySelector('.set-weight').value = weight;
+    row.querySelector('.remove-set-btn').addEventListener('click', () => { row.remove(); persistSets(); });
     return row;
+  }
+
+  // Persist entered weights/reps so they survive reloads (iOS backgrounds the
+  // PWA aggressively — without this, weights typed mid-workout are lost before
+  // Finish reads them).
+  function persistSets() {
+    const all = {};
+    root.querySelectorAll('.exercise-item').forEach((li) => {
+      const rows = Array.from(li.querySelectorAll('.weight-set-row')).map((r) => ({
+        weight: r.querySelector('.set-weight').value || null,
+        reps: r.querySelector('.set-reps').value || null,
+      }));
+      if (rows.length) all[li.dataset.exerciseId] = rows;
+    });
+    state.sets = all;
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
   }
 
   root.querySelectorAll('.weight-log').forEach((wl) => {
@@ -641,6 +658,12 @@ function startWorkout() {
     const addSetBtn = wl.querySelector('.add-set-btn');
     const defaultSets = parseInt(wl.dataset.sets, 10) || 3;
     const defaultReps = parseInt(wl.dataset.reps, 10) || 10;
+    const exId = wl.closest('.exercise-item').dataset.exerciseId;
+
+    const openLog = () => {
+      body.style.display = 'block';
+      toggleBtn.textContent = 'Hide weight log';
+    };
 
     toggleBtn.addEventListener('click', () => {
       const open = body.style.display === 'none';
@@ -649,17 +672,23 @@ function startWorkout() {
       if (open && setsContainer.children.length === 0) {
         const suggestedWeight = parseFloat(wl.dataset.suggestedWeight) || null;
         for (let i = 0; i < defaultSets; i++) {
-          const row = makeSetRow(defaultReps);
-          if (suggestedWeight) row.querySelector('.set-weight').value = suggestedWeight;
-          setsContainer.appendChild(row);
+          setsContainer.appendChild(makeSetRow(defaultReps, suggestedWeight));
         }
+        persistSets();
       }
     });
 
-    addSetBtn.addEventListener('click', () => setsContainer.appendChild(makeSetRow(defaultReps)));
+    addSetBtn.addEventListener('click', () => { setsContainer.appendChild(makeSetRow(defaultReps)); persistSets(); });
+    setsContainer.addEventListener('input', persistSets);
 
-    // APEX says it's time to increase — open the log with the suggested weight prefilled
-    if (wl.dataset.hintReady === 'true') toggleBtn.click();
+    // Restore previously entered sets, else auto-open if APEX suggests a bump
+    const saved = (state.sets || {})[exId];
+    if (saved && saved.length) {
+      saved.forEach((s) => setsContainer.appendChild(makeSetRow(s.reps || defaultReps, s.weight)));
+      openLog();
+    } else if (wl.dataset.hintReady === 'true') {
+      toggleBtn.click();
+    }
   });
 
   function getLoggedSets(li) {
