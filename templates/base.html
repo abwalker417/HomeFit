@@ -12,9 +12,31 @@
   <style id="accent-vars">:root { --accent: {{ accent }}; --accent-rgb: {{ accent_rgb }}; }</style>
 </head>
 <body>
+  <div class="room-bg" aria-hidden="true">
+    <div class="floor"></div>
+    <svg class="r-rack" viewBox="0 0 200 150" stroke-width="2.2">
+      <line x1="34" y1="8" x2="34" y2="148"/><line x1="166" y1="8" x2="166" y2="148"/>
+      <line x1="34" y1="12" x2="166" y2="12"/><line x1="34" y1="30" x2="166" y2="30"/>
+      <line x1="16" y1="148" x2="52" y2="148"/><line x1="148" y1="148" x2="184" y2="148"/>
+      <line x1="8" y1="64" x2="192" y2="64"/>
+      <rect x="28" y="50" width="9" height="28"/><rect x="40" y="46" width="9" height="36"/>
+      <rect x="151" y="50" width="9" height="28"/><rect x="163" y="46" width="9" height="36"/>
+    </svg>
+    <svg class="r-plates" viewBox="0 0 130 150" stroke-width="3">
+      <ellipse cx="52" cy="96" rx="34" ry="50" transform="rotate(-12 52 96)"/>
+      <ellipse cx="52" cy="96" rx="9" ry="13" transform="rotate(-12 52 96)"/>
+      <ellipse cx="78" cy="92" rx="32" ry="48" transform="rotate(-8 78 92)"/>
+      <ellipse cx="78" cy="92" rx="8" ry="12" transform="rotate(-8 78 92)"/>
+    </svg>
+    <svg class="r-db" viewBox="0 0 168 70" stroke-width="3">
+      <rect x="14" y="20" width="20" height="34" rx="4"/><rect x="4" y="12" width="12" height="50" rx="4"/>
+      <rect x="34" y="30" width="100" height="12" rx="6"/>
+      <rect x="134" y="20" width="20" height="34" rx="4"/><rect x="152" y="12" width="12" height="50" rx="4"/>
+    </svg>
+  </div>
   <header class="app-header">
     <a class="brand" href="{{ url_for('index') }}">
-      <img class="brand-mark" src="{{ url_for('static', filename='icons/apple-touch-icon.png') }}" alt="HomeFit">
+      <img class="brand-mark" src="{{ url_for('static', filename='icons/redesign/brand/' + accent_name + '.png') }}?v={{ static_version }}" alt="HomeFit">
       <span>
         <span class="brand-name">HomeFit</span>
         {% if current_user %}
@@ -60,13 +82,13 @@
 
   {% if current_user %}
   <button id="apex-fab" class="apex-fab" title="APEX AI Coach" aria-label="Open APEX coach">
-    <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="APEX">
+    <img src="{{ url_for('static', filename='icons/redesign/apex/' + accent_name + '.png') }}?v={{ static_version }}" alt="APEX">
   </button>
 
   <div id="apex-panel" class="apex-panel" aria-hidden="true">
     <div class="apex-panel-header">
       <div style="display:flex; align-items:center; gap:10px;">
-        <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" style="width:32px; height:32px; border-radius:8px;">
+        <img src="{{ url_for('static', filename='icons/redesign/apex/' + accent_name + '.png') }}?v={{ static_version }}" style="width:32px; height:32px; border-radius:8px; object-fit:cover;">
         <div>
           <div style="font-weight:700; font-size:15px;">AI Coach</div>
           <div style="font-size:12px; color:var(--subtle);">Powered by PeakAI</div>

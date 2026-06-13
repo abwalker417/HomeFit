@@ -1,15 +1,16 @@
 /* HomeFit — mobile-first, iPhone-friendly styling */
 
 :root {
-  --bg: #0f172a;
-  --bg-2: #111c33;
-  --surface: #162238;
-  --surface-2: #1e2d4a;
-  --border: #1e4d80;
-  --text: #e2e8f0;
-  --subtle: #94a3b8;
-  --accent: #f97316;
-  --accent-rgb: 249, 115, 22;
+  /* Garage-gym redesign: near-black room, accent is per-profile */
+  --bg: #050506;
+  --bg-2: #0c0c0e;
+  --surface: #0f0f11;
+  --surface-2: #161618;
+  --border: #26262a;
+  --text: #f4f4f5;
+  --subtle: #8a8a90;
+  --accent: #22d3ee;
+  --accent-rgb: 34, 211, 238;
   /* lighter shade derived from the accent so per-profile colors carry through */
   --accent-2: color-mix(in srgb, var(--accent) 78%, white);
   --success: #34d399;
@@ -17,6 +18,26 @@
   --danger: #f87171;
   --radius: 14px;
 }
+
+/* ---------- Shared garage-room background (every screen) ---------- */
+.room-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(100% 30% at 50% -2%, rgba(var(--accent-rgb), 0.09) 0%, rgba(255,255,255,0.018) 26%, rgba(0,0,0,0) 55%),
+    radial-gradient(150% 100% at 50% 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.65) 100%);
+}
+.room-bg .floor {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 34vh;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(255,255,255,0.014) 45%, rgba(255,255,255,0.03) 100%);
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.room-bg svg { position: absolute; stroke: #4f4f57; fill: none; }
+.room-bg .r-rack   { left: 50%; top: 2px; width: 280px; transform: translateX(-50%); opacity: 0.05; }
+.room-bg .r-plates { left: -18px; bottom: 5vh; width: 130px; opacity: 0.12; }
+.room-bg .r-db     { right: -24px; bottom: 3.5vh; width: 160px; opacity: 0.10; }
 
 * { box-sizing: border-box; }
 
@@ -42,7 +63,7 @@ a { color: var(--accent); text-decoration: none; }
   justify-content: space-between;
   padding: env(safe-area-inset-top) 16px 12px 16px;
   padding-top: max(14px, env(safe-area-inset-top));
-  background: linear-gradient(180deg, var(--bg) 60%, rgba(15, 23, 42, 0.7));
+  background: linear-gradient(180deg, var(--bg) 60%, rgba(5, 5, 6, 0.7));
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
 }
@@ -52,7 +73,7 @@ a { color: var(--accent); text-decoration: none; }
   display: block;
   width: 42px; height: 42px;
   border-radius: 10px;
-  object-fit: contain;
+  object-fit: cover;
   flex-shrink: 0;
 }
 .brand-name { font-weight: 600; letter-spacing: 0.2px; }
@@ -590,7 +611,7 @@ fieldset.field { border: none; padding: 0; }
   gap: 10px;
   padding: 7px 0;
   font-size: 13px;
-  border-bottom: 1px solid rgba(30, 77, 128, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 .history-detail-row:last-child { border-bottom: none; }
 .history-detail-row .sets { color: var(--subtle); text-align: right; }
@@ -656,6 +677,19 @@ fieldset.field { border: none; padding: 0; }
   font-weight: 600;
   letter-spacing: 0.06em;
   color: var(--subtle);
+}
+
+/* ---------- Workout-loading splash scene ---------- */
+.splash-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.55;
+  -webkit-mask-image: radial-gradient(120% 80% at 50% 40%, #000 30%, transparent 80%);
+  mask-image: radial-gradient(120% 80% at 50% 40%, #000 30%, transparent 80%);
+  pointer-events: none;
 }
 
 /* ---------- Brand slogan ---------- */
@@ -932,14 +966,14 @@ fieldset.field { border: none; padding: 0; }
   right: 20px;
   width: 64px;
   height: 64px;
-  border-radius: 18px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  border-radius: 50%;
+  box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.28), 0 8px 20px rgba(0,0,0,0.5);
   z-index: 9998;
   transition: transform 0.15s ease;
   display: block;
   overflow: hidden;
-  background: none;
-  border: none;
+  background: #0b0b0d;
+  border: 1px solid rgba(var(--accent-rgb), 0.5);
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -949,10 +983,11 @@ fieldset.field { border: none; padding: 0; }
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: scale(1.3) translateY(7%);
 }
 .apex-fab:active { transform: scale(0.93); }
 @media (min-width: 640px) {
-  .apex-fab { bottom: 32px; right: 32px; width: 72px; height: 72px; border-radius: 20px; }
+  .apex-fab { bottom: 32px; right: 32px; width: 72px; height: 72px; }
 }
 
 /* Apex slide-up panel */
@@ -962,7 +997,7 @@ fieldset.field { border: none; padding: 0; }
   left: 0; right: 0;
   height: 70vh;
   max-height: 600px;
-  background: #162238;
+  background: var(--surface);
   background: var(--surface);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
@@ -982,7 +1017,7 @@ fieldset.field { border: none; padding: 0; }
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  background: #1e2d4a;
+  background: var(--surface-2);
   background: var(--surface-2);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
@@ -1046,42 +1081,51 @@ fieldset.field { border: none; padding: 0; }
 }
 
 /* Workout icon row */
-.workout-icon-section {
-  margin: 8px -16px;
+.workout-icon-section { margin: 12px -16px 8px; }
+.strip-label {
+  margin: 0 0 10px; padding: 0 16px;
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--subtle);
 }
-.workout-icon-row {
+.train-strip {
   display: flex;
-  align-items: center;
   gap: 12px;
-  padding: 8px 16px;
+  padding: 2px 16px 8px;
   overflow-x: auto;
+  scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
-.workout-icon-row::-webkit-scrollbar { display: none; }
-.workout-icon-btn {
-  flex: 0 0 110px;
+.train-strip::-webkit-scrollbar { display: none; }
+.cat-tile {
+  flex: 0 0 auto;
   width: 110px;
-  display: block;
+  scroll-snap-align: start;
+  text-align: center;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
+  text-decoration: none;
   -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.12s ease;
 }
-.workout-icon-btn img {
-  width: 110px;
-  height: 110px;
-  border-radius: 22px;
+.cat-tile:active { transform: scale(0.95); }
+.cat-art {
   display: block;
-  object-fit: cover;
+  width: 110px; height: 110px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #0b0b0d;
 }
-.workout-icon-btn:active { transform: scale(0.92); opacity: 0.85; }
-@media (min-width: 640px) {
-  .workout-icon-btn { flex: 0 0 120px; width: 120px; }
-  .workout-icon-btn img { width: 120px; height: 120px; }
+.cat-apex .cat-art {
+  border-color: rgba(var(--accent-rgb), 0.5);
+  box-shadow: 0 0 22px rgba(var(--accent-rgb), 0.16);
+}
+.cat-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cat-name {
+  display: block; margin-top: 8px;
+  font-size: 12px; color: var(--subtle); letter-spacing: 0.03em;
 }
 
 /* Exercise demo image */

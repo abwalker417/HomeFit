@@ -295,7 +295,7 @@ ACCENT_PALETTE = {
     "red":    ("#ef4444", "239, 68, 68"),
     "pink":   ("#ec4899", "236, 72, 153"),
 }
-DEFAULT_ACCENT = "#f97316"
+DEFAULT_ACCENT = "#22d3ee"  # ice — brand default for the redesign
 
 
 def _accent_rgb(hex_color):
@@ -312,6 +312,7 @@ def inject_globals():
     uid = session.get("user_id")
     user = database.get_user(uid) if uid else None
     accent = (database.get_accent_color(uid) if uid else None) or DEFAULT_ACCENT
+    accent_name = next((n for n, (hex_, _) in ACCENT_PALETTE.items() if hex_ == accent), "ice")
     return {
         "current_user": user,
         "can_manage_profiles": can_manage_profiles(),
@@ -319,6 +320,7 @@ def inject_globals():
         "static_version": STATIC_VERSION,
         "accent": accent,
         "accent_rgb": _accent_rgb(accent),
+        "accent_name": accent_name,
         "accent_palette": ACCENT_PALETTE,
     }
 

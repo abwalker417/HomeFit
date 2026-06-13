@@ -64,23 +64,29 @@
 {% endif %}
 
 <section class="workout-icon-section">
-  <div class="workout-icon-row">
+  <p class="strip-label">Train</p>
+  <div class="train-strip">
     {% if ai_online %}
-    <button class="workout-icon-btn" id="apex-workout-btn" title="APEX: load today's plan or build a workout">
-      <img src="{{ url_for('static', filename='icons/apex.png') }}?v={{ static_version }}" alt="APEX">
+    <button class="cat-tile cat-apex" id="apex-workout-btn" title="APEX: load today's plan or build a workout">
+      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/apex/' + accent_name + '.png') }}?v={{ static_version }}" alt="APEX"></span>
+      <span class="cat-name">APEX</span>
     </button>
     {% endif %}
-    <a class="workout-icon-btn" href="{{ url_for('build_day', label='Upper body') }}" title="Upper Body">
-      <img src="{{ url_for('static', filename='icons/upper-body.png') }}?v={{ static_version }}" alt="Upper Body">
+    <a class="cat-tile" href="{{ url_for('build_day', label='Upper body') }}">
+      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/upper/' + accent_name + '.png') }}?v={{ static_version }}" alt="Upper Body"></span>
+      <span class="cat-name">Upper</span>
     </a>
-    <a class="workout-icon-btn" href="{{ url_for('build_day', label='Lower body') }}" title="Lower Body">
-      <img src="{{ url_for('static', filename='icons/lower-body.png') }}?v={{ static_version }}" alt="Lower Body">
+    <a class="cat-tile" href="{{ url_for('build_day', label='Lower body') }}">
+      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/lower/' + accent_name + '.png') }}?v={{ static_version }}" alt="Lower Body"></span>
+      <span class="cat-name">Lower</span>
     </a>
-    <a class="workout-icon-btn" href="{{ url_for('build_day', label='Core & Cardio') }}" title="Core">
-      <img src="{{ url_for('static', filename='icons/core.png') }}?v={{ static_version }}" alt="Core">
+    <a class="cat-tile" href="{{ url_for('build_day', label='Core & Cardio') }}">
+      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/core/' + accent_name + '.png') }}?v={{ static_version }}" alt="Core"></span>
+      <span class="cat-name">Core</span>
     </a>
-    <a class="workout-icon-btn" href="{{ url_for('build_day', label='Recovery') }}" title="Recovery">
-      <img src="{{ url_for('static', filename='icons/recovery.png') }}?v={{ static_version }}" alt="Recovery">
+    <a class="cat-tile" href="{{ url_for('build_day', label='Recovery') }}">
+      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/rest/' + accent_name + '.png') }}?v={{ static_version }}" alt="Recovery"></span>
+      <span class="cat-name">Rest</span>
     </a>
   </div>
 </section>
