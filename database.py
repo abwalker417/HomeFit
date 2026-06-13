@@ -107,7 +107,13 @@ def _has_column(conn, table, column):
 
 def _ensure_column(conn, table, column, definition):
     if not _has_column(conn, table, column):
-        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        try:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        except sqlite3.OperationalError as e:
+            # Concurrent gunicorn workers can both pass the _has_column check and
+            # race the ALTER on first boot after a new column is added.
+            if "duplicate column name" not in str(e):
+                raise
 
 
 def init_db():
