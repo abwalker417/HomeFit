@@ -681,12 +681,14 @@ function startWorkout() {
     addSetBtn.addEventListener('click', () => { setsContainer.appendChild(makeSetRow(defaultReps)); persistSets(); });
     setsContainer.addEventListener('input', persistSets);
 
-    // Restore previously entered sets, else auto-open if APEX suggests a bump
+    // Restore previously entered sets; otherwise auto-open the log for weighted
+    // exercises (and when APEX suggests a bump) so the inputs are there by
+    // default. Bodyweight / timed moves stay collapsed behind the button.
     const saved = (state.sets || {})[exId];
     if (saved && saved.length) {
       saved.forEach((s) => setsContainer.appendChild(makeSetRow(s.reps || defaultReps, s.weight)));
       openLog();
-    } else if (wl.dataset.hintReady === 'true') {
+    } else if (wl.dataset.hintReady === 'true' || wl.dataset.weighted === 'true') {
       toggleBtn.click();
     }
   });

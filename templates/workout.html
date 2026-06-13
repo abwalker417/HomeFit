@@ -77,9 +77,13 @@
             {% endif %}
           </div>
           {% endif %}
+          {% set _eq = ex.equipment %}
+          {% if _eq is iterable and _eq is not string %}{% set _eq = (_eq|first) if _eq else '' %}{% endif %}
+          {% set _bodyweight = ['bodyweight', 'none', '', 'pull_up_bar', 'bench_or_chair', 'resistance_bands'] %}
           <div class="weight-log"
                data-sets="{{ ex.sets }}"
                data-reps="{{ ex.reps }}"
+               data-weighted="{{ 'false' if (ex.unit == 'seconds' or not _eq or _eq in _bodyweight) else 'true' }}"
                data-hint-ready="{{ 'true' if ex.weight_hint and ex.weight_hint.ready else 'false' }}"
                data-suggested-weight="{{ ex.weight_hint.suggested_weight if ex.weight_hint else '' }}">
             <button type="button" class="btn btn-secondary weight-log-toggle">Log weights</button>

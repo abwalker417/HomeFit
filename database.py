@@ -222,7 +222,7 @@ def create_user(name: str, emoji: str = "💪", pin: Optional[str] = None):
     if not name:
         raise ValueError("Name is required")
     pin_hash = generate_password_hash(pin) if pin else None
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     with get_connection() as conn:
         cur = conn.execute(
             "INSERT INTO users (name, pin_hash, emoji, created_at) VALUES (?, ?, ?, ?)",
@@ -301,7 +301,7 @@ def save_profile(
     fitness_goal="general",
     workout_duration_target=45,
 ):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     values = (
         user_id,
         current_weight,
@@ -377,7 +377,7 @@ def toggle_ignored_exercise(user_id, exercise_id):
 
 
 def log_weight(user_id, weight):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     with get_connection() as conn:
         conn.execute(
             "INSERT INTO weight_log (user_id, weight, logged_at) VALUES (?, ?, ?)",
@@ -399,7 +399,7 @@ def get_weight_history(user_id, limit=60):
 
 
 def log_workout(user_id, day_name, day_number, exercises, duration_seconds):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     with get_connection() as conn:
         conn.execute(
             """
@@ -547,7 +547,7 @@ def record_external_workout(user_id, source, workout_type, started_at, ended_at,
             """,
             (user_id, source, workout_type, started_at, ended_at,
              duration_minutes, kcal, distance_mi, avg_hr, status,
-             datetime.utcnow().isoformat()),
+             datetime.now().isoformat()),
         )
 
 
@@ -698,7 +698,7 @@ def save_push_subscription(user_id, subscription):
                ON CONFLICT(endpoint) DO UPDATE SET
                  user_id=excluded.user_id,
                  subscription_json=excluded.subscription_json""",
-            (endpoint, user_id, json.dumps(subscription), datetime.utcnow().isoformat()),
+            (endpoint, user_id, json.dumps(subscription), datetime.now().isoformat()),
         )
     return True
 
@@ -729,7 +729,7 @@ def save_weekly_digest(user_id, digest_text):
     today = date.today()
     days_since_monday = today.weekday()
     week_start = (today - timedelta(days=days_since_monday)).isoformat()
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     with get_connection() as conn:
         conn.execute(
             """INSERT INTO apex_weekly_digest (user_id, digest_text, week_start, generated_at)
@@ -753,7 +753,7 @@ def get_apex_plan(user_id):
 
 
 def save_apex_plan(user_id, plan):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     with get_connection() as conn:
         conn.execute(
             """INSERT INTO apex_plan (user_id, plan_json, created_at) VALUES (?, ?, ?)
@@ -771,7 +771,7 @@ def get_apex_chat(user_id):
 
 
 def save_apex_chat(user_id, messages):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now().isoformat()
     with get_connection() as conn:
         conn.execute(
             """INSERT INTO apex_chat (user_id, messages, updated_at) VALUES (?, ?, ?)

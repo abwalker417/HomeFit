@@ -231,7 +231,7 @@ def _progress_stats(user_id):
     stats.setdefault("last_workout", None)
     stats.setdefault("weight_change", None)
     history = database.get_workout_history(user_id)
-    today = datetime.utcnow().date()
+    today = datetime.now().date()
     # weekday(): Mon=0 … Sun=6 — roll back to the most recent Sunday
     days_since_sunday = (today.weekday() + 1) % 7
     week_start = datetime.combine(today - timedelta(days=days_since_sunday), datetime.min.time()).isoformat()
@@ -260,7 +260,7 @@ def _progress_stats(user_id):
     if stats["last_workout"]:
         try:
             last_dt = datetime.fromisoformat(stats["last_workout"])
-            stats["days_since_workout"] = (datetime.utcnow() - last_dt).days
+            stats["days_since_workout"] = (datetime.now() - last_dt).days
         except Exception:
             stats["days_since_workout"] = None
     else:
@@ -897,12 +897,8 @@ def exercise_cue():
         fitness_level = profile.get("fitness_level", "beginner")
         prompt = f"""Give 2-3 short, practical form cues for {ex_name} for a {fitness_level} with limitations: {limitations}.
 Focus on the most important things to watch. Be direct — no intro, just the cues. Use bullet points."""
-        resp = requests.post(
-            f"{coach.OLLAMA_URL}/api/generate",
-            json={"model": coach.MODEL, "prompt": prompt, "stream": False},
-            timeout=30,
-        )
-        return jsonify({"cue": resp.json()["response"]})
+        cue = coach._generate(prompt, timeout=30)
+        return jsonify({"cue": cue or None})
     except Exception:
         return jsonify({"cue": None})
 
@@ -990,14 +986,14 @@ def api_last_workout():
     completed_at = datetime.fromisoformat(workout["completed_at"])
     start_time = completed_at - timedelta(seconds=duration_s)
     exercises = workout.get("exercises", [])
-    enriched = [get_exercise_by_id(e["id"]) for e in exercises if e.get("id")]
+    enriched = [get_exercise_by_id(e["id"]) for e in exercises if e.get("id") and e.get("completed")]
     enriched = [e for e in enriched if e]
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration_s)
     return jsonify({
         "name": workout.get("day_name", "Workout"),
         "workout_type": "Traditional Strength Training",
-        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S") + "Z",
-        "end_time": completed_at.strftime("%Y-%m-%dT%H:%M:%S") + "Z",
+        "start_time": start_time.astimezone().isoformat(),
+        "end_time": completed_at.astimezone().isoformat(),
         "duration_minutes": round(duration_s / 60),
         "kcal": kcal,
     })
@@ -1325,7 +1321,7 @@ def energy_balance():
         d = (w.get("completed_at") or "")[:10]
         if d < cutoff:
             continue
-        eids = [e["id"] for e in w.get("exercises", []) if e.get("id")]
+        eids = [e["id"] for e in w.get("exercises", []) if e.get("id") and e.get("completed")]
         enriched = [get_exercise_by_id(eid) for eid in eids]
         kcal = _calc_kcal([e for e in enriched if e], weight_lbs, w.get("duration_seconds"))
         burned[d] = burned.get(d, 0) + (kcal or 0)
