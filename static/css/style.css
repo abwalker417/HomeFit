@@ -26,29 +26,29 @@
   background-position: center center;
   background-size: cover;
   background-repeat: no-repeat;
-  opacity: 0.85;
+  opacity: 1;
 }
 .room-bg .scene-dim {
   position: absolute; inset: 0;
   background:
-    radial-gradient(110% 30% at 50% -2%, rgba(var(--accent-rgb), 0.12) 0%, rgba(0,0,0,0) 55%),
+    radial-gradient(110% 26% at 50% -2%, rgba(var(--accent-rgb), 0.12) 0%, rgba(0,0,0,0) 55%),
     linear-gradient(180deg,
-      rgba(5,5,6,0.88) 0%, rgba(5,5,6,0.62) 20%, rgba(5,5,6,0.3) 46%,
-      rgba(5,5,6,0.32) 72%, rgba(5,5,6,0.58) 100%);
+      rgba(5,5,6,0.58) 0%, rgba(5,5,6,0.22) 12%, rgba(5,5,6,0.06) 34%,
+      rgba(5,5,6,0.06) 66%, rgba(5,5,6,0.22) 100%);
 }
 
-/* Frosted, semi-transparent cards so the scene reads behind them */
+/* Grey frosted glass cards so the scene reads behind/through them */
 .card, .hero {
-  background: rgba(16, 16, 19, 0.55);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
-  backdrop-filter: blur(14px) saturate(1.1);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(48, 50, 56, 0.38);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.13);
 }
 .hero-stats div {
-  background: rgba(16, 16, 19, 0.5);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(48, 50, 56, 0.34);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 * { box-sizing: border-box; }
