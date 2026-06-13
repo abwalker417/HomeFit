@@ -10,11 +10,13 @@
   *{ box-sizing:border-box; } html,body{ margin:0; width:390px; overflow-x:hidden; }
   body{ background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
   .device{ width:390px; min-height:844px; margin:0 auto; position:relative; overflow:hidden; background:var(--bg); }
-  .device::before{ content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
-    background: radial-gradient(100% 32% at 50% -4%, rgba(var(--accent-rgb),0.10) 0%, rgba(255,255,255,0.02) 28%, rgba(0,0,0,0) 58%),
-                radial-gradient(140% 100% at 50% 0%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.7) 100%); }
-  .floor{ position:absolute; left:0; right:0; bottom:0; height:200px; z-index:0; pointer-events:none;
-    background:linear-gradient(180deg, rgba(0,0,0,0), rgba(255,255,255,0.03)); border-top:1px solid rgba(255,255,255,0.04); }
+  /* the garage scene as the real background */
+  .scene{ position:absolute; inset:0; z-index:0; pointer-events:none;
+    background:url('icons/redesign/scene/ice.png') center center / cover no-repeat; opacity:0.85; }
+  .scene-dim{ position:absolute; inset:0; z-index:0; pointer-events:none;
+    background: radial-gradient(110% 30% at 50% -2%, rgba(var(--accent-rgb),0.12) 0%, rgba(0,0,0,0) 55%),
+                linear-gradient(180deg, rgba(5,5,6,0.86) 0%, rgba(5,5,6,0.6) 20%, rgba(5,5,6,0.28) 46%, rgba(5,5,6,0.3) 72%, rgba(5,5,6,0.55) 100%); }
+  .floor{ display:none; }
   .screen{ position:relative; z-index:1; padding:16px 0 60px; }
   .pad{ padding:0 18px; }
 
@@ -29,7 +31,7 @@
   .greet .eyebrow{ font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--subtle); margin:0 0 6px; }
   .greet h1{ font-size:25px; margin:0; letter-spacing:-0.01em; }
 
-  .today{ margin:16px 0 0; background:linear-gradient(180deg,var(--surface-2),var(--surface)); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--radius); padding:16px 16px 18px; }
+  .today{ margin:16px 0 0; background:rgba(16,16,19,0.55); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,0.09); border-left:3px solid var(--accent); border-radius:var(--radius); padding:16px 16px 18px; }
   .today .tag{ font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent); font-weight:700; margin:0 0 6px; }
   .today h2{ margin:0; font-size:19px; } .today .meta{ color:var(--subtle); font-size:13px; margin:4px 0 14px; }
   .btn{ display:block; width:100%; text-align:center; background:var(--accent); color:#04161a; font-weight:700; font-size:15px; border:none; border-radius:11px; padding:13px; }
@@ -45,7 +47,7 @@
   .cat span{ display:block; margin-top:8px; font-size:12px; color:var(--subtle); letter-spacing:0.03em; }
 
   .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:22px; }
-  .stat{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 8px; text-align:center; }
+  .stat{ background:rgba(16,16,19,0.5); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:14px 8px; text-align:center; }
   .stat strong{ display:block; font-size:22px; } .stat strong.hot{ color:var(--accent); } .stat span{ font-size:11px; color:var(--subtle); }
 
   /* floating APEX coach */
@@ -56,7 +58,8 @@
 </head>
 <body>
   <div class="device">
-    <div class="floor"></div>
+    <div class="scene"></div>
+    <div class="scene-dim"></div>
     <div class="screen">
       <div class="topbar pad">
         <div class="lockup">

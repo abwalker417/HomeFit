@@ -19,25 +19,37 @@
   --radius: 14px;
 }
 
-/* ---------- Shared garage-room background (every screen) ---------- */
-.room-bg {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
+/* ---------- Shared garage-scene background (every screen) ---------- */
+.room-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--bg); }
+.room-bg .scene {
+  position: absolute; inset: 0;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0.85;
+}
+.room-bg .scene-dim {
+  position: absolute; inset: 0;
   background:
-    radial-gradient(100% 30% at 50% -2%, rgba(var(--accent-rgb), 0.09) 0%, rgba(255,255,255,0.018) 26%, rgba(0,0,0,0) 55%),
-    radial-gradient(150% 100% at 50% 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.65) 100%);
+    radial-gradient(110% 30% at 50% -2%, rgba(var(--accent-rgb), 0.12) 0%, rgba(0,0,0,0) 55%),
+    linear-gradient(180deg,
+      rgba(5,5,6,0.88) 0%, rgba(5,5,6,0.62) 20%, rgba(5,5,6,0.3) 46%,
+      rgba(5,5,6,0.32) 72%, rgba(5,5,6,0.58) 100%);
 }
-.room-bg .floor {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 34vh;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(255,255,255,0.014) 45%, rgba(255,255,255,0.03) 100%);
-  border-top: 1px solid rgba(255,255,255,0.04);
+
+/* Frosted, semi-transparent cards so the scene reads behind them */
+.card, .hero {
+  background: rgba(16, 16, 19, 0.55);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.09);
 }
-.room-bg svg { position: absolute; stroke: #4f4f57; fill: none; }
-.room-bg .r-rack   { left: 50%; top: 2px; width: 280px; transform: translateX(-50%); opacity: 0.05; }
-.room-bg .r-plates { left: -18px; bottom: 5vh; width: 130px; opacity: 0.12; }
-.room-bg .r-db     { right: -24px; bottom: 3.5vh; width: 160px; opacity: 0.10; }
+.hero-stats div {
+  background: rgba(16, 16, 19, 0.5);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
 
 * { box-sizing: border-box; }
 
