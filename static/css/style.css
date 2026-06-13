@@ -40,16 +40,18 @@
 
 * { box-sizing: border-box; }
 
+html { background: var(--bg); }
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
                "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
+/* body must stay transparent so the fixed .room-bg scene shows through */
+body { background: transparent; }
 
 a { color: var(--accent); text-decoration: none; }
 
