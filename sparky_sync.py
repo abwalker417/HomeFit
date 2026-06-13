@@ -201,14 +201,46 @@ def test_connection(url, api_key):
 def _load_cache():
     if not os.path.exists(_CACHE_PATH):
         return {}
-    with open(_CACHE_PATH) as f:
-        return json.load(f)
+    try:
+        with open(_CACHE_PATH) as f:
+            return json.load(f)
+    except (ValueError, OSError):
+        return {}
 
 
 def _save_cache(cache):
     os.makedirs(_DATA_DIR, exist_ok=True)
     with open(_CACHE_PATH, "w") as f:
         json.dump(cache, f)
+
+
+def _cache_fp(api_key):
+    """Short fingerprint of an API key — namespaces the exercise cache per Sparky
+    user. Exercise IDs are per-user in Sparky (row-level security), so a shared
+    name->id cache lets one user's private exercise ID leak into another user's
+    sync and fail with 'Exercise not found for snapshot'."""
+    import hashlib
+    return hashlib.sha256((api_key or "").encode()).hexdigest()[:12]
+
+
+def _get_cached(api_key, name):
+    cache = _load_cache()
+    return (cache.get("by_key", {}).get(_cache_fp(api_key), {})).get(name)
+
+
+def _set_cached(api_key, name, exercise_id):
+    cache = _load_cache()
+    by_key = cache.setdefault("by_key", {})
+    by_key.setdefault(_cache_fp(api_key), {})[name] = exercise_id
+    _save_cache(cache)
+
+
+def _evict_cached(api_key, name):
+    cache = _load_cache()
+    user_cache = cache.get("by_key", {}).get(_cache_fp(api_key), {})
+    if name in user_cache:
+        del user_cache[name]
+        _save_cache(cache)
 
 
 def _headers(api_key):
@@ -242,11 +274,10 @@ def push_exercises_to_sparky(api_key=None):
         return True, "All exercises are already Sparky-sourced."
 
     pushed, skipped = 0, 0
-    cache = _load_cache()
 
     for ex in to_push:
         name = ex["name"]
-        if name in cache:
+        if _get_cached(api_key, name):
             skipped += 1
             continue
 
@@ -257,7 +288,7 @@ def push_exercises_to_sparky(api_key=None):
         if r.ok:
             for s_ex in r.json().get("exercises", []):
                 if s_ex["name"].lower() == name.lower():
-                    cache[name] = s_ex["id"]
+                    _set_cached(api_key, name, s_ex["id"])
                     skipped += 1
                     break
             else:
@@ -282,10 +313,9 @@ def push_exercises_to_sparky(api_key=None):
                                    files={"exerciseData": (None, data)},
                                    timeout=10)
                 if cr.ok:
-                    cache[name] = cr.json()["id"]
+                    _set_cached(api_key, name, cr.json()["id"])
                     pushed += 1
 
-    _save_cache(cache)
     return True, f"Pushed {pushed} exercises to Sparky, {skipped} already existed."
 
 
@@ -341,38 +371,44 @@ def fetch_and_replace_exercises(api_key=None):
 
 # ── Workout sync ─────────────────────────────────────────────────────────────
 
-def _find_or_create_exercise(base_url, api_key, exercise):
-    """Return the Sparky UUID for this exercise.
+def _find_or_create_exercise(base_url, api_key, exercise, force_create=False):
+    """Return a Sparky exercise UUID owned by / visible to this api_key's user.
 
     If the exercise id is already a Sparky UUID (post-migration), use it directly.
     Otherwise fall back to name-based lookup/create for legacy HomeFit IDs.
-    """
-    # Fast path: exercise came from Sparky, ID is already a UUID
-    if _is_uuid(exercise.get("id")):
-        return exercise["id"]
 
-    cache = _load_cache()
+    force_create skips the UUID/cache/search shortcuts and creates a fresh
+    exercise under the current user — used to self-heal when a cached or migrated
+    ID turns out to belong to a different Sparky user (RLS hides it, so logging an
+    entry against it fails with 'Exercise not found for snapshot').
+    """
     name = exercise.get("name")
+
+    if not force_create:
+        # Fast path: exercise came from Sparky, ID is already a UUID
+        if _is_uuid(exercise.get("id")):
+            return exercise["id"]
+        if not name:
+            return None
+        cached = _get_cached(api_key, name)
+        if cached:
+            return cached
+        r = requests.get(
+            f"{base_url}/api/exercises",
+            params={"search": name, "limit": 10},
+            headers=_headers(api_key),
+            timeout=10,
+        )
+        if r.ok:
+            for ex in r.json().get("exercises", []):
+                if ex["name"].lower() == name.lower():
+                    _set_cached(api_key, name, ex["id"])
+                    return ex["id"]
+
     if not name:
         return None
 
-    if name in cache:
-        return cache[name]
-
-    r = requests.get(
-        f"{base_url}/api/exercises",
-        params={"search": name, "limit": 10},
-        headers=_headers(api_key),
-        timeout=10,
-    )
-    if r.ok:
-        for ex in r.json().get("exercises", []):
-            if ex["name"].lower() == name.lower():
-                cache[name] = ex["id"]
-                _save_cache(cache)
-                return ex["id"]
-
-    # Not found — create it
+    # Not found (or forcing) — create it under the current user
     category = exercise.get("category", "upper")
     equip = exercise.get("equipment", "bodyweight")
     if isinstance(equip, list):
@@ -398,8 +434,7 @@ def _find_or_create_exercise(base_url, api_key, exercise):
     )
     if r.ok:
         exercise_id = r.json()["id"]
-        cache[name] = exercise_id
-        _save_cache(cache)
+        _set_cached(api_key, name, exercise_id)
         return exercise_id
 
     return None
@@ -425,6 +460,25 @@ def _existing_entry_ids(base_url, api_key, date_str):
     return set()
 
 
+def _snapshot_error(resp):
+    """True if Sparky rejected the entry because it can't see the exercise —
+    i.e. the exercise_id belongs to a different user (RLS) or no longer exists.
+    Recoverable by recreating the exercise under the current user."""
+    if resp.status_code in (404, 500):
+        body = (resp.text or "").lower()
+        return "snapshot" in body or "not found" in body
+    return False
+
+
+def _post_entry(base_url, api_key, payload):
+    return requests.post(
+        f"{base_url}/api/exercise-entries",
+        headers={**_headers(api_key), "Content-Type": "application/json"},
+        json=payload,
+        timeout=10,
+    )
+
+
 def _sync_workout(config, exercises, workout_date, duration_seconds):
     base_url = config["url"]
     api_key = config["api_key"]
@@ -434,49 +488,77 @@ def _sync_workout(config, exercises, workout_date, duration_seconds):
     else:
         date_str = str(workout_date)[:10]
 
-    exercise_count = max(len(exercises), 1)
     total_seconds = duration_seconds or 0
-    duration_per_exercise = max(1, total_seconds // exercise_count // 60)
+
+    # Resolve every exercise to a Sparky id and collapse duplicates (the same
+    # exercise logged twice would otherwise overwrite itself in Sparky). Keep
+    # one record per distinct exercise so the workout's total time is split
+    # across the entries that will actually be created.
+    resolved = []  # [{exercise, sparky_id}]
+    seen_ids = set()
+    for exercise in exercises:
+        try:
+            sparky_id = _find_or_create_exercise(base_url, api_key, exercise)
+        except Exception:
+            sparky_id = None
+        if not sparky_id or sparky_id in seen_ids:
+            continue
+        seen_ids.add(sparky_id)
+        resolved.append({"exercise": exercise, "sparky_id": sparky_id})
+
+    if not resolved:
+        return
 
     already_logged = _existing_entry_ids(base_url, api_key, date_str)
 
-    for exercise in exercises:
+    # Distribute the real total duration across the distinct entries so they sum
+    # to the actual workout length (integer minutes, remainder spread to the front).
+    total_minutes = max(len(resolved), round(total_seconds / 60))
+    base_min, remainder = divmod(total_minutes, len(resolved))
+
+    for idx, item in enumerate(resolved):
+        exercise = item["exercise"]
+        sparky_id = item["sparky_id"]
+        if sparky_id in already_logged:
+            continue  # already in Sparky for today
+
+        entry_minutes = max(1, base_min + (1 if idx < remainder else 0))
+
+        logged_sets = exercise.get("sets_logged") or []
+        sets_count = len(logged_sets) or int(exercise.get("sets") or exercise.get("default_sets") or 3)
+        reps = int(exercise.get("reps") or exercise.get("default_reps") or 10)
+        is_timed = exercise.get("unit") == "seconds"
+        minutes_per_set = max(1, entry_minutes // max(sets_count, 1))
+
+        sets_data = []
+        for i in range(sets_count):
+            s = {"set_number": i + 1, "duration": minutes_per_set}
+            if not is_timed:
+                logged = logged_sets[i] if i < len(logged_sets) else {}
+                s["reps"] = logged.get("reps") or reps
+                if logged.get("weight"):
+                    s["weight"] = logged["weight"]
+            sets_data.append(s)
+
+        payload = {
+            "exercise_id": sparky_id,
+            "entry_date": date_str,
+            "duration_minutes": entry_minutes,
+            "sets": sets_data,
+            "notes": "Synced from HomeFit",
+        }
         try:
-            exercise_id = _find_or_create_exercise(base_url, api_key, exercise)
-            if not exercise_id:
-                continue
-            if exercise_id in already_logged:
-                continue  # dedup: this exercise is already in Sparky for today
-
-            logged_sets = exercise.get("sets_logged") or []
-            sets_count = len(logged_sets) or int(exercise.get("sets") or exercise.get("default_sets") or 3)
-            reps = int(exercise.get("reps") or exercise.get("default_reps") or 10)
-            is_timed = exercise.get("unit") == "seconds"
-            seconds_per_set = max(1, (total_seconds // exercise_count) // max(sets_count, 1))
-            minutes_per_set = max(1, seconds_per_set // 60)
-
-            sets_data = []
-            for i in range(sets_count):
-                s = {"set_number": i + 1, "duration": minutes_per_set}
-                if not is_timed:
-                    logged = logged_sets[i] if i < len(logged_sets) else {}
-                    s["reps"] = logged.get("reps") or reps
-                    if logged.get("weight"):
-                        s["weight"] = logged["weight"]
-                sets_data.append(s)
-
-            requests.post(
-                f"{base_url}/api/exercise-entries",
-                headers={**_headers(api_key), "Content-Type": "application/json"},
-                json={
-                    "exercise_id": exercise_id,
-                    "entry_date": date_str,
-                    "duration_minutes": duration_per_exercise,
-                    "sets": sets_data,
-                    "notes": "Synced from HomeFit",
-                },
-                timeout=10,
-            )
+            resp = _post_entry(base_url, api_key, payload)
+            if not resp.ok and _snapshot_error(resp):
+                # The exercise id isn't writable for this user (belongs to another
+                # Sparky account). Recreate it under the current user and retry.
+                name = exercise.get("name")
+                if name:
+                    _evict_cached(api_key, name)
+                new_id = _find_or_create_exercise(base_url, api_key, exercise, force_create=True)
+                if new_id and new_id != sparky_id:
+                    payload["exercise_id"] = new_id
+                    _post_entry(base_url, api_key, payload)
         except Exception:
             pass
 
