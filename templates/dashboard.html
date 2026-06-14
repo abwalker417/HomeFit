@@ -102,6 +102,21 @@
 </section>
 {% endif %}
 
+{% if cardio %}
+<section class="card">
+  <p class="card-eyebrow">RECENT CARDIO</p>
+  {% for c in cardio %}
+  <div class="cardio-row">
+    <div class="cardio-main">
+      <strong>{{ c.workout_type }}</strong>
+      <span class="subtle"> · {{ c.duration_minutes }} min</span>
+    </div>
+    <div class="cardio-meta">{{ c.when }}{% if c.detail %} · {{ c.detail }}{% endif %}</div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
 {% if ai_online %}
 <section id="weekly-digest-card" class="card" style="display:none;">
   <p class="card-eyebrow">APEX WEEKLY DIGEST</p>

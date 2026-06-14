@@ -601,6 +601,26 @@ def set_external_workout_status(user_id, workout_type, started_at, status):
         )
 
 
+def get_external_workouts(user_id, days=14, limit=50):
+    """Recent cardio/external workouts to display in HomeFit (newest first).
+    Excludes ones skipped as overlapping a HomeFit gym session."""
+    cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT workout_type, started_at, ended_at, duration_minutes,
+                   kcal, distance_mi, avg_hr
+            FROM external_workouts
+            WHERE user_id = ? AND started_at >= ?
+              AND status IN ('synced', 'recorded')
+            ORDER BY started_at DESC
+            LIMIT ?
+            """,
+            (user_id, cutoff, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
 def record_external_workout(user_id, source, workout_type, started_at, ended_at,
                             duration_minutes, kcal, distance_mi, avg_hr, status):
     with get_connection() as conn:

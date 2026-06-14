@@ -485,6 +485,29 @@ def cancel_workout():
 
 
 @app.route("/")
+def _cardio_display(uid, days=14):
+    """Recent cardio with local-time display fields for templates."""
+    from datetime import datetime, timezone
+    items = database.get_external_workouts(uid, days=days)
+    for c in items:
+        try:
+            dt = datetime.fromisoformat(c["started_at"]).replace(tzinfo=timezone.utc).astimezone()
+            c["when"] = dt.strftime("%b %-d")
+            c["time"] = dt.strftime("%-I:%M %p")
+        except (ValueError, TypeError):
+            c["when"] = ""
+            c["time"] = ""
+        bits = []
+        if c.get("distance_mi"):
+            bits.append(f"{c['distance_mi']} mi")
+        if c.get("kcal"):
+            bits.append(f"{c['kcal']} kcal")
+        if c.get("avg_hr"):
+            bits.append(f"{c['avg_hr']} bpm")
+        c["detail"] = " · ".join(bits)
+    return items
+
+
 def index():
     uid = session["user_id"]
     profile = database.get_profile(uid)
@@ -517,6 +540,7 @@ def index():
     else:
         stats["weight_progress_pct"] = 0
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats,
+                           cardio=_cardio_display(uid, days=14)[:3],
                            has_active_workout=bool(session.get("today_workout")),
                            ai_online=coach.is_available())
 
@@ -1313,8 +1337,11 @@ def progress():
         if not history_weeks or history_weeks[-1]["label"] != label:
             history_weeks.append({"label": label, "workouts": []})
         history_weeks[-1]["workouts"].append(w)
+    cardio = _cardio_display(uid, days=30)
+    cardio_kcal = sum(c.get("kcal") or 0 for c in cardio)
     return render_template("progress.html", profile=profile, weights=weights,
                            history=workouts, history_weeks=history_weeks, stats=stats,
+                           cardio=cardio, cardio_kcal=cardio_kcal,
                            sparky_enabled=bool((profile or {}).get("sparky_sync")))
 
 

@@ -64,6 +64,24 @@
 </section>
 {% endif %}
 
+{% if cardio %}
+<section class="card">
+  <h2 style="margin-top:0;">Cardio &amp; activity</h2>
+  <p class="subtle" style="margin:0 0 6px; font-size:13px;">
+    Last 30 days from Apple Health{% if cardio_kcal %} · {{ cardio_kcal }} kcal burned{% endif %}
+  </p>
+  {% for c in cardio %}
+  <div class="cardio-row">
+    <div class="cardio-main">
+      <strong>{{ c.workout_type }}</strong>
+      <span class="subtle"> · {{ c.duration_minutes }} min</span>
+    </div>
+    <div class="cardio-meta">{{ c.when }}{% if c.detail %} · {{ c.detail }}{% endif %}</div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
 <section>
   <h2 class="section-title">Workout history</h2>
   {% if history_weeks %}

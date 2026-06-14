@@ -481,6 +481,19 @@ fieldset.field { border: none; padding: 0; }
 .rest-label { color: var(--subtle); text-transform: uppercase; letter-spacing: 2px; }
 .rest-count { font-size: 96px; font-weight: 800; margin: 0; color: var(--accent); font-variant-numeric: tabular-nums; }
 
+/* Cardio rows (dashboard + progress) */
+.cardio-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.cardio-row:first-of-type { border-top: none; }
+.cardio-main strong { font-size: 15px; }
+.cardio-meta { color: var(--subtle); font-size: 12px; text-align: right; white-space: nowrap; }
+
 /* Accent color picker */
 .accent-swatches {
   display: flex;
