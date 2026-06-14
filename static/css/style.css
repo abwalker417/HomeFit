@@ -79,10 +79,25 @@ a { color: var(--accent); text-decoration: none; }
 }
 .brand-name { font-weight: 600; letter-spacing: 0.2px; }
 
+.header-slogan {
+  margin-left: auto;
+  margin-right: 12px;
+  text-align: right;
+  font-size: 8px;
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--subtle);
+  white-space: nowrap;
+}
+.header-slogan br { line-height: inherit; }
+
 .top-nav { display: none; gap: 16px; }
 .top-nav a { color: var(--subtle); font-size: 14px; }
 @media (min-width: 720px) {
   .top-nav { display: flex; }
+  .header-slogan { display: none; }
 }
 
 .app-main {
