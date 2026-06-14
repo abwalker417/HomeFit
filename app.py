@@ -1141,15 +1141,16 @@ def api_external_workout():
     source = str(data.get("source") or "apple_health").strip()
 
     started_iso = start.isoformat()
-    existing = database.find_external_workout(uid, name, started_iso)
-    if existing:
+    # Claim the dedup key FIRST so concurrent posts can't both reach Sparky.
+    claimed = database.claim_external_workout(
+        uid, source, name, started_iso, end.isoformat(),
+        duration_minutes, kcal, distance_mi, avg_hr)
+    if not claimed:
         return jsonify({"status": "duplicate", "detail": "this workout was already received"}), 200
 
     overlap = database.find_overlapping_homefit_workout(uid, start, end)
     if overlap:
-        database.record_external_workout(
-            uid, source, name, started_iso, end.isoformat(),
-            duration_minutes, kcal, distance_mi, avg_hr, "skipped_overlap")
+        database.set_external_workout_status(uid, name, started_iso, "skipped_overlap")
         return jsonify({
             "status": "skipped",
             "reason": f"overlaps HomeFit workout '{overlap['day_name']}' (already synced to Sparky)",
@@ -1163,9 +1164,7 @@ def api_external_workout():
             kcal=kcal, distance_mi=distance_mi, avg_hr=avg_hr,
             api_key=profile.get("sparky_api_key"))
     status = "synced" if synced else "recorded"
-    database.record_external_workout(
-        uid, source, name, started_iso, end.isoformat(),
-        duration_minutes, kcal, distance_mi, avg_hr, status)
+    database.set_external_workout_status(uid, name, started_iso, status)
     return jsonify({"status": status, "workout": name, "date": local_date.isoformat()}), 201
 
 

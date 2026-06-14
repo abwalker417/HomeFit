@@ -571,6 +571,36 @@ def find_external_workout(user_id, workout_type, started_at):
         return dict(row) if row else None
 
 
+def claim_external_workout(user_id, source, workout_type, started_at, ended_at,
+                           duration_minutes, kcal, distance_mi, avg_hr):
+    """Atomically claim a workout via the UNIQUE(user, type, started_at) constraint.
+
+    Returns True only for the request that actually inserted the row — concurrent
+    duplicate POSTs (the app fires sync on launch AND foreground) get False, so
+    only one of them pushes to Sparky. Status starts 'pending'; caller updates it.
+    """
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            INSERT OR IGNORE INTO external_workouts
+                (user_id, source, workout_type, started_at, ended_at,
+                 duration_minutes, kcal, distance_mi, avg_hr, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+            """,
+            (user_id, source, workout_type, started_at, ended_at,
+             duration_minutes, kcal, distance_mi, avg_hr, datetime.now().isoformat()),
+        )
+        return cur.rowcount > 0
+
+
+def set_external_workout_status(user_id, workout_type, started_at, status):
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE external_workouts SET status = ? WHERE user_id = ? AND workout_type = ? AND started_at = ?",
+            (status, user_id, workout_type, started_at),
+        )
+
+
 def record_external_workout(user_id, source, workout_type, started_at, ended_at,
                             duration_minutes, kcal, distance_mi, avg_hr, status):
     with get_connection() as conn:
