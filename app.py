@@ -522,6 +522,10 @@ def _sleep_display(uid, days=14):
     for s in items:
         s["hm"] = _fmt_dur(s.get("duration_seconds"))
         s["hours"] = round((s.get("duration_seconds") or 0) / 3600, 1)
+        try:
+            s["dow"] = datetime.fromisoformat(s["entry_date"]).strftime("%a")
+        except (ValueError, TypeError, KeyError):
+            s["dow"] = ""
         s["deep_fmt"] = _fmt_dur(s.get("deep_seconds"))
         s["rem_fmt"] = _fmt_dur(s.get("rem_seconds"))
         s["light_fmt"] = _fmt_dur(s.get("light_seconds"))
@@ -1526,6 +1530,18 @@ def energy_balance():
         enriched = [get_exercise_by_id(eid) for eid in eids]
         kcal = _calc_kcal([e for e in enriched if e], weight_lbs, w.get("duration_seconds"))
         burned[d] = burned.get(d, 0) + (kcal or 0)
+
+    # Add cardio burn (Apple Health) so the "burned" side is complete
+    from datetime import datetime, timezone
+    for c in database.get_external_workouts(uid, days=7):
+        if not c.get("kcal"):
+            continue
+        try:
+            d = datetime.fromisoformat(c["started_at"]).replace(tzinfo=timezone.utc).astimezone().date().isoformat()
+        except (ValueError, TypeError):
+            continue
+        if d >= cutoff:
+            burned[d] = burned.get(d, 0) + c["kcal"]
 
     days = []
     for i in range(6, -1, -1):

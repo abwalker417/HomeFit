@@ -64,7 +64,7 @@
 {% if sparky_enabled %}
 <section id="energy-card" class="card" style="display:none;">
   <h2 style="margin-top:0;">Calories in vs burned</h2>
-  <p class="subtle" style="margin:0 0 10px; font-size:13px;">Last 7 days · food from SparkyFitness, burn from workouts</p>
+  <p class="subtle" style="margin:0 0 10px; font-size:13px;">Last 7 days · food from SparkyFitness, burn from workouts + cardio</p>
   <div id="energy-rows"></div>
 </section>
 {% endif %}
@@ -73,6 +73,16 @@
 <section class="card">
   <h2 style="margin-top:0;">Sleep</h2>
   <p class="subtle" style="margin:0 0 6px; font-size:13px;">Last 14 days from Apple Health</p>
+  {% if sleep|length >= 2 %}
+  <div class="sleep-chart">
+    {% for s in sleep|reverse %}
+    <div class="sleep-bar" title="{{ s.entry_date }}: {{ s.hm }}">
+      <div class="sleep-bar-fill" style="height: {{ ([(s.duration_seconds or 0) / 36000 * 100, 100] | min) | round }}%;"></div>
+      <span>{{ s.dow }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   {% for s in sleep %}
   <div class="cardio-row">
     <div class="cardio-main">

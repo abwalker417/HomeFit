@@ -493,6 +493,22 @@ fieldset.field { border: none; padding: 0; }
 .readiness--low .readiness-num,
 .readiness--low .card-eyebrow { color: var(--danger); }
 
+/* Sleep trend bar chart (progress) */
+.sleep-chart {
+  display: flex; align-items: flex-end; gap: 6px;
+  height: 110px; margin: 8px 0 14px;
+}
+.sleep-bar {
+  flex: 1; height: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-end; gap: 5px;
+}
+.sleep-bar-fill {
+  width: 70%; max-width: 26px; min-height: 3px;
+  background: var(--accent); border-radius: 4px 4px 0 0;
+}
+.sleep-bar span { font-size: 10px; color: var(--subtle); }
+
 /* Sleep stat row (dashboard LAST NIGHT card) */
 .sleep-stats {
   display: flex;
