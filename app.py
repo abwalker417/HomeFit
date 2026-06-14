@@ -322,6 +322,9 @@ def inject_globals():
         "accent_rgb": _accent_rgb(accent),
         "accent_name": accent_name,
         "accent_palette": ACCENT_PALETTE,
+        # Handed to the native iOS app (via the homefitNative JS bridge) so it can
+        # read Apple Health workouts and POST them to /api/external-workout.
+        "api_token": database.get_or_create_api_token(uid) if uid else None,
     }
 
 

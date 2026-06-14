@@ -93,6 +93,19 @@
   {% endif %}
 
   <script src="{{ url_for('static', filename='js/app.js') }}?v={{ static_version }}"></script>
+  {% if current_user and api_token %}
+  <script>
+    // Hand the API token to the native iOS app so it can sync Apple Health
+    // workouts into HomeFit (no-op in Safari / the PWA).
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.homefitNative) {
+      window.webkit.messageHandlers.homefitNative.postMessage({
+        type: 'config',
+        token: '{{ api_token }}',
+        server: window.location.origin
+      });
+    }
+  </script>
+  {% endif %}
   {% block scripts %}{% endblock %}
 </body>
 </html>
