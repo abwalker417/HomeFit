@@ -37,6 +37,11 @@
   </div>
 </section>
 
+<section id="weekly-digest-card" class="card" style="display:none;">
+  <p class="card-eyebrow">APEX WEEKLY DIGEST</p>
+  <div id="weekly-digest-body" style="font-size:14px; line-height:1.65; color:var(--subtle);"></div>
+</section>
+
 <section class="card">
   <h2>Weight over time</h2>
   {% if weights %}
@@ -145,5 +150,6 @@
   drawWeightChart();
   loadStrengthChart();
   loadEnergyBalance();
+  loadWeeklyDigest();
 </script>
 {% endblock %}

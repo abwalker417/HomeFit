@@ -398,14 +398,25 @@ def generate_daily_brief(coaching_data):
             nutrition_note = f" Ate {d.get('calories', 0)} kcal, {d.get('protein_g', 0)}g protein."
             break
 
+    sleep_note = ""
+    sleep_log = coaching_data.get("sleep_log") or []
+    if sleep_log:
+        n = sleep_log[0]
+        secs = n.get("duration_seconds") or 0
+        h, m = divmod(secs // 60, 60)
+        deep = (n.get("deep_seconds") or 0) // 60
+        sleep_note = f" Last night: {h}h{m:02d}m asleep, {deep}m deep sleep."
+
     prompt = f"""{context}
 
-Yesterday ({yesterday}) the user {trained_note}.{nutrition_note}
+Yesterday ({yesterday}) the user {trained_note}.{nutrition_note}{sleep_note}
 
-Write a daily brief for a push notification: exactly 2 short sentences, plain text,
-no bullets, no greeting, no sign-off, under 200 characters total.
-Sentence 1: one specific observation about yesterday (training or nutrition).
-Sentence 2: today's focus based on the weekly plan."""
+Write a daily brief for the dashboard / a push notification: 2-3 short sentences,
+plain text, no bullets, no greeting, no sign-off, under 280 characters total.
+- One specific observation about yesterday (training, nutrition, or sleep).
+- Today's recommendation based on the weekly plan AND recovery: if sleep was short
+  (under ~6.5h) or deep/REM was low, suggest dialing back intensity or taking a
+  recovery/rest day; if well-rested, encourage pushing today's planned session."""
 
     return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
 

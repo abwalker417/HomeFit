@@ -164,6 +164,14 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS apex_daily_brief (
+                user_id      INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                brief_text   TEXT NOT NULL,
+                brief_date   TEXT NOT NULL,
+                generated_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS push_subscriptions (
                 endpoint          TEXT PRIMARY KEY,
                 user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -891,6 +899,32 @@ def save_weekly_digest(user_id, digest_text):
                  week_start=excluded.week_start,
                  generated_at=excluded.generated_at""",
             (user_id, digest_text, week_start, now),
+        )
+
+
+def get_daily_brief(user_id):
+    """Return today's cached daily brief, else None."""
+    today = datetime.now().date().isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT brief_text FROM apex_daily_brief WHERE user_id = ? AND brief_date = ?",
+            (user_id, today),
+        ).fetchone()
+    return row["brief_text"] if row else None
+
+
+def save_daily_brief(user_id, brief_text):
+    today = datetime.now().date().isoformat()
+    now = datetime.now().isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO apex_daily_brief (user_id, brief_text, brief_date, generated_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(user_id) DO UPDATE SET
+                 brief_text=excluded.brief_text,
+                 brief_date=excluded.brief_date,
+                 generated_at=excluded.generated_at""",
+            (user_id, brief_text, today, now),
         )
 
 

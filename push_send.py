@@ -35,15 +35,11 @@ def send_digests():
 
 
 def send_daily_briefs():
-    import coach
-    if not coach.is_available():
-        print("daily brief skipped: AI offline")
-        return
+    import daily_service
     user_ids = {s["user_id"] for s in database.get_push_subscriptions()}
     for uid in sorted(user_ids):
         try:
-            coaching_data = database.get_coaching_context(uid)
-            brief = coach.generate_daily_brief(coaching_data)
+            brief = daily_service.get_or_generate(uid)
         except Exception as e:
             print(f"daily brief failed for user {uid}: {e}")
             continue

@@ -290,6 +290,20 @@ function loadWeeklyDigest() {
     .catch(() => {});
 }
 
+function loadDailyBrief() {
+  const card = document.getElementById('daily-brief-card');
+  const body = document.getElementById('daily-brief-body');
+  if (!card || !body) return;
+  fetch('/api/daily-brief')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.brief) return;
+      body.textContent = data.brief;
+      card.style.display = '';
+    })
+    .catch(() => {});
+}
+
 /* ---------- Push notifications opt-in (profile page) ---------- */
 function setupPushToggle() {
   const btn = document.getElementById('push-toggle');

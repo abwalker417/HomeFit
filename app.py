@@ -889,6 +889,18 @@ def weekly_digest():
         return jsonify({"digest": None})
 
 
+@app.route("/api/daily-brief", methods=["GET"])
+def daily_brief():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    try:
+        import daily_service
+        return jsonify({"brief": daily_service.get_or_generate(uid)})
+    except Exception:
+        return jsonify({"brief": None})
+
+
 _exercise_images = None
 
 def _load_exercise_images():

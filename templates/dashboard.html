@@ -132,9 +132,9 @@
 {% endif %}
 
 {% if ai_online %}
-<section id="weekly-digest-card" class="card" style="display:none;">
-  <p class="card-eyebrow">APEX WEEKLY DIGEST</p>
-  <div id="weekly-digest-body" style="font-size:14px; line-height:1.65; color:var(--subtle);"></div>
+<section id="daily-brief-card" class="card" style="display:none;">
+  <p class="card-eyebrow">APEX TODAY</p>
+  <div id="daily-brief-body" style="font-size:14px; line-height:1.65; color:var(--text);"></div>
 </section>
 {% endif %}
 
@@ -154,6 +154,6 @@
 {% block scripts %}
 <script>
   setupWeightForm();
-  loadWeeklyDigest();
+  loadDailyBrief();
 </script>
 {% endblock %}
