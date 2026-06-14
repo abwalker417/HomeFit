@@ -76,6 +76,18 @@ def is_available():
         return False
 
 
+def _today_iso(coaching_data):
+    """User's local 'today' as ISO, preferring the client-supplied date."""
+    from datetime import date as _date
+    ds = coaching_data.get("local_date")
+    if ds:
+        try:
+            return _date.fromisoformat(ds).isoformat()
+        except Exception:
+            pass
+    return _date.today().isoformat()
+
+
 def _build_context(coaching_data):
     from datetime import date as _date
     profile = coaching_data.get("profile") or {}
@@ -248,6 +260,23 @@ def chat(message, coaching_data, history=None):
     messages = [{"role": "system", "content": system}]
     for turn in (history or []):
         messages.append({"role": turn["role"], "content": turn["content"]})
+    # Re-assert the live data AFTER the history so it outranks any stale
+    # "I can't see it / sync delay" replies earlier in the thread.
+    workouts = coaching_data.get("recent_workouts") or []
+    if workouts:
+        latest = workouts[0]
+        if (latest.get("completed_at", "")[:10] == _today_iso(coaching_data)):
+            mins = latest.get("duration_seconds", 0) // 60
+            name = latest.get("day_name", "a workout")
+            messages.append({
+                "role": "system",
+                "content": (
+                    f"REMINDER: The data above is current. The user's most recent "
+                    f"logged workout is TODAY: \"{name}\" ({mins} min). It IS logged and "
+                    f"visible to you. Disregard any earlier message of yours claiming you "
+                    f"couldn't see it or that there was a sync delay."
+                ),
+            })
     messages.append({"role": "user", "content": message})
     return _peakai_call(messages, max_tokens=1024, timeout=60)
 

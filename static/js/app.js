@@ -96,11 +96,32 @@ if ('serviceWorker' in navigator) {
     window.history.replaceState({}, '', window.location.pathname);
   }
 
+  let clearArmed = false;
+  let clearTimer = null;
   clearBtn && clearBtn.addEventListener('click', async () => {
-    if (!confirm('Clear chat history?')) return;
-    await fetch('/api/apex-chat/clear', { method: 'POST' });
-    history = [];
-    messages.innerHTML = '<div class="msg msg-apex">Chat cleared. Ask me anything — or say "create my weekly plan".</div>';
+    // No window.confirm(): it silently returns false inside the native
+    // WKWebView (no JS-dialog delegate), making Clear appear broken.
+    // Use a two-tap inline confirm instead.
+    if (!clearArmed) {
+      clearArmed = true;
+      const orig = clearBtn.textContent;
+      clearBtn.textContent = 'Tap to confirm';
+      clearTimer = setTimeout(() => { clearArmed = false; clearBtn.textContent = orig; }, 3000);
+      return;
+    }
+    clearTimeout(clearTimer);
+    clearArmed = false;
+    clearBtn.textContent = 'Clearing…';
+    try {
+      const resp = await fetch('/api/apex-chat/clear', { method: 'POST' });
+      if (!resp.ok) throw new Error('status ' + resp.status);
+      history = [];
+      messages.innerHTML = '<div class="msg msg-apex">Chat cleared. Ask me anything — or say "create my weekly plan".</div>';
+    } catch (e) {
+      messages.innerHTML += '<div class="msg msg-apex">Couldn\'t clear chat (' + e.message + '). Try again.</div>';
+    } finally {
+      clearBtn.textContent = 'Clear';
+    }
   });
 
   planBtn && planBtn.addEventListener('click', async () => {
