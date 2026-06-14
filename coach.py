@@ -411,14 +411,31 @@ def generate_daily_brief(coaching_data):
 
 Yesterday ({yesterday}) the user {trained_note}.{nutrition_note}{sleep_note}
 
-Write a daily brief for the dashboard / a push notification: 2-3 short sentences,
-plain text, no bullets, no greeting, no sign-off, under 280 characters total.
+Write a daily brief: 2-3 short sentences, plain text, under 280 characters.
 - One specific observation about yesterday (training, nutrition, or sleep).
 - Today's recommendation based on the weekly plan AND recovery: if sleep was short
   (under ~6.5h) or deep/REM was low, suggest dialing back intensity or taking a
-  recovery/rest day; if well-rested, encourage pushing today's planned session."""
+  recovery/rest day; if well-rested, encourage pushing today's planned session.
+Output ONLY the brief sentences — no title, no date, no header, no separators,
+no bullet points, no markdown, no greeting, no sign-off, no character count."""
 
-    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
+    return _clean_brief(_generate(prompt, system=SYSTEM_PROMPT, timeout=60))
+
+
+def _clean_brief(text):
+    """Strip any title/header/separator/character-count cruft the model adds."""
+    if not text:
+        return text
+    import re
+    kept = []
+    for ln in text.splitlines():
+        s = ln.strip()
+        if not s or s.startswith("---") or s.startswith("==="):
+            continue
+        if re.match(r"(?i)\*{0,2}_{0,2}\s*(daily brief|character count|here'?s|today'?s brief)", s):
+            continue
+        kept.append(s)
+    return " ".join(kept).replace("**", "").replace("__", "").strip()
 
 
 def generate_weekly_plan(coaching_data, exercise_library):
