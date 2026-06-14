@@ -381,18 +381,34 @@ def generate_weekly_digest(coaching_data):
         if week_nutrition:
             avg_cal = sum(d.get("calories", 0) for d in week_nutrition) // len(week_nutrition)
             avg_protein = sum(d.get("protein_g", 0) for d in week_nutrition) // len(week_nutrition)
-            nutrition_note = f"\nThis week's average: {avg_cal} kcal/day, {avg_protein}g protein/day."
+            nutrition_note = f"\nNutrition avg this week: {avg_cal} kcal/day, {avg_protein}g protein/day."
+
+    sleep_note = ""
+    sleep_week = [s for s in (coaching_data.get("sleep_log") or [])
+                  if (s.get("entry_date") or "") >= week_start_str]
+    if sleep_week:
+        avg_h = sum((s.get("duration_seconds") or 0) for s in sleep_week) / len(sleep_week) / 3600
+        sleep_note = f"\nSleep this week: {len(sleep_week)} nights, avg {avg_h:.1f}h."
+
+    cardio_note = ""
+    tl = coaching_data.get("training_load") or {}
+    other = coaching_data.get("other_activity") or []
+    if other:
+        cardio_note = f"\nCardio/other activity logged on {len(other)} of the last 7 days."
 
     prompt = f"""{context}
 
-This week ({week_start_str} to today): {len(this_week)} of {goal_days} planned workouts completed.{nutrition_note}
+WEEKLY REVIEW for {week_start_str} to today:
+- Training: {len(this_week)} of {goal_days} planned workouts completed; {tl.get('sessions_7d', 0)} total sessions / {tl.get('minutes_7d', 0)} min over 7 days.{nutrition_note}{sleep_note}{cardio_note}
 
-Write a weekly digest in 3 short bullet points (no headers, plain text bullets starting with -):
-1. How the week went vs the goal — specific, not generic
-2. One standout lift, improvement, or consistency highlight from this week's data
-3. One specific focus recommendation for next week
-
-Keep each bullet to one sentence. No greeting, no sign-off."""
+Write a weekly review as 4-6 short plain-text bullets (each starting with "- ", one sentence each,
+no headers, no greeting, no sign-off). Cover ONLY the areas that have data:
+- Training: consistency vs goal + total volume
+- A standout lift/improvement from the data
+- Sleep: average + consistency, and how it tracked with training
+- Cardio/activity if any
+- Nutrition: protein/calorie adherence if logged
+- One specific focus for next week that ties it together (recovery-aware)."""
 
     return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
 

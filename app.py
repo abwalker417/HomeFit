@@ -61,6 +61,7 @@ PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
     "api_last_workout", "api_last_weight", "api_external_workout", "api_sleep",
+    "api_health_metric",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
@@ -579,9 +580,11 @@ def index():
     else:
         stats["weight_progress_pct"] = 0
     sleep = _sleep_display(uid, days=3)
+    rhr = database.get_latest_metric(uid, "resting_hr")
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats,
                            cardio=_cardio_display(uid, days=14)[:3],
                            last_sleep=sleep[0] if sleep else None,
+                           resting_hr=int(rhr["value"]) if rhr else None,
                            readiness=database.compute_readiness(uid),
                            has_active_workout=bool(session.get("today_workout")),
                            ai_online=coach.is_available())
@@ -1299,6 +1302,31 @@ def api_sleep():
     database.set_sleep_status(uid, entry_date, status)
     hrs = round(duration_seconds / 3600, 1)
     return jsonify({"status": status, "date": entry_date, "hours": hrs}), 201
+
+
+# Daily health metrics the app may post (resting HR; extensible later)
+ALLOWED_METRICS = {"resting_hr"}
+
+
+@app.route("/api/health-metric", methods=["POST"])
+def api_health_metric():
+    """Relay for daily Apple Health metrics (resting HR). Body: {metric, date, value, [source]}."""
+    token = request.args.get("token", "") or \
+        request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
+    uid = database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "invalid token"}), 401
+    data = request.get_json(silent=True) or {}
+    metric = str(data.get("metric") or "").strip()
+    metric_date = str(data.get("date") or "").strip()
+    if metric not in ALLOWED_METRICS or not metric_date:
+        return jsonify({"error": "required: valid metric + date"}), 400
+    try:
+        value = float(data.get("value"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "value must be numeric"}), 400
+    database.upsert_daily_metric(uid, metric, metric_date, value, str(data.get("source") or "apple_health"))
+    return jsonify({"status": "ok", "metric": metric, "date": metric_date, "value": value}), 201
 
 
 @app.route("/coach")

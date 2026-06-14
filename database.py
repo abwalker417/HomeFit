@@ -197,6 +197,18 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS daily_metric (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                metric      TEXT NOT NULL,
+                metric_date TEXT NOT NULL,
+                value       REAL NOT NULL,
+                source      TEXT NOT NULL DEFAULT 'apple_health',
+                created_at  TEXT NOT NULL,
+                UNIQUE(user_id, metric, metric_date)
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS sleep_log (
                 id               INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -706,6 +718,18 @@ def compute_readiness(user_id):
     load = len(workouts) + len(cardio)
     penalty = min(load, 3) * 5
 
+    # Elevated resting HR vs your recent baseline signals under-recovery
+    rhr_note = ""
+    rhr = get_recent_metric(user_id, "resting_hr", days=14)
+    if len(rhr) >= 4:
+        latest = rhr[0]["value"]
+        baseline = sum(r["value"] for r in rhr[1:8]) / len(rhr[1:8])
+        if latest > baseline + 5:
+            penalty += min(12, (latest - baseline))
+            rhr_note = f" · resting HR {int(latest)} (↑ vs {int(baseline)} baseline)"
+        elif latest <= baseline:
+            rhr_note = f" · resting HR {int(latest)}"
+
     score = int(round(max(0.0, min(100.0, sleep_score - penalty))))
     if score >= 80:
         level, label = "high", "Primed"
@@ -722,7 +746,36 @@ def compute_readiness(user_id):
         reason += f", {deeprem // 60}m deep+REM"
     if load >= 2:
         reason += f" · {load} sessions in 2 days"
+    reason += rhr_note
     return {"score": score, "level": level, "label": label, "reason": reason, "hours": round(hours, 1)}
+
+
+def upsert_daily_metric(user_id, metric, metric_date, value, source="apple_health"):
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO daily_metric (user_id, metric, metric_date, value, source, created_at)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON CONFLICT(user_id, metric, metric_date) DO UPDATE SET
+                 value=excluded.value, source=excluded.source""",
+            (user_id, metric, metric_date, value, source, datetime.now().isoformat()),
+        )
+
+
+def get_recent_metric(user_id, metric, days=14):
+    cutoff = (datetime.now().date() - timedelta(days=days)).isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            """SELECT metric_date, value FROM daily_metric
+               WHERE user_id = ? AND metric = ? AND metric_date >= ?
+               ORDER BY metric_date DESC""",
+            (user_id, metric, cutoff),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_latest_metric(user_id, metric):
+    rows = get_recent_metric(user_id, metric, days=14)
+    return rows[0] if rows else None
 
 
 def training_load(user_id):

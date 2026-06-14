@@ -119,6 +119,7 @@
     <div><strong>{{ last_sleep.hm }}</strong><span>Asleep</span></div>
     {% if last_sleep.deep_fmt %}<div><strong>{{ last_sleep.deep_fmt }}</strong><span>Deep</span></div>{% endif %}
     {% if last_sleep.rem_fmt %}<div><strong>{{ last_sleep.rem_fmt }}</strong><span>REM</span></div>{% endif %}
+    {% if resting_hr %}<div><strong>{{ resting_hr }}</strong><span>Rest HR</span></div>{% endif %}
   </div>
   {% if last_sleep.bedtime_fmt %}
   <p class="subtle" style="margin:12px 0 0; font-size:13px;">{{ last_sleep.bedtime_fmt }} → {{ last_sleep.wake_time_fmt }}</p>
