@@ -707,7 +707,7 @@ def push_sleep(entry_date, bedtime_iso, wake_iso, duration_seconds, api_key=None
     }
     try:
         r = requests.post(
-            f"{config['url']}/sleep/manual_entry",
+            f"{config['url']}/api/sleep/manual_entry",
             headers={**_headers(effective_key), "Content-Type": "application/json"},
             json=payload,
             timeout=10,
