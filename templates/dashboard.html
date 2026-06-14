@@ -102,6 +102,19 @@
 </section>
 {% endif %}
 
+{% if last_sleep %}
+<section class="card">
+  <p class="card-eyebrow">LAST NIGHT</p>
+  <div class="cardio-row">
+    <div class="cardio-main">
+      <strong>{{ last_sleep.hm }} asleep</strong>
+      {% if last_sleep.bedtime_fmt %}<span class="subtle"> · {{ last_sleep.bedtime_fmt }} → {{ last_sleep.wake_time_fmt }}</span>{% endif %}
+    </div>
+    {% if last_sleep.stages %}<div class="cardio-meta">{{ last_sleep.stages }}</div>{% endif %}
+  </div>
+</section>
+{% endif %}
+
 {% if cardio %}
 <section class="card">
   <p class="card-eyebrow">RECENT CARDIO</p>

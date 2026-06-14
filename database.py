@@ -188,6 +188,24 @@ def init_db():
                 UNIQUE(user_id, workout_type, started_at)
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS sleep_log (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                source           TEXT NOT NULL DEFAULT 'apple_health',
+                entry_date       TEXT NOT NULL,
+                bedtime          TEXT NOT NULL,
+                wake_time        TEXT NOT NULL,
+                duration_seconds INTEGER NOT NULL,
+                deep_seconds     INTEGER,
+                rem_seconds      INTEGER,
+                light_seconds    INTEGER,
+                awake_seconds    INTEGER,
+                status           TEXT NOT NULL,
+                created_at       TEXT NOT NULL,
+                UNIQUE(user_id, entry_date)
+            )
+        """)
 
 
         conn.execute("DELETE FROM schema_version")
@@ -599,6 +617,53 @@ def set_external_workout_status(user_id, workout_type, started_at, status):
             "UPDATE external_workouts SET status = ? WHERE user_id = ? AND workout_type = ? AND started_at = ?",
             (status, user_id, workout_type, started_at),
         )
+
+
+# ── Sleep (Apple Health / Oura relay) ───────────────────────────────────────
+
+def claim_sleep(user_id, source, entry_date, bedtime, wake_time, duration_seconds,
+                deep_s, rem_s, light_s, awake_s):
+    """Atomically claim one night via UNIQUE(user, entry_date). Returns True if
+    newly inserted (caller pushes to Sparky), False if this night already exists.
+    Updates stats if a later post for the same night has a longer duration."""
+    now = datetime.now().isoformat()
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO sleep_log
+                (user_id, source, entry_date, bedtime, wake_time, duration_seconds,
+                 deep_seconds, rem_seconds, light_seconds, awake_seconds, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+            ON CONFLICT(user_id, entry_date) DO NOTHING
+            """,
+            (user_id, source, entry_date, bedtime, wake_time, duration_seconds,
+             deep_s, rem_s, light_s, awake_s, now),
+        )
+        return cur.rowcount > 0
+
+
+def set_sleep_status(user_id, entry_date, status):
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE sleep_log SET status = ? WHERE user_id = ? AND entry_date = ?",
+            (status, user_id, entry_date),
+        )
+
+
+def get_recent_sleep(user_id, days=14, limit=30):
+    cutoff = (datetime.now().date() - timedelta(days=days)).isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT entry_date, bedtime, wake_time, duration_seconds,
+                   deep_seconds, rem_seconds, light_seconds, awake_seconds
+            FROM sleep_log
+            WHERE user_id = ? AND entry_date >= ? AND status IN ('synced', 'recorded')
+            ORDER BY entry_date DESC LIMIT ?
+            """,
+            (user_id, cutoff, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 def get_external_workouts(user_id, days=14, limit=50):

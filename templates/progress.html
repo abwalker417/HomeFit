@@ -64,6 +64,22 @@
 </section>
 {% endif %}
 
+{% if sleep %}
+<section class="card">
+  <h2 style="margin-top:0;">Sleep</h2>
+  <p class="subtle" style="margin:0 0 6px; font-size:13px;">Last 14 days from Apple Health</p>
+  {% for s in sleep %}
+  <div class="cardio-row">
+    <div class="cardio-main">
+      <strong>{{ s.hm }}</strong>
+      {% if s.bedtime_fmt %}<span class="subtle"> · {{ s.bedtime_fmt }} → {{ s.wake_time_fmt }}</span>{% endif %}
+    </div>
+    <div class="cardio-meta">{{ s.entry_date }}{% if s.stages %} · {{ s.stages }}{% endif %}</div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
 {% if cardio %}
 <section class="card">
   <h2 style="margin-top:0;">Cardio &amp; activity</h2>

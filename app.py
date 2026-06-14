@@ -60,7 +60,7 @@ def no_cache(response):
 PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
-    "api_last_workout", "api_last_weight", "api_external_workout",
+    "api_last_workout", "api_last_weight", "api_external_workout", "api_sleep",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
@@ -507,6 +507,32 @@ def _cardio_display(uid, days=14):
     return items
 
 
+def _sleep_display(uid, days=14):
+    """Recent sleep with formatted hours and local bed/wake times."""
+    from datetime import datetime
+    items = database.get_recent_sleep(uid, days=days)
+    for s in items:
+        secs = s.get("duration_seconds") or 0
+        h, m = divmod(secs // 60, 60)
+        s["hm"] = f"{h}h {m}m"
+        s["hours"] = round(secs / 3600, 1)
+        for k in ("bedtime", "wake_time"):
+            try:
+                dt = datetime.fromisoformat(str(s.get(k)))
+                if dt.tzinfo:
+                    dt = dt.astimezone()
+                s[k + "_fmt"] = dt.strftime("%-I:%M %p")
+            except (ValueError, TypeError):
+                s[k + "_fmt"] = ""
+        stage_bits = []
+        for label, key in (("Deep", "deep_seconds"), ("REM", "rem_seconds")):
+            if s.get(key):
+                sm = s[key] // 60
+                stage_bits.append(f"{label} {sm // 60}h {sm % 60}m" if sm >= 60 else f"{label} {sm}m")
+        s["stages"] = " · ".join(stage_bits)
+    return items
+
+
 @app.route("/")
 def index():
     uid = session["user_id"]
@@ -539,8 +565,10 @@ def index():
         stats["weight_progress_pct"] = min(100, max(0, round(done / span * 100)))
     else:
         stats["weight_progress_pct"] = 0
+    sleep = _sleep_display(uid, days=3)
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats,
                            cardio=_cardio_display(uid, days=14)[:3],
+                           last_sleep=sleep[0] if sleep else None,
                            has_active_workout=bool(session.get("today_workout")),
                            ai_online=coach.is_available())
 
@@ -1192,6 +1220,61 @@ def api_external_workout():
     return jsonify({"status": status, "workout": name, "date": local_date.isoformat()}), 201
 
 
+@app.route("/api/sleep", methods=["POST"])
+def api_sleep():
+    """Relay for Apple Health / Oura sleep (posted by the native app).
+    Body: {date, bedtime, wake_time, duration_seconds, [deep_s,rem_s,light_s,awake_s], [source]}
+    Dedups one night per date (UNIQUE), then forwards to Sparky.
+    """
+    from datetime import datetime
+    token = request.args.get("token", "") or \
+        request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
+    uid = database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "invalid token"}), 401
+
+    data = request.get_json(silent=True) or {}
+    bedtime = str(data.get("bedtime") or "").strip()
+    wake = str(data.get("wake_time") or "").strip()
+    entry_date = str(data.get("date") or "").strip()
+    try:
+        duration_seconds = int(float(data.get("duration_seconds")))
+    except (TypeError, ValueError):
+        duration_seconds = 0
+    if not bedtime or not wake or duration_seconds <= 0:
+        return jsonify({"error": "required: bedtime, wake_time, duration_seconds"}), 400
+    if not entry_date:
+        # Derive the night's date from local wake time
+        try:
+            entry_date = datetime.fromisoformat(wake.replace("Z", "+00:00")).date().isoformat()
+        except ValueError:
+            return jsonify({"error": "unparseable wake_time"}), 400
+
+    def _num(k):
+        try:
+            return int(float(data.get(k)))
+        except (TypeError, ValueError):
+            return None
+
+    source = str(data.get("source") or "apple_health").strip()
+    claimed = database.claim_sleep(
+        uid, source, entry_date, bedtime, wake, duration_seconds,
+        _num("deep_s"), _num("rem_s"), _num("light_s"), _num("awake_s"))
+    if not claimed:
+        return jsonify({"status": "duplicate", "date": entry_date}), 200
+
+    profile = database.get_profile(uid) or {}
+    synced = False
+    if profile.get("sparky_sync"):
+        synced = sparky_sync.push_sleep(
+            entry_date, bedtime, wake, duration_seconds,
+            api_key=profile.get("sparky_api_key"))
+    status = "synced" if synced else "recorded"
+    database.set_sleep_status(uid, entry_date, status)
+    hrs = round(duration_seconds / 3600, 1)
+    return jsonify({"status": status, "date": entry_date, "hours": hrs}), 201
+
+
 @app.route("/coach")
 @app.route("/apex")
 def coach_page():
@@ -1339,9 +1422,10 @@ def progress():
         history_weeks[-1]["workouts"].append(w)
     cardio = _cardio_display(uid, days=30)
     cardio_kcal = sum(c.get("kcal") or 0 for c in cardio)
+    sleep = _sleep_display(uid, days=14)
     return render_template("progress.html", profile=profile, weights=weights,
                            history=workouts, history_weeks=history_weeks, stats=stats,
-                           cardio=cardio, cardio_kcal=cardio_kcal,
+                           cardio=cardio, cardio_kcal=cardio_kcal, sleep=sleep,
                            sparky_enabled=bool((profile or {}).get("sparky_sync")))
 
 

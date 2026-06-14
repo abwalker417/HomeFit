@@ -690,6 +690,33 @@ def push_external_workout(name, date_str, duration_minutes, kcal=None,
         return False
 
 
+def push_sleep(entry_date, bedtime_iso, wake_iso, duration_seconds, api_key=None):
+    """Push one night of sleep to SparkyFitness (POST /sleep/manual_entry).
+    Returns True if Sparky accepted it."""
+    config = load_config()
+    if not config.get("url"):
+        return False
+    effective_key = api_key or config.get("api_key", "")
+    if not effective_key:
+        return False
+    payload = {
+        "entry_date": entry_date,
+        "bedtime": bedtime_iso,
+        "wake_time": wake_iso,
+        "duration_in_seconds": int(duration_seconds),
+    }
+    try:
+        r = requests.post(
+            f"{config['url']}/sleep/manual_entry",
+            headers={**_headers(effective_key), "Content-Type": "application/json"},
+            json=payload,
+            timeout=10,
+        )
+        return r.ok
+    except Exception:
+        return False
+
+
 def fetch_goals(api_key=None):
     """Fetch current calorie and macro goals from Sparky. Returns a dict or {}."""
     config = load_config()
