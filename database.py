@@ -536,6 +536,7 @@ def get_coaching_context(user_id):
         "nutrition_goals": goals,
         "other_activity": other_activity,
         "sleep_log": get_recent_sleep(user_id, days=7),
+        "readiness": compute_readiness(user_id),
     }
 
 
@@ -673,6 +674,54 @@ def get_recent_sleep(user_id, days=14, limit=30):
             (user_id, cutoff, limit),
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def compute_readiness(user_id):
+    """Daily readiness 0-100 from last night's sleep (duration + deep/REM) minus
+    recent training load. Returns None when there's no recent sleep — so the
+    score simply doesn't appear for users who aren't tracking sleep yet."""
+    sleep = get_recent_sleep(user_id, days=2)
+    if not sleep:
+        return None
+    n = sleep[0]
+    secs = n.get("duration_seconds") or 0
+    if secs <= 0:
+        return None
+
+    hours = secs / 3600.0
+    # Duration: 4h -> 0, 8h -> 100
+    dur_score = max(0.0, min(100.0, (hours - 4) / 4 * 100))
+    deeprem = (n.get("deep_seconds") or 0) + (n.get("rem_seconds") or 0)
+    quality = (deeprem / secs) if secs else 0
+    # Quality: ~45% deep+REM of total sleep is excellent
+    qual_score = max(0.0, min(100.0, quality / 0.45 * 100))
+    sleep_score = 0.65 * dur_score + 0.35 * qual_score
+
+    # Recent training load (last 2 days) — accumulated fatigue gently lowers it
+    cutoff = (datetime.now() - timedelta(days=2)).isoformat()
+    workouts = [w for w in get_workout_history(user_id, limit=20)
+                if (w.get("completed_at") or "") >= cutoff]
+    cardio = get_external_workouts(user_id, days=2)
+    load = len(workouts) + len(cardio)
+    penalty = min(load, 3) * 5
+
+    score = int(round(max(0.0, min(100.0, sleep_score - penalty))))
+    if score >= 80:
+        level, label = "high", "Primed"
+    elif score >= 60:
+        level, label = "good", "Ready"
+    elif score >= 40:
+        level, label = "mod", "Take it easy"
+    else:
+        level, label = "low", "Recover"
+
+    h, m = divmod(secs // 60, 60)
+    reason = f"{h}h{m:02d}m sleep"
+    if deeprem:
+        reason += f", {deeprem // 60}m deep+REM"
+    if load >= 2:
+        reason += f" · {load} sessions in 2 days"
+    return {"score": score, "level": level, "label": label, "reason": reason, "hours": round(hours, 1)}
 
 
 def get_external_workouts(user_id, days=14, limit=50):

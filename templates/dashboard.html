@@ -2,6 +2,16 @@
 {% block title %}Home — HomeFit{% endblock %}
 
 {% block content %}
+{% if readiness %}
+<section class="card readiness readiness--{{ readiness.level }}">
+  <div class="readiness-num">{{ readiness.score }}</div>
+  <div class="readiness-info">
+    <p class="card-eyebrow" style="margin:0;">Readiness · {{ readiness.label }}</p>
+    <p class="subtle" style="margin:4px 0 0; font-size:13px;">{{ readiness.reason }}</p>
+  </div>
+</section>
+{% endif %}
+
 <section class="hero">
   <div class="hero-top">
     <div>

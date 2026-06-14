@@ -578,6 +578,7 @@ def index():
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats,
                            cardio=_cardio_display(uid, days=14)[:3],
                            last_sleep=sleep[0] if sleep else None,
+                           readiness=database.compute_readiness(uid),
                            has_active_workout=bool(session.get("today_workout")),
                            ai_online=coach.is_available())
 

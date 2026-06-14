@@ -481,6 +481,18 @@ fieldset.field { border: none; padding: 0; }
 .rest-label { color: var(--subtle); text-transform: uppercase; letter-spacing: 2px; }
 .rest-count { font-size: 96px; font-weight: 800; margin: 0; color: var(--accent); font-variant-numeric: tabular-nums; }
 
+/* Daily readiness card */
+.readiness { display: flex; align-items: center; gap: 16px; }
+.readiness-num {
+  font-size: 46px; font-weight: 800; line-height: 1;
+  color: var(--accent); min-width: 64px; text-align: center;
+}
+.readiness-info { flex: 1; }
+.readiness--mod .readiness-num,
+.readiness--mod .card-eyebrow { color: var(--warn); }
+.readiness--low .readiness-num,
+.readiness--low .card-eyebrow { color: var(--danger); }
+
 /* Sleep stat row (dashboard LAST NIGHT card) */
 .sleep-stats {
   display: flex;

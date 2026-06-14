@@ -172,6 +172,11 @@ def _build_context(coaching_data):
             lines.append(f"- {day['date']}: {liters:.1f}L{flag}")
         lines.append("")
 
+    readiness = coaching_data.get("readiness")
+    if readiness:
+        lines.append(f"Readiness today: {readiness['score']}/100 ({readiness['label']}) — {readiness['reason']}.")
+        lines.append("")
+
     sleep_log = coaching_data.get("sleep_log") or []
     if sleep_log:
         lines.append("Recent sleep (Apple Health / Oura):")
