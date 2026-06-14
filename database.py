@@ -721,13 +721,16 @@ def compute_readiness(user_id):
     # Elevated resting HR vs your recent baseline signals under-recovery
     rhr_note = ""
     rhr = get_recent_metric(user_id, "resting_hr", days=14)
-    if len(rhr) >= 4:
+    if rhr:
         latest = rhr[0]["value"]
-        baseline = sum(r["value"] for r in rhr[1:8]) / len(rhr[1:8])
-        if latest > baseline + 5:
-            penalty += min(12, (latest - baseline))
-            rhr_note = f" · resting HR {int(latest)} (↑ vs {int(baseline)} baseline)"
-        elif latest <= baseline:
+        if len(rhr) >= 4:
+            baseline = sum(r["value"] for r in rhr[1:8]) / len(rhr[1:8])
+            if latest > baseline + 5:
+                penalty += min(12, (latest - baseline))
+                rhr_note = f" · resting HR {int(latest)} (↑ vs {int(baseline)} baseline)"
+            else:
+                rhr_note = f" · resting HR {int(latest)}"
+        else:
             rhr_note = f" · resting HR {int(latest)}"
 
     score = int(round(max(0.0, min(100.0, sleep_score - penalty))))
