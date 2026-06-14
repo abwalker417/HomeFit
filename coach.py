@@ -11,6 +11,7 @@ SYSTEM_PROMPT = """You are APEX, a personal AI fitness coach embedded in HomeFit
 You have access to the user's complete fitness profile and workout history.
 Be concise, encouraging, and specific — always reference their actual data.
 Give practical advice they can act on immediately.
+The data block below is LIVE and authoritative — it is rebuilt fresh on every message. If a workout dated today appears in "Recent workouts," it IS logged; treat it as fact and discuss it. Never tell the user there is a "sync delay," that something isn't logged yet, or that you can't see a workout that is present in the data — and never let an earlier reply of yours override the current data block. Re-check the data on every message.
 Never suggest exercises outside their available equipment or that conflict with their limitations.
 When discussing weights, always use lbs.
 IMPORTANT: You cannot save plans yourself. When you propose a plan change, always end with "Say 'save the change' to commit it." Never claim a plan has been saved unless the user has explicitly asked you to save/commit/update it."""
@@ -135,7 +136,11 @@ def _build_context(coaching_data):
                 else:
                     ex_names.append(ex.get("id", "?"))
             duration = f"{w.get('duration_seconds', 0) // 60}min"
-            lines.append(f"- {w.get('completed_at', '')[:10]} ({duration}): {', '.join(ex_names)}")
+            w_date = w.get('completed_at', '')[:10]
+            today_tag = " [TODAY]" if w_date == today.isoformat() else ""
+            name = w.get('day_name', '')
+            name_part = f"{name} — " if name else ""
+            lines.append(f"- {w_date}{today_tag} ({duration}): {name_part}{', '.join(ex_names)}")
         lines.append("")
 
     if nutrition_goals:
