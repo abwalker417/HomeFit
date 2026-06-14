@@ -177,6 +177,16 @@ def _build_context(coaching_data):
         lines.append(f"Readiness today: {readiness['score']}/100 ({readiness['label']}) — {readiness['reason']}.")
         lines.append("")
 
+    tl = coaching_data.get("training_load")
+    if tl and tl.get("sessions_7d"):
+        lines.append(
+            f"Training load: {tl['sessions_7d']} sessions / {tl['minutes_7d']} min in the last 7 days "
+            f"({tl['sessions_3d']} in the last 3)."
+        )
+        lines.append("If training load is high AND recent sleep is short or declining, warn about "
+                     "under-recovery and recommend a lighter/deload day or rest.")
+        lines.append("")
+
     sleep_log = coaching_data.get("sleep_log") or []
     if sleep_log:
         lines.append("Recent sleep (Apple Health / Oura):")

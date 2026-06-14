@@ -391,8 +391,10 @@ function loadStrengthChart() {
         `<option value="${i}">${e.name} (${e.points.length} sessions)</option>`).join('');
       const draw = () => drawStrengthSeries(canvas, exercises[parseInt(select.value, 10) || 0].points);
       select.addEventListener('change', draw);
+      card._draw = draw;
       card.style.display = '';
-      draw();
+      // Draw now only if the card is already open; otherwise the toggle handler draws it.
+      if (card.open || !card.classList.contains('collapsible')) draw();
     })
     .catch(() => {});
 }

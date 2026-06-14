@@ -37,80 +37,106 @@
   </div>
 </section>
 
-<section id="weekly-digest-card" class="card" style="display:none;">
-  <p class="card-eyebrow">APEX WEEKLY DIGEST</p>
-  <div id="weekly-digest-body" style="font-size:14px; line-height:1.65; color:var(--subtle);"></div>
-</section>
+<details class="card collapsible" data-card="digest" id="weekly-digest-card" style="display:none;">
+  <summary class="collapse-summary">
+    <span class="collapse-title">APEX Weekly Digest</span>
+    <span class="collapse-latest">tap to read</span>
+  </summary>
+  <div id="weekly-digest-body" style="font-size:14px; line-height:1.65; color:var(--subtle); margin-top:12px;"></div>
+</details>
 
-<section class="card">
-  <h2>Weight over time</h2>
-  {% if weights %}
+{% if weights %}
+<details class="card collapsible" data-card="weight">
+  <summary class="collapse-summary">
+    <span class="collapse-title">Weight over time</span>
+    <span class="collapse-latest">{{ profile.current_weight }} lbs</span>
+  </summary>
+  <div style="margin-top:12px;">
     <canvas id="weight-chart" width="600" height="220"
             data-points='{{ weights | tojson }}'
             data-goal="{{ profile.goal_weight or '' }}"></canvas>
-  {% else %}
-    <p class="subtle">No weight logged yet. Log one from the home screen.</p>
-  {% endif %}
-</section>
+  </div>
+</details>
+{% endif %}
 
-<section id="strength-card" class="card" style="display:none;">
-  <h2 style="margin-top:0;">Strength</h2>
-  <p class="subtle" style="margin:0 0 10px; font-size:13px;">Heaviest logged weight per session</p>
-  <select id="strength-select"
-          style="width:100%; background:var(--bg-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:10px 14px; font-size:15px; margin-bottom:12px; -webkit-appearance:none;"></select>
-  <canvas id="strength-chart" width="600" height="200"></canvas>
-</section>
+<details class="card collapsible" data-card="strength" id="strength-card" style="display:none;">
+  <summary class="collapse-summary">
+    <span class="collapse-title">Strength</span>
+    <span class="collapse-latest">per-session PRs</span>
+  </summary>
+  <div style="margin-top:12px;">
+    <p class="subtle" style="margin:0 0 10px; font-size:13px;">Heaviest logged weight per session</p>
+    <select id="strength-select"
+            style="width:100%; background:var(--bg-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:10px 14px; font-size:15px; margin-bottom:12px; -webkit-appearance:none;"></select>
+    <canvas id="strength-chart" width="600" height="200"></canvas>
+  </div>
+</details>
 
 {% if sparky_enabled %}
-<section id="energy-card" class="card" style="display:none;">
-  <h2 style="margin-top:0;">Calories in vs burned</h2>
-  <p class="subtle" style="margin:0 0 10px; font-size:13px;">Last 7 days · food from SparkyFitness, burn from workouts + cardio</p>
-  <div id="energy-rows"></div>
-</section>
+<details class="card collapsible" data-card="energy" id="energy-card" style="display:none;">
+  <summary class="collapse-summary">
+    <span class="collapse-title">Calories in vs burned</span>
+    <span class="collapse-latest">7 days</span>
+  </summary>
+  <div style="margin-top:12px;">
+    <p class="subtle" style="margin:0 0 10px; font-size:13px;">Food from SparkyFitness, burn from workouts + cardio</p>
+    <div id="energy-rows"></div>
+  </div>
+</details>
 {% endif %}
 
 {% if sleep %}
-<section class="card">
-  <h2 style="margin-top:0;">Sleep</h2>
-  <p class="subtle" style="margin:0 0 6px; font-size:13px;">Last 14 days from Apple Health</p>
-  {% if sleep|length >= 2 %}
-  <div class="sleep-chart">
-    {% for s in sleep|reverse %}
-    <div class="sleep-bar" title="{{ s.entry_date }}: {{ s.hm }}">
-      <div class="sleep-bar-fill" style="height: {{ ([(s.duration_seconds or 0) / 36000 * 100, 100] | min) | round }}%;"></div>
-      <span>{{ s.dow }}</span>
+<details class="card collapsible" data-card="sleep">
+  <summary class="collapse-summary">
+    <span class="collapse-title">Sleep</span>
+    <span class="collapse-latest">{{ sleep[0].hm }}</span>
+  </summary>
+  <div style="margin-top:12px;">
+    <p class="subtle" style="margin:0 0 6px; font-size:13px;">Last 14 days from Apple Health</p>
+    {% if sleep|length >= 2 %}
+    <div class="sleep-chart">
+      {% for s in sleep|reverse %}
+      <div class="sleep-bar" title="{{ s.entry_date }}: {{ s.hm }}">
+        <div class="sleep-bar-fill" style="height: {{ ([(s.duration_seconds or 0) / 36000 * 100, 100] | min) | round }}%;"></div>
+        <span>{{ s.dow }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% for s in sleep %}
+    <div class="cardio-row">
+      <div class="cardio-main">
+        <strong>{{ s.hm }}</strong>
+        {% if s.bedtime_fmt %}<span class="subtle"> · {{ s.bedtime_fmt }} → {{ s.wake_time_fmt }}</span>{% endif %}
+      </div>
+      <div class="cardio-meta">{{ s.entry_date }}{% if s.stages %} · {{ s.stages }}{% endif %}</div>
     </div>
     {% endfor %}
   </div>
-  {% endif %}
-  {% for s in sleep %}
-  <div class="cardio-row">
-    <div class="cardio-main">
-      <strong>{{ s.hm }}</strong>
-      {% if s.bedtime_fmt %}<span class="subtle"> · {{ s.bedtime_fmt }} → {{ s.wake_time_fmt }}</span>{% endif %}
-    </div>
-    <div class="cardio-meta">{{ s.entry_date }}{% if s.stages %} · {{ s.stages }}{% endif %}</div>
-  </div>
-  {% endfor %}
-</section>
+</details>
 {% endif %}
 
 {% if cardio %}
-<section class="card">
-  <h2 style="margin-top:0;">Cardio &amp; activity</h2>
-  <p class="subtle" style="margin:0 0 6px; font-size:13px;">
-    Last 30 days from Apple Health{% if cardio_kcal %} · {{ cardio_kcal }} kcal burned{% endif %}
-  </p>
-  {% for c in cardio %}
-  <div class="cardio-row">
-    <div class="cardio-main">
-      <strong>{{ c.workout_type }}</strong>
-      <span class="subtle"> · {{ c.duration_minutes }} min</span>
+<details class="card collapsible" data-card="cardio">
+  <summary class="collapse-summary">
+    <span class="collapse-title">Cardio &amp; activity</span>
+    <span class="collapse-latest">{{ cardio[0].workout_type }} · {{ cardio[0].when }}</span>
+  </summary>
+  <div style="margin-top:12px;">
+    <p class="subtle" style="margin:0 0 6px; font-size:13px;">
+      Last 30 days from Apple Health{% if cardio_kcal %} · {{ cardio_kcal }} kcal burned{% endif %}
+    </p>
+    {% for c in cardio %}
+    <div class="cardio-row">
+      <div class="cardio-main">
+        <strong>{{ c.workout_type }}</strong>
+        <span class="subtle"> · {{ c.duration_minutes }} min</span>
+      </div>
+      <div class="cardio-meta">{{ c.when }}{% if c.detail %} · {{ c.detail }}{% endif %}</div>
     </div>
-    <div class="cardio-meta">{{ c.when }}{% if c.detail %} · {{ c.detail }}{% endif %}</div>
+    {% endfor %}
   </div>
-  {% endfor %}
-</section>
+</details>
 {% endif %}
 
 <section>
@@ -157,9 +183,20 @@
 
 {% block scripts %}
 <script>
-  drawWeightChart();
-  loadStrengthChart();
+  // Fill the fetched cards (HTML/text — fine while collapsed) and decide visibility
   loadEnergyBalance();
   loadWeeklyDigest();
+  loadStrengthChart();
+  // Canvas charts need width, so draw them the first time their card opens
+  document.querySelectorAll('details.collapsible').forEach(d => {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      if (d.dataset.card === 'weight') drawWeightChart();
+      else if (d.dataset.card === 'strength') {
+        const c = document.getElementById('strength-card');
+        if (c && typeof c._draw === 'function') c._draw();
+      }
+    });
+  });
 </script>
 {% endblock %}

@@ -537,6 +537,7 @@ def get_coaching_context(user_id):
         "other_activity": other_activity,
         "sleep_log": get_recent_sleep(user_id, days=7),
         "readiness": compute_readiness(user_id),
+        "training_load": training_load(user_id),
     }
 
 
@@ -722,6 +723,25 @@ def compute_readiness(user_id):
     if load >= 2:
         reason += f" · {load} sessions in 2 days"
     return {"score": score, "level": level, "label": label, "reason": reason, "hours": round(hours, 1)}
+
+
+def training_load(user_id):
+    """Recent training volume (workouts + cardio) for under-recovery checks."""
+    now = datetime.now()
+    c7 = (now - timedelta(days=7)).isoformat()
+    c3 = (now - timedelta(days=3)).isoformat()
+    workouts = get_workout_history(user_id, limit=40)
+    w7 = [w for w in workouts if (w.get("completed_at") or "") >= c7]
+    w3 = [w for w in workouts if (w.get("completed_at") or "") >= c3]
+    cardio7 = get_external_workouts(user_id, days=7)
+    cardio3 = get_external_workouts(user_id, days=3)
+    minutes = sum((w.get("duration_seconds") or 0) // 60 for w in w7) \
+        + sum(c.get("duration_minutes") or 0 for c in cardio7)
+    return {
+        "sessions_7d": len(w7) + len(cardio7),
+        "sessions_3d": len(w3) + len(cardio3),
+        "minutes_7d": int(minutes),
+    }
 
 
 def get_external_workouts(user_id, days=14, limit=50):
