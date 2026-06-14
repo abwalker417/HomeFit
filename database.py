@@ -527,6 +527,7 @@ def get_coaching_context(user_id):
         "hydration_log": hydration,
         "nutrition_goals": goals,
         "other_activity": other_activity,
+        "sleep_log": get_recent_sleep(user_id, days=7),
     }
 
 

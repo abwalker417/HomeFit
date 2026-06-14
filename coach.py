@@ -172,6 +172,24 @@ def _build_context(coaching_data):
             lines.append(f"- {day['date']}: {liters:.1f}L{flag}")
         lines.append("")
 
+    sleep_log = coaching_data.get("sleep_log") or []
+    if sleep_log:
+        lines.append("Recent sleep (Apple Health / Oura):")
+        for night in sleep_log[:7]:
+            h, m = divmod((night.get("duration_seconds") or 0) // 60, 60)
+            extra = []
+            if night.get("deep_seconds"):
+                dh, dm = divmod(night["deep_seconds"] // 60, 60)
+                extra.append(f"deep {dh}h{dm:02d}m")
+            if night.get("rem_seconds"):
+                rh, rm = divmod(night["rem_seconds"] // 60, 60)
+                extra.append(f"REM {rh}h{rm:02d}m")
+            tail = f" ({', '.join(extra)})" if extra else ""
+            flag = " — short" if (h + m / 60) < 6.5 else ""
+            lines.append(f"- {night['entry_date']}: {h}h{m:02d}m asleep{tail}{flag}")
+        lines.append("Use sleep to inform recovery — flag under-recovery, suggest lighter days or rest when sleep is short or deep/REM is low.")
+        lines.append("")
+
     other_activity = coaching_data.get("other_activity") or []
     if other_activity:
         lines.append("Other activity (Apple Health / Oura / manual — NOT HomeFit workouts):")

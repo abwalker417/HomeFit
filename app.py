@@ -507,15 +507,24 @@ def _cardio_display(uid, days=14):
     return items
 
 
+def _fmt_dur(secs):
+    if not secs:
+        return ""
+    m = secs // 60
+    h, m = divmod(m, 60)
+    return f"{h}h {m}m" if h else f"{m}m"
+
+
 def _sleep_display(uid, days=14):
-    """Recent sleep with formatted hours and local bed/wake times."""
+    """Recent sleep with formatted hours, stages, and local bed/wake times."""
     from datetime import datetime
     items = database.get_recent_sleep(uid, days=days)
     for s in items:
-        secs = s.get("duration_seconds") or 0
-        h, m = divmod(secs // 60, 60)
-        s["hm"] = f"{h}h {m}m"
-        s["hours"] = round(secs / 3600, 1)
+        s["hm"] = _fmt_dur(s.get("duration_seconds"))
+        s["hours"] = round((s.get("duration_seconds") or 0) / 3600, 1)
+        s["deep_fmt"] = _fmt_dur(s.get("deep_seconds"))
+        s["rem_fmt"] = _fmt_dur(s.get("rem_seconds"))
+        s["light_fmt"] = _fmt_dur(s.get("light_seconds"))
         for k in ("bedtime", "wake_time"):
             try:
                 dt = datetime.fromisoformat(str(s.get(k)))
@@ -525,10 +534,10 @@ def _sleep_display(uid, days=14):
             except (ValueError, TypeError):
                 s[k + "_fmt"] = ""
         stage_bits = []
-        for label, key in (("Deep", "deep_seconds"), ("REM", "rem_seconds")):
-            if s.get(key):
-                sm = s[key] // 60
-                stage_bits.append(f"{label} {sm // 60}h {sm % 60}m" if sm >= 60 else f"{label} {sm}m")
+        if s["deep_fmt"]:
+            stage_bits.append("Deep " + s["deep_fmt"])
+        if s["rem_fmt"]:
+            stage_bits.append("REM " + s["rem_fmt"])
         s["stages"] = " · ".join(stage_bits)
     return items
 
