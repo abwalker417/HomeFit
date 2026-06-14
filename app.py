@@ -484,7 +484,6 @@ def cancel_workout():
     return redirect(url_for("index"))
 
 
-@app.route("/")
 def _cardio_display(uid, days=14):
     """Recent cardio with local-time display fields for templates."""
     from datetime import datetime, timezone
@@ -508,6 +507,7 @@ def _cardio_display(uid, days=14):
     return items
 
 
+@app.route("/")
 def index():
     uid = session["user_id"]
     profile = database.get_profile(uid)
