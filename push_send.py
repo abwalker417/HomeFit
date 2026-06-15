@@ -7,6 +7,8 @@ Usage:
                                   # recap + today's focus)
     python3 push_send.py streak   # evening: remind anyone who hasn't trained yet
                                   # and is still short of the weekly target
+    python3 push_send.py memory   # nightly: APEX updates its persistent memory
+                                  # of each user from the day's conversation
 """
 
 import sys
@@ -84,6 +86,35 @@ def send_streak_reminders():
         print(f"user {uid}: streak push sent to {n} device(s)")
 
 
+def update_memories():
+    """Nightly: let APEX update its persistent memory of each user from the
+    day's conversation. Skips users with no new chat since the last update."""
+    import coach
+    for u in database.list_users():
+        uid = u["id"]
+        messages = database.get_apex_chat(uid)
+        if not messages:
+            continue
+        chat_ts = database.get_apex_chat_updated_at(uid)
+        mem_ts = database.get_apex_memory_updated_at(uid)
+        if chat_ts and mem_ts and chat_ts <= mem_ts:
+            print(f"user {uid}: no new conversation, memory unchanged")
+            continue
+        try:
+            profile = database.get_profile(uid) or {}
+            profile.setdefault("name", u.get("name"))
+            existing = database.get_apex_memory(uid)
+            updated = coach.update_memory(existing, messages, profile)
+            if updated and updated != existing:
+                database.save_apex_memory(uid, updated)
+                print(f"user {uid}: memory updated ({len(updated)} chars)")
+            else:
+                database.save_apex_memory(uid, existing)  # bump timestamp
+                print(f"user {uid}: memory unchanged")
+        except Exception as e:
+            print(f"memory update failed for user {uid}: {e}")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "digest":
@@ -92,6 +123,8 @@ if __name__ == "__main__":
         send_daily_briefs()
     elif cmd == "streak":
         send_streak_reminders()
+    elif cmd == "memory":
+        update_memories()
     else:
         print(__doc__)
         sys.exit(1)

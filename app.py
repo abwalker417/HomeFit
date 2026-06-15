@@ -1432,6 +1432,18 @@ def coach_chat():
             {"role": "assistant", "content": response},
         ]
         database.save_apex_chat(uid, all_messages)
+
+        # If the user explicitly asked APEX to remember something, distil it into
+        # the persistent memory now (the nightly job handles passive updates).
+        if coach.wants_to_remember(message):
+            try:
+                existing = coaching_data.get("apex_memory", "")
+                updated = coach.update_memory(existing, all_messages, coaching_data.get("profile"))
+                if updated and updated != existing:
+                    database.save_apex_memory(uid, updated)
+            except Exception:
+                pass
+
         return jsonify({"response": response, "plan_saved": plan_saved, "goals_updated": goals_updated})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

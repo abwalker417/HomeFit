@@ -14,6 +14,7 @@ Give practical advice they can act on immediately.
 The data block below is LIVE and authoritative — it is rebuilt fresh on every message. If a workout dated today appears in "Recent workouts," it IS logged; treat it as fact and discuss it. Never tell the user there is a "sync delay," that something isn't logged yet, or that you can't see a workout that is present in the data — and never let an earlier reply of yours override the current data block. Re-check the data on every message.
 Never suggest exercises outside their available equipment or that conflict with their limitations.
 When discussing weights, always use lbs.
+You keep a persistent MEMORY about this user (shown in the data block when present) that carries across all conversations — use it to be personal, warm, and consistent, like a coach who actually knows them. If the user shares something durable worth remembering (a goal, an injury, a preference, life context, a milestone), weave it in; they can also say "remember that ..." to make you save it.
 IMPORTANT: You cannot save plans yourself. When you propose a plan change, always end with "Say 'save the change' to commit it." Never claim a plan has been saved unless the user has explicitly asked you to save/commit/update it."""
 
 
@@ -136,6 +137,18 @@ def _build_context(coaching_data):
         f"advise for THIS time of day; only suggest sleep/rest/winding down in the "
         f"evening or night, never in the morning or daytime.",
         "",
+    ]
+
+    memory = (coaching_data.get("apex_memory") or "").strip()
+    if memory:
+        lines += [
+            "What you remember about this user (your persistent memory across all "
+            "conversations — use it to be personal and consistent):",
+            memory,
+            "",
+        ]
+
+    lines += [
         f"User profile:",
         f"- Fitness level: {profile.get('fitness_level', 'unknown')}",
         f"- Current weight: {profile.get('current_weight')} lbs, Goal: {profile.get('goal_weight')} lbs",
@@ -694,3 +707,61 @@ Must have exactly 7 items. Use rest:true for rest days."""
     while len(plan) < 7:
         plan.append({"day": len(plan)+1, "name": "Rest Day", "focus": "recovery", "rest": True, "exercises": []})
     return {"plan": plan[:7]}
+
+
+# ── APEX persistent memory ────────────────────────────────────────────────────
+
+REMEMBER_PHRASES = [
+    "remember that", "remember this", "remember i", "remember my", "remember to",
+    "don't forget", "dont forget", "keep in mind", "note that", "make a note",
+    "for future reference", "from now on", "going forward, ",
+]
+
+MEMORY_CHAR_LIMIT = 1800
+
+
+def wants_to_remember(message):
+    m = message.lower()
+    return any(phrase in m for phrase in REMEMBER_PHRASES)
+
+
+def update_memory(existing_memory, recent_messages, profile=None):
+    """Distill durable facts about the user into an updated memory document.
+
+    Merges new durable facts from the recent conversation into the existing
+    memory, prunes stale/outdated lines, and keeps it bounded. Returns the new
+    markdown (or the existing memory unchanged on any failure)."""
+    convo = "\n".join(
+        f"{'USER' if m['role'] == 'user' else 'APEX'}: {m['content'][:600]}"
+        for m in (recent_messages or [])[-12:]
+    )[-3500:]
+    name = (profile or {}).get("name", "the user")
+
+    prompt = f"""You maintain APEX's long-term MEMORY about {name} — durable facts that make \
+coaching personal across conversations. Update the memory below using the recent conversation.
+
+RULES:
+- Keep ONLY durable, useful facts: goals & the "why", injuries/constraints, coaching-style \
+preferences, equipment quirks, life context, milestones/PRs, dislikes.
+- Do NOT store one-off data already tracked elsewhere (today's weight, a single meal, one \
+workout) — that lives in the live data.
+- MERGE new facts in; UPDATE facts that changed; REMOVE anything now outdated or contradicted.
+- Be concise. Group under short markdown headers. Hard limit ~{MEMORY_CHAR_LIMIT} characters.
+- If nothing durable is worth changing, return the existing memory unchanged.
+
+CURRENT MEMORY:
+{existing_memory or "(empty)"}
+
+RECENT CONVERSATION:
+{convo}
+
+Return ONLY the updated memory markdown — no preamble, no code fences."""
+
+    try:
+        result = _generate(prompt, system=None, max_tokens=700, timeout=45).strip()
+        result = _strip_code_fences(result)
+        if not result or result.lower() in ("(empty)", "none", "no changes"):
+            return existing_memory
+        return result[:MEMORY_CHAR_LIMIT]
+    except Exception:
+        return existing_memory

@@ -172,6 +172,13 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS apex_memory (
+                user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                content    TEXT NOT NULL DEFAULT '',
+                updated_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS push_subscriptions (
                 endpoint          TEXT PRIMARY KEY,
                 user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -550,6 +557,7 @@ def get_coaching_context(user_id):
         "sleep_log": get_recent_sleep(user_id, days=7),
         "readiness": compute_readiness(user_id),
         "training_load": training_load(user_id),
+        "apex_memory": get_apex_memory(user_id),
     }
 
 
@@ -1051,6 +1059,42 @@ def save_daily_brief(user_id, brief_text):
                  generated_at=excluded.generated_at""",
             (user_id, brief_text, today, now),
         )
+
+
+def get_apex_memory(user_id):
+    """APEX's persistent memory about this user (markdown), or '' if none."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT content FROM apex_memory WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return row["content"] if row else ""
+
+
+def save_apex_memory(user_id, content):
+    now = datetime.now().isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO apex_memory (user_id, content, updated_at) VALUES (?, ?, ?)
+               ON CONFLICT(user_id) DO UPDATE SET
+                 content=excluded.content, updated_at=excluded.updated_at""",
+            (user_id, content, now),
+        )
+
+
+def get_apex_memory_updated_at(user_id):
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT updated_at FROM apex_memory WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return row["updated_at"] if row else None
+
+
+def get_apex_chat_updated_at(user_id):
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT updated_at FROM apex_chat WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return row["updated_at"] if row else None
 
 
 def get_apex_plan(user_id):
