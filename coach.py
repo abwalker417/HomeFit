@@ -112,8 +112,29 @@ def _build_context(coaching_data):
         today = _date.today()
         today_label = f"{day_names[today.weekday()]}, {today.isoformat()}"
 
+    # Time of day so APEX greets/advises correctly (it was telling users to
+    # "get some sleep" in the morning because it only knew the date, not the
+    # hour). Server (CT 115) is America/Denver = the users' local time; prefer
+    # a client-supplied time if present.
+    from datetime import datetime as _dt
+    now_local = _dt.now()
+    clock_str = coaching_data.get("local_time")  # e.g. "07:42"
+    try:
+        if clock_str:
+            hh, mm = (int(x) for x in clock_str.split(":")[:2])
+            now_local = now_local.replace(hour=hh, minute=mm)
+    except Exception:
+        pass
+    hour = now_local.hour
+    part = ("the middle of the night" if hour < 5 else "early morning" if hour < 8
+            else "morning" if hour < 12 else "afternoon" if hour < 17
+            else "evening" if hour < 21 else "night")
+
     lines = [
         f"Today is {today_label} (user's local time).",
+        f"It is currently {now_local.strftime('%-I:%M %p')} — {part}. Greet and "
+        f"advise for THIS time of day; only suggest sleep/rest/winding down in the "
+        f"evening or night, never in the morning or daytime.",
         "",
         f"User profile:",
         f"- Fitness level: {profile.get('fitness_level', 'unknown')}",
