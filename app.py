@@ -5,6 +5,7 @@ import os
 import random
 import subprocess
 from collections import defaultdict
+from datetime import timedelta
 from threading import Lock
 from time import time
 
@@ -47,6 +48,10 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.environ.get("HOMEFIT_SESSION_SECURE", "0") == "1",
+    # Persist the login across app restarts. Without an explicit lifetime the
+    # session cookie has no expiry, so the iOS WKWebView drops it when the app
+    # is killed and the user is forced to re-login every launch.
+    PERMANENT_SESSION_LIFETIME=timedelta(days=365),
 )
 
 
@@ -278,6 +283,9 @@ def _weight_chart_points(history):
 
 @app.before_request
 def require_profile():
+    # Keep the login cookie persistent (survives app/browser restarts) rather
+    # than a session-scoped cookie the WKWebView drops when the app is killed.
+    session.permanent = True
     if request.endpoint in PUBLIC_ENDPOINTS or request.path.startswith("/static/"):
         return None
     if "user_id" not in session:
