@@ -74,6 +74,19 @@
 </section>
 
 <section class="card">
+  <h2>APEX memory</h2>
+  <p class="subtle" style="font-size:13px;">What your AI coach remembers about you across conversations — goals, preferences, injuries, life context. APEX updates this on its own each night, and you can tell it "remember that…" in chat. Edit it directly here anytime.</p>
+  <textarea id="apex-memory-text" rows="12"
+            style="width:100%; box-sizing:border-box; font-family:inherit; font-size:13px; line-height:1.5; resize:vertical;"
+            placeholder="APEX hasn't learned anything yet — chat with it, or add notes here.">{{ apex_memory }}</textarea>
+  <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+    <button type="button" id="apex-memory-save" class="btn btn-primary">Save memory</button>
+    <button type="button" id="apex-memory-clear" class="btn btn-secondary">Clear</button>
+    <span id="apex-memory-status" class="subtle" style="font-size:12px;"></span>
+  </div>
+</section>
+
+<section class="card">
   <h2>Notifications</h2>
   <p class="subtle" style="font-size:13px;">Weekly digest on Monday mornings, plus a heads-up when your weekly streak is on the line.</p>
   <button type="button" id="push-toggle" class="btn btn-secondary" style="display:block; width:100%;">Checking…</button>
@@ -158,5 +171,48 @@
       } catch (_) { /* visual already applied; will persist on next save attempt */ }
     });
   });
+
+  // APEX memory editor
+  (function () {
+    const ta = document.getElementById('apex-memory-text');
+    const saveBtn = document.getElementById('apex-memory-save');
+    const clearBtn = document.getElementById('apex-memory-clear');
+    const status = document.getElementById('apex-memory-status');
+    if (!ta || !saveBtn) return;
+
+    async function save(content, label) {
+      saveBtn.disabled = true;
+      status.textContent = 'Saving…';
+      try {
+        const r = await fetch('/api/apex-memory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content }),
+        });
+        if (!r.ok) throw new Error('status ' + r.status);
+        status.textContent = label + ' ✓';
+        setTimeout(() => { status.textContent = ''; }, 2500);
+      } catch (e) {
+        status.textContent = "Couldn't save (" + e.message + ')';
+      } finally {
+        saveBtn.disabled = false;
+      }
+    }
+
+    saveBtn.addEventListener('click', () => save(ta.value, 'Saved'));
+
+    let armed = false, t = null;
+    clearBtn.addEventListener('click', () => {
+      if (!armed) {
+        armed = true;
+        clearBtn.textContent = 'Tap to confirm';
+        t = setTimeout(() => { armed = false; clearBtn.textContent = 'Clear'; }, 3000);
+        return;
+      }
+      clearTimeout(t); armed = false; clearBtn.textContent = 'Clear';
+      ta.value = '';
+      save('', 'Cleared');
+    });
+  })();
 </script>
 {% endblock %}

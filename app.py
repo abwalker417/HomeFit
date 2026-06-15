@@ -478,7 +478,20 @@ def profile_edit(user_id):
         all_users=database.list_users(),
         sparky_configured=bool(sparky_sync.load_config().get("url")),
         api_token=database.get_or_create_api_token(user_id) if user_id == session.get("user_id") else None,
+        apex_memory=database.get_apex_memory(user_id),
     )
+
+
+@app.route("/api/apex-memory", methods=["POST"])
+def save_apex_memory_route():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    content = (request.get_json(silent=True) or {}).get("content", "")
+    if len(content) > 4000:
+        content = content[:4000]
+    database.save_apex_memory(uid, content.strip())
+    return jsonify({"ok": True})
 
 
 @app.route("/profiles/switch", methods=["POST", "GET"])
