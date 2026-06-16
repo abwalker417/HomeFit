@@ -537,7 +537,11 @@ def _sync_workout(config, exercises, workout_date, duration_seconds):
                 logged = logged_sets[i] if i < len(logged_sets) else {}
                 s["reps"] = logged.get("reps") or reps
                 if logged.get("weight"):
-                    s["weight"] = logged["weight"]
+                    # Sparky stores set weights in kg (its own UI converts on
+                    # input); HomeFit uses lbs, so convert before pushing — same
+                    # as the body-weight sync. Without this Sparky shows e.g. a
+                    # 95 lb lift as "95 kg" (~209 lb).
+                    s["weight"] = round(logged["weight"] / 2.20462, 4)
             sets_data.append(s)
 
         payload = {
