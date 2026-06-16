@@ -552,6 +552,23 @@
     "muscle_group": "full_body"
   },
   {
+    "id": "db_chest_press",
+    "name": "Dumbbell Chest Press",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 4.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 75,
+    "instructions": "Lie on a bench (or the floor) holding a dumbbell in each hand at chest level. Press them straight up until your arms are extended, then lower with control.",
+    "muscle_group": "chest"
+  },
+  {
     "id": "band_pull_apart",
     "name": "Band Pull-Apart",
     "category": "upper",
