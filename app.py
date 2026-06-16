@@ -1394,18 +1394,45 @@ def coach_chat():
                 existing = database.get_apex_plan(uid)
                 current_plan = existing["plan"] if existing else None
                 result = coach.extract_plan_from_chat(full_history, exercise_library, current_plan=current_plan)
+                unmapped = []
                 for day in result.get("plan", []):
-                    enriched = []
+                    enriched, seen = [], set()
                     for item in day.get("exercises", []):
-                        ex = get_exercise_by_id(item["id"])
+                        eid = item.get("id")
+                        if not eid or eid in seen:
+                            continue  # drop blanks + duplicate exercises within the day
+                        ex = get_exercise_by_id(eid)
                         if ex:
-                            ex["sets"] = item.get("sets", ex["sets"])
-                            ex["reps"] = item.get("reps", ex["reps"])
+                            ex = dict(ex)  # copy so we don't mutate the library cache
+                            ex["sets"] = item.get("sets", ex.get("sets"))
+                            ex["reps"] = item.get("reps", ex.get("reps"))
                             enriched.append(ex)
+                            seen.add(eid)
+                        else:
+                            unmapped.append(eid)
                     day["exercises"] = enriched
+
+                # Did the plan actually change? (signature = names + rest + exercise ids per day)
+                def _sig(plan):
+                    return [
+                        (d.get("name"), bool(d.get("rest")),
+                         [e.get("id") for e in (d.get("exercises") or [])])
+                        for d in (plan or [])
+                    ]
+                changed = _sig(result["plan"]) != _sig(current_plan)
+
                 database.save_apex_plan(uid, result["plan"])
                 plan_saved = True
-                response = "Done! I've saved that as your weekly plan. Tap **📅 My Plan** to see the full schedule and load today's workout."
+                if changed:
+                    response = "Done! I've saved that as your weekly plan. Tap **📅 My Plan** to see the full schedule and load today's workout."
+                else:
+                    response = ("I saved your plan, but it came out the same as before — I may have "
+                                "missed the change. Tell me the specific edit again (e.g. \"replace "
+                                "push-ups with dumbbell chest press on every day\") and say \"save the change\".")
+                if unmapped:
+                    uniq = ", ".join(sorted(set(unmapped)))
+                    response += (f"\n\n*(Heads up: I couldn't match these to your exercise library so "
+                                 f"they were skipped: {uniq}. Pick a different exercise and re-save.)*")
             except Exception as e:
                 extraction_error = str(e)
 

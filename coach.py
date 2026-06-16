@@ -658,52 +658,67 @@ Only include keys where a specific number was proposed. Omit keys with no propos
 
 
 def extract_plan_from_chat(history, exercise_library, current_plan=None):
-    """Extract or update a 7-day plan from conversation history."""
-    # Only look at recent APEX messages where the plan was described
-    recent = history[-8:]
-    apex_msgs = "\n\n".join(
-        m["content"][:1000] for m in recent if m["role"] == "assistant"
-    )[-2000:]
+    """Produce the user's final 7-day plan from the design conversation.
 
-    lookup = "\n".join(f'  "{e["name"]}" -> "{e["id"]}"' for e in exercise_library[:50])
+    Reads BOTH the user's instructions and the coach's replies (the user's
+    messages carry the actual changes — swaps, rest days, splits), keeps a
+    generous amount of the recent transcript, and asks for the COMPLETE final
+    plan rather than a fragile diff. The current plan is provided only as
+    reference so untouched days are preserved.
+    """
+    recent = history[-12:]
+    transcript = "\n\n".join(
+        f"{'USER' if m['role'] == 'user' else 'COACH'}: {m['content'][:2200]}"
+        for m in recent
+    )[-9000:]
 
+    # Full exercise library for name->id mapping (was capped at 50, which
+    # dropped exercises the user asked for, e.g. dumbbell chest press).
+    lookup = "\n".join(f'  "{e["name"]}" -> "{e["id"]}"' for e in exercise_library)
+
+    ref = ""
     if current_plan:
-        # Strip to compact form — only id/sets/reps to keep output small
         compact = []
         for d in current_plan:
             exs = [{"id": e.get("id"), "sets": e.get("sets", 3), "reps": e.get("reps", 10)}
                    for e in d.get("exercises", []) if e.get("id")]
             compact.append({"day": d.get("day"), "name": d.get("name"), "focus": d.get("focus", ""),
                             "rest": d.get("rest", False), "exercises": exs})
-        current_json = json.dumps(compact)
-        prompt = f"""Update this 7-day plan based on the changes described. Return compact JSON only.
+        ref = ("\nThe user's CURRENT saved plan (reference only — keep days that were "
+               f"NOT discussed, apply every change that WAS):\n{json.dumps(compact)}\n")
 
-CURRENT PLAN (compact): {current_json}
+    prompt = f"""Produce the user's FINAL 7-day workout plan as JSON, reflecting the whole \
+conversation below between the user and their coach. Apply EVERY change the user asked for \
+(exercise swaps, additions/removals, rest days, split changes).
+{ref}
+CONVERSATION:
+{transcript}
 
-CHANGES TO APPLY:
-{apex_msgs}
-
-Rules: Apply ONLY the described changes. Keep other days identical. Map exercise names to IDs:
+Exercise name -> id map (use ONLY these ids):
 {lookup}
 
-Return ONLY: {{"plan":[{{"day":1,"name":"...","focus":"...","rest":false,"exercises":[{{"id":"...","sets":3,"reps":10}}]}},...]}}
-Must have exactly 7 items."""
-    else:
-        prompt = f"""Extract a 7-day workout plan from these coach messages. Return compact JSON only.
+Rules:
+- Output the COMPLETE final plan: exactly 7 day objects.
+- Apply every change the user requested across ALL relevant days (e.g. "swap X for Y on all days").
+- NEVER list the same exercise id twice within a single day.
+- Rest days: "rest":true with an empty exercises list.
 
-MESSAGES:
-{apex_msgs}
+Return ONLY: {{"plan":[{{"day":1,"name":"...","focus":"...","rest":false,"exercises":[{{"id":"...","sets":3,"reps":10}}]}}, ...]}}"""
 
-Map names to IDs: {lookup}
-
-Return ONLY: {{"plan":[{{"day":1,"name":"...","focus":"...","rest":false,"exercises":[{{"id":"...","sets":3,"reps":10}}]}},...]}}
-Must have exactly 7 items. Use rest:true for rest days."""
-
-    raw = _generate(prompt, json_mode=True, max_tokens=2048, timeout=90)
+    raw = _generate(prompt, json_mode=True, max_tokens=3000, timeout=120)
     result = _parse_json_safe(raw)
     plan = result.get("plan", [])
     if len(plan) < 5:
         raise ValueError(f"Only got {len(plan)} days")
+    # Dedupe exercises within each day (belt-and-suspenders; also enforced in app).
+    for d in plan:
+        seen, deduped = set(), []
+        for ex in d.get("exercises", []):
+            eid = ex.get("id")
+            if eid and eid not in seen:
+                seen.add(eid)
+                deduped.append(ex)
+        d["exercises"] = deduped
     while len(plan) < 7:
         plan.append({"day": len(plan)+1, "name": "Rest Day", "focus": "recovery", "rest": True, "exercises": []})
     return {"plan": plan[:7]}
