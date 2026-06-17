@@ -275,13 +275,18 @@ def _build_context(coaching_data):
 
     if apex_plan:
         today_idx = today.weekday()  # 0=Monday
-        lines.append("Weekly plan:")
+        lines.append("Weekly plan — this is the user's CURRENT SAVED plan and is "
+                     "AUTHORITATIVE. When the user asks about their plan or a specific "
+                     "day, read it straight from here and state exactly what is listed "
+                     "(full exercise list below). Never describe a different plan, deny "
+                     "an exercise that is listed, or substitute what you remember "
+                     "designing — the saved plan wins:")
         for i, day in enumerate(apex_plan[:7]):
             marker = " ← TODAY" if i == today_idx else ""
             if day.get("rest"):
                 lines.append(f"- {day_names[i]}: Rest Day{marker}")
             else:
-                ex_list = ", ".join(e.get("name", e.get("id", "?")) for e in day.get("exercises", [])[:4])
+                ex_list = ", ".join(e.get("name", e.get("id", "?")) for e in day.get("exercises", []))
                 lines.append(f"- {day_names[i]}: {day.get('name', '')} — {ex_list}{marker}")
         lines.append("")
 
@@ -701,6 +706,7 @@ Rules:
 - Output the COMPLETE final plan: exactly 7 day objects.
 - Apply every change the user requested across ALL relevant days (e.g. "swap X for Y on all days").
 - NEVER list the same exercise id twice within a single day.
+- Keep each day's exercises consistent with its focus: a legs/lower day must contain leg exercises (squats, lunges, deadlifts, glute/calf work) — do NOT pad it with upper-body pulls/pushes (lat pulldown, chest fly, rows, presses) or vice versa. If short on exercises for a day, repeat the movement pattern with a different variation, not a different body part.
 - Rest days: "rest":true with an empty exercises list.
 
 Return ONLY: {{"plan":[{{"day":1,"name":"...","focus":"...","rest":false,"exercises":[{{"id":"...","sets":3,"reps":10}}]}}, ...]}}"""
