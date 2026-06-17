@@ -790,6 +790,23 @@ def today_workout():
         ex["weight_hint"] = weight_hint(ex.get("id", ""))
         ex["demo_image"] = images.get(ex.get("name", ""))
 
+    # Embed the full exercise library so "Add exercise" works in-page (no network
+    # round-trip — the native app re-fetches every screen, which froze on flaky
+    # connections). Client adds exercises to the DOM; Finish posts them all.
+    from workout_logic import all_exercises_with_status, load_exercises as _load_ex
+    raw = {e["id"]: e for e in _load_ex()}
+    in_workout = {x.get("id") for x in exercises}
+    library = []
+    for st in all_exercises_with_status(profile):
+        r = raw.get(st["id"], {})
+        library.append({
+            "id": st["id"], "name": st["name"], "category": st["category"],
+            "equipment": st["equipment"], "default_sets": r.get("default_sets", 3),
+            "default_reps": r.get("default_reps", 10), "unit": r.get("unit", "reps"),
+            "instructions": r.get("instructions", ""), "rest_seconds": r.get("rest_seconds", 60),
+            "available": st["available"], "in_workout": st["id"] in in_workout,
+        })
+
     day = {
         "day_number": 1,
         "name": workout.get("label", "Today's Workout"),
@@ -797,7 +814,8 @@ def today_workout():
         "ai_generated": workout.get("ai_generated", False),
         "exercises": exercises,
     }
-    return render_template("workout.html", day=day, profile=database.get_profile(uid), user_id=uid)
+    return render_template("workout.html", day=day, profile=database.get_profile(uid),
+                           user_id=uid, exercise_library=library)
 
 
 @app.route("/today-workout/add", methods=["GET", "POST"])

@@ -99,7 +99,7 @@
     {% endfor %}
   </ol>
 
-  <a href="{{ url_for('add_exercise') }}" class="btn btn-secondary add-ex-link">+ Add exercise</a>
+  <button type="button" id="add-ex-btn" class="btn btn-secondary add-ex-link">+ Add exercise</button>
 
   <div class="workout-footer">
     <div class="timer-box">
@@ -169,6 +169,27 @@
     </div>
   </div>
 </div>
+<div id="add-ex-modal" class="add-ex-modal hidden">
+  <div class="add-ex-sheet">
+    <div class="add-ex-head">
+      <strong>Add exercise</strong>
+      <button type="button" id="add-ex-close" class="pill" style="cursor:pointer;border:none;">Done</button>
+    </div>
+    <div class="filter-bar">
+      <input id="add-ex-search" type="search" placeholder="Search…" autocomplete="off">
+      <select id="add-ex-filter">
+        <option value="all">All</option>
+        <option value="legs">Legs</option>
+        <option value="upper">Upper</option>
+        <option value="core">Core</option>
+        <option value="cardio">Cardio</option>
+      </select>
+    </div>
+    <ul id="add-ex-list" class="exercise-list library-list"></ul>
+  </div>
+</div>
+
+<script id="exercise-library" type="application/json">{{ exercise_library|tojson }}</script>
 {% endblock %}
 
 {% block scripts %}

@@ -1309,3 +1309,25 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 @media (min-width: 720px) {
   .mobile-menu, .mobile-menu-backdrop { display: none !important; }
 }
+
+/* In-page Add Exercise picker (native-app friendly — no page navigation) */
+.add-ex-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; }
+.add-ex-modal.hidden { display: none; }
+.add-ex-modal::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+.add-ex-sheet {
+  position: relative; width: 100%; max-height: 82vh; display: flex; flex-direction: column;
+  background: var(--surface); border-top-left-radius: 18px; border-top-right-radius: 18px;
+  border-top: 1px solid var(--border); box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
+  padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+}
+.add-ex-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.add-ex-head strong { font-size: 17px; }
+#add-ex-list { margin-top: 10px; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+#add-ex-list .add-ex-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 6px; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+#add-ex-list .add-ex-item .ax-name { font-weight: 600; }
+#add-ex-list .add-ex-item .ax-meta { font-size: 12px; color: var(--subtle); }
+#add-ex-list .add-ex-item .ax-plus { font-size: 22px; color: var(--accent); flex-shrink: 0; }
+#add-ex-list .add-ex-item.is-added { opacity: 0.5; }

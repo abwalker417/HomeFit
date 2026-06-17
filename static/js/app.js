@@ -225,7 +225,7 @@ if ('serviceWorker' in navigator) {
 })();
 
 /* ---------- Apex form cues ---------- */
-document.querySelectorAll('.apex-cue-btn').forEach(btn => {
+function wireApexCue(btn) {
   btn.addEventListener('click', async () => {
     const body = btn.closest('.ex-body');
     const wrap = body.querySelector('.ex-cue-wrap');
@@ -260,7 +260,8 @@ document.querySelectorAll('.apex-cue-btn').forEach(btn => {
     }
     btn.disabled = false;
   });
-});
+}
+document.querySelectorAll('.apex-cue-btn').forEach(wireApexCue);
 
 /* ---------- Weight logging (dashboard) ---------- */
 function setupWeightForm() {
@@ -586,13 +587,6 @@ function startWorkout() {
   }
   localStorage.setItem(STORE_KEY, JSON.stringify(state));
 
-  // Restore completed checkboxes
-  root.querySelectorAll('.exercise-item').forEach((li) => {
-    if (state.done.includes(li.dataset.exerciseId)) {
-      li.querySelector('.ex-done').checked = true;
-    }
-  });
-
   // Persist checkbox changes
   const persistDone = () => {
     state.done = Array.from(root.querySelectorAll('.exercise-item'))
@@ -600,7 +594,6 @@ function startWorkout() {
       .map((li) => li.dataset.exerciseId);
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
   };
-  root.querySelectorAll('.ex-done').forEach((cb) => cb.addEventListener('change', persistDone));
 
   // Elapsed seconds = time since started + any manually added offset
   const elapsed = () => Math.floor((Date.now() - state.started) / 1000) + (state.offset || 0);
@@ -644,7 +637,7 @@ function startWorkout() {
   };
   skipBtn.addEventListener('click', stopRest);
 
-  root.querySelectorAll('.rest-btn').forEach((btn) => {
+  function wireRest(btn) {
     btn.addEventListener('click', () => {
       const seconds = parseInt(btn.dataset.rest, 10) || 30;
       let remaining = seconds;
@@ -660,7 +653,7 @@ function startWorkout() {
         }
       }, 1000);
     });
-  });
+  }
 
   // Weight logging
   function makeSetRow(reps, weight) {
@@ -694,7 +687,7 @@ function startWorkout() {
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
   }
 
-  root.querySelectorAll('.weight-log').forEach((wl) => {
+  function wireWeightLog(wl) {
     const toggleBtn = wl.querySelector('.weight-log-toggle');
     const body = wl.querySelector('.weight-log-body');
     const setsContainer = wl.querySelector('.weight-sets');
@@ -734,7 +727,25 @@ function startWorkout() {
     } else if (wl.dataset.hintReady === 'true' || wl.dataset.weighted === 'true') {
       toggleBtn.click();
     }
-  });
+  }
+
+  // Wire one exercise <li> — used for both server-rendered exercises and ones
+  // added in-page via the picker. Idempotent.
+  function wireExercise(li) {
+    if (li.dataset.wired === '1') return;
+    li.dataset.wired = '1';
+    const cb = li.querySelector('.ex-done');
+    if (cb) {
+      if (state.done.includes(li.dataset.exerciseId)) cb.checked = true;
+      cb.addEventListener('change', persistDone);
+    }
+    li.querySelectorAll('.rest-btn').forEach(wireRest);
+    li.querySelectorAll('.weight-log').forEach(wireWeightLog);
+  }
+  root.querySelectorAll('.exercise-item').forEach(wireExercise);
+
+  // In-page "Add exercise" (no page navigation — works on flaky connections)
+  setupAddExercise(root, state, STORE_KEY, wireExercise);
 
   function getLoggedSets(li) {
     return Array.from(li.querySelectorAll('.weight-set-row')).map((row) => ({
@@ -995,4 +1006,127 @@ function drawWeightChart() {
     ctx.arc(x, y, 3, 0, Math.PI * 2);
     ctx.fill();
   });
+}
+
+/* ---------- In-page Add Exercise picker (used on the workout screen) ---------- */
+function setupAddExercise(root, state, STORE_KEY, wireExercise) {
+  const libEl = document.getElementById('exercise-library');
+  const modal = document.getElementById('add-ex-modal');
+  const openBtn = document.getElementById('add-ex-btn');
+  if (!libEl || !modal || !openBtn) return;
+
+  let library = [];
+  try { library = JSON.parse(libEl.textContent) || []; } catch (_) {}
+  const byId = {};
+  library.forEach((e) => { byId[e.id] = e; });
+  const list = root.querySelector('.exercise-list');
+  state.added = state.added || [];
+
+  const isWeighted = (e) => {
+    const eq = (e.equipment || [])[0] || '';
+    const bw = ['bodyweight', 'none', '', 'pull_up_bar', 'bench_or_chair', 'resistance_bands'];
+    return !(e.unit === 'seconds' || !eq || bw.includes(eq));
+  };
+
+  function buildNode(e) {
+    const li = document.createElement('li');
+    li.className = 'exercise-item';
+    li.dataset.exerciseId = e.id;
+    const repLabel = e.unit === 'seconds' ? `${e.default_reps}s` : `${e.default_reps} reps`;
+    const weighted = isWeighted(e) ? 'true' : 'false';
+    const yt = encodeURIComponent(e.name + ' proper form');
+    li.innerHTML = `
+      <details>
+        <summary>
+          <div class="ex-head">
+            <span class="ex-num"></span>
+            <div class="ex-title">
+              <strong></strong>
+              <span class="ex-meta">${e.default_sets} sets × ${repLabel} · ${e.rest_seconds}s rest</span>
+            </div>
+            <label class="ex-done-wrap"><input type="checkbox" class="ex-done" aria-label="Mark complete"></label>
+          </div>
+        </summary>
+        <div class="ex-body" data-ex-id="${e.id}">
+          <p class="ex-instr"></p>
+          <div class="ex-cue-wrap" style="display:none;"><div class="ex-cue-body subtle" style="font-size:13px; line-height:1.6; white-space:pre-wrap;"></div></div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="btn btn-secondary demo-link" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${yt}" style="flex:1; text-align:center;">YouTube</a>
+            <button type="button" class="btn btn-secondary apex-cue-btn" style="flex:1;">Form tips</button>
+          </div>
+          <button type="button" class="btn btn-secondary rest-btn" data-rest="${e.rest_seconds}">Start ${e.rest_seconds}s rest timer</button>
+          <div class="weight-log" data-sets="${e.default_sets}" data-reps="${e.default_reps}" data-weighted="${weighted}" data-hint-ready="false" data-suggested-weight="">
+            <button type="button" class="btn btn-secondary weight-log-toggle">Log weights</button>
+            <div class="weight-log-body" style="display:none; margin-top:10px;">
+              <p class="hint" style="margin-bottom:8px;">Recommended: ${e.default_sets} sets × ${repLabel}</p>
+              <div class="weight-sets"></div>
+              <button type="button" class="btn btn-secondary add-set-btn" style="margin-top:6px; font-size:13px;">+ Add set</button>
+            </div>
+          </div>
+        </div>
+      </details>`;
+    // Set text via textContent to avoid any HTML injection from names/instructions
+    li.querySelector('.ex-title strong').textContent = e.name;
+    li.querySelector('.ex-body').dataset.exName = e.name;
+    li.querySelector('.ex-instr').textContent = e.instructions || '';
+    return li;
+  }
+
+  function renumber() {
+    list.querySelectorAll('.exercise-item .ex-num').forEach((el, i) => { el.textContent = i + 1; });
+  }
+
+  function addExercise(e, persist) {
+    if (!e || root.querySelector(`.exercise-item[data-exercise-id="${e.id}"]`)) return;
+    const li = buildNode(e);
+    list.appendChild(li);
+    wireExercise(li);
+    li.querySelectorAll('.apex-cue-btn').forEach(wireApexCue);
+    renumber();
+    if (persist) {
+      if (!state.added.includes(e.id)) state.added.push(e.id);
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    }
+  }
+
+  // Re-add exercises that were added before a reload
+  state.added.forEach((id) => addExercise(byId[id], false));
+  renumber();
+
+  // Modal wiring
+  const closeBtn = document.getElementById('add-ex-close');
+  const search = document.getElementById('add-ex-search');
+  const filter = document.getElementById('add-ex-filter');
+  const listEl = document.getElementById('add-ex-list');
+
+  function renderList() {
+    const q = (search.value || '').trim().toLowerCase();
+    const cat = filter.value;
+    const inWorkout = new Set(Array.from(root.querySelectorAll('.exercise-item')).map((li) => li.dataset.exerciseId));
+    listEl.innerHTML = '';
+    library.forEach((e) => {
+      if (!e.available) return;
+      if (cat !== 'all' && e.category !== cat) return;
+      if (q && !e.name.toLowerCase().includes(q)) return;
+      const here = inWorkout.has(e.id);
+      const li = document.createElement('li');
+      li.className = 'add-ex-item' + (here ? ' is-added' : '');
+      const eq = (e.equipment || []).filter((x) => x !== 'bodyweight' && x !== 'none');
+      const meta = (e.category || '').toUpperCase() + (eq.length ? ' · ' + eq.join(', ') : '');
+      const nameDiv = document.createElement('div');
+      const nameEl = document.createElement('div'); nameEl.className = 'ax-name'; nameEl.textContent = e.name;
+      const metaEl = document.createElement('div'); metaEl.className = 'ax-meta'; metaEl.textContent = meta;
+      nameDiv.appendChild(nameEl); nameDiv.appendChild(metaEl);
+      const plus = document.createElement('span'); plus.className = 'ax-plus'; plus.textContent = here ? '✓' : '+';
+      li.appendChild(nameDiv); li.appendChild(plus);
+      if (!here) li.addEventListener('click', () => { addExercise(e, true); renderList(); });
+      listEl.appendChild(li);
+    });
+  }
+
+  openBtn.addEventListener('click', () => { modal.classList.remove('hidden'); renderList(); setTimeout(() => search.focus(), 50); });
+  closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+  modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.classList.add('hidden'); });
+  ['input', 'keyup', 'change', 'search'].forEach((ev) => search.addEventListener(ev, renderList));
+  filter.addEventListener('change', renderList);
 }
