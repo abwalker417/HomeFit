@@ -794,6 +794,7 @@ def today_workout():
     # round-trip — the native app re-fetches every screen, which froze on flaky
     # connections). Client adds exercises to the DOM; Finish posts them all.
     from workout_logic import all_exercises_with_status, load_exercises as _load_ex
+    profile = database.get_profile(uid) or {}
     raw = {e["id"]: e for e in _load_ex()}
     in_workout = {x.get("id") for x in exercises}
     library = []
@@ -814,7 +815,7 @@ def today_workout():
         "ai_generated": workout.get("ai_generated", False),
         "exercises": exercises,
     }
-    return render_template("workout.html", day=day, profile=database.get_profile(uid),
+    return render_template("workout.html", day=day, profile=profile,
                            user_id=uid, exercise_library=library)
 
 
