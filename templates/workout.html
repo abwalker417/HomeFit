@@ -45,7 +45,12 @@
         <div class="ex-body"
              data-ex-id="{{ ex.id }}"
              data-ex-name="{{ ex.name }}">
-          {% if ex.demo_image %}
+          {% if ex.anim %}
+          <div class="ex-demo-wrap ex-anim">
+            <img class="ex-demo-img" src="{{ ex.anim[0] }}" alt="{{ ex.name }} start" loading="lazy">
+            <img class="ex-demo-img ex-anim-frame2" src="{{ ex.anim[1] }}" alt="{{ ex.name }} end" loading="lazy">
+          </div>
+          {% elif ex.demo_image %}
           <div class="ex-demo-wrap">
             <img class="ex-demo-img" src="{{ ex.demo_image }}" alt="{{ ex.name }} demo" loading="lazy">
           </div>

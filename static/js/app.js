@@ -1035,6 +1035,9 @@ function setupAddExercise(root, state, STORE_KEY, wireExercise) {
     const repLabel = e.unit === 'seconds' ? `${e.default_reps}s` : `${e.default_reps} reps`;
     const weighted = isWeighted(e) ? 'true' : 'false';
     const yt = encodeURIComponent(e.name + ' proper form');
+    const anim = (e.anim && e.anim.length >= 2)
+      ? `<div class="ex-demo-wrap ex-anim"><img class="ex-demo-img" src="${e.anim[0]}" loading="lazy"><img class="ex-demo-img ex-anim-frame2" src="${e.anim[1]}" loading="lazy"></div>`
+      : '';
     li.innerHTML = `
       <details>
         <summary>
@@ -1048,6 +1051,7 @@ function setupAddExercise(root, state, STORE_KEY, wireExercise) {
           </div>
         </summary>
         <div class="ex-body" data-ex-id="${e.id}">
+          ${anim}
           <p class="ex-instr"></p>
           <div class="ex-cue-wrap" style="display:none;"><div class="ex-cue-body subtle" style="font-size:13px; line-height:1.6; white-space:pre-wrap;"></div></div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">

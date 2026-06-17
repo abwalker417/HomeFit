@@ -785,10 +785,12 @@ def today_workout():
         return None
 
     images = _load_exercise_images()
+    anims = _load_exercise_animations()
     exercises = workout.get("exercises", [])
     for ex in exercises:
         ex["weight_hint"] = weight_hint(ex.get("id", ""))
         ex["demo_image"] = images.get(ex.get("name", ""))
+        ex["anim"] = anims.get(ex.get("id", ""))
 
     # Embed the full exercise library so "Add exercise" works in-page (no network
     # round-trip — the native app re-fetches every screen, which froze on flaky
@@ -806,6 +808,7 @@ def today_workout():
             "default_reps": r.get("default_reps", 10), "unit": r.get("unit", "reps"),
             "instructions": r.get("instructions", ""), "rest_seconds": r.get("rest_seconds", 60),
             "available": st["available"], "in_workout": st["id"] in in_workout,
+            "anim": anims.get(st["id"]),
         })
 
     day = {
@@ -950,6 +953,7 @@ def daily_brief():
 
 
 _exercise_images = None
+_exercise_animations = None
 
 def _load_exercise_images():
     global _exercise_images
@@ -961,6 +965,18 @@ def _load_exercise_images():
         except Exception:
             _exercise_images = {}
     return _exercise_images
+
+def _load_exercise_animations():
+    """exercise id -> [start_frame_url, end_frame_url] for looping demo gifs."""
+    global _exercise_animations
+    if _exercise_animations is None:
+        path = os.path.join(os.path.dirname(__file__), "data", "exercise_animations.json")
+        try:
+            with open(path) as f:
+                _exercise_animations = json.load(f)
+        except Exception:
+            _exercise_animations = {}
+    return _exercise_animations
 
 
 @app.route("/apex-plan")
