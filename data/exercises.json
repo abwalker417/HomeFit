@@ -1409,5 +1409,182 @@
     "default_sets": 3,
     "rest_seconds": 45,
     "instructions": "From the starting position, rotate slightly toward one side as you crunch, focusing on shortening the side of your waist. Move slowly and stay within a comfortable range."
+  },
+  {
+    "id": "barbell_deadlift",
+    "name": "Barbell Deadlift",
+    "category": "legs",
+    "difficulty": 3,
+    "equipment": "barbell",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 6.0,
+    "default_reps": 6,
+    "default_sets": 3,
+    "rest_seconds": 120,
+    "instructions": "Stand with mid-foot under the bar, hinge and grip just outside your knees, brace your core, then drive through the floor and stand tall. Lower with control keeping the bar close to your legs.",
+    "muscle_group": "legs"
+  },
+  {
+    "id": "barbell_rdl",
+    "name": "Barbell Romanian Deadlift",
+    "category": "legs",
+    "difficulty": 3,
+    "equipment": "barbell",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 5.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Hold the bar at hip height, soft knees. Push hips back and lower the bar along your thighs until you feel a hamstring stretch, then drive hips forward to stand. Keep a flat back throughout.",
+    "muscle_group": "legs"
+  },
+  {
+    "id": "barbell_row",
+    "name": "Bent-Over Barbell Row",
+    "category": "upper",
+    "difficulty": 3,
+    "equipment": "barbell",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 5.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Hinge at the hips to about 45 degrees with a flat back. Pull the bar to your lower ribs, squeezing your shoulder blades, then lower under control.",
+    "muscle_group": "back"
+  },
+  {
+    "id": "barbell_curl",
+    "name": "Barbell Curl",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "barbell",
+    "contraindications": [
+      "bad_wrists"
+    ],
+    "met": 3.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Stand holding the bar with an underhand grip, elbows at your sides. Curl the bar up by flexing the biceps, then lower slowly. Avoid swinging.",
+    "muscle_group": "arms"
+  },
+  {
+    "id": "front_squat_cage",
+    "name": "Front Squat (Rack)",
+    "category": "legs",
+    "difficulty": 3,
+    "equipment": "power_cage_cable",
+    "contraindications": [
+      "bad_knees",
+      "bad_back",
+      "bad_wrists"
+    ],
+    "met": 5.5,
+    "default_reps": 8,
+    "default_sets": 3,
+    "rest_seconds": 120,
+    "instructions": "Rest the bar across your front delts with elbows high. Unrack, squat down keeping your torso upright and elbows lifted, then drive up through mid-foot.",
+    "muscle_group": "legs"
+  },
+  {
+    "id": "barbell_hip_thrust",
+    "name": "Barbell Hip Thrust",
+    "category": "legs",
+    "difficulty": 2,
+    "equipment": "barbell",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 4.5,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 90,
+    "instructions": "Sit with your upper back against a bench and the bar over your hips (use a pad). Drive through your heels to lift hips until your torso is parallel to the floor, squeezing your glutes, then lower.",
+    "muscle_group": "glutes"
+  },
+  {
+    "id": "db_rear_delt_fly",
+    "name": "Dumbbell Rear Delt Fly",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 3.0,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Hinge forward with a flat back, light dumbbells hanging. Raise them out to the sides with a slight elbow bend, squeezing your rear delts, then lower slowly.",
+    "muscle_group": "shoulders"
+  },
+  {
+    "id": "db_shrug",
+    "name": "Dumbbell Shrug",
+    "category": "upper",
+    "difficulty": 1,
+    "equipment": "dumbbells",
+    "contraindications": [],
+    "met": 3.0,
+    "default_reps": 15,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Hold dumbbells at your sides. Shrug your shoulders straight up toward your ears, pause, then lower under control. Don't roll the shoulders.",
+    "muscle_group": "back"
+  },
+  {
+    "id": "db_skullcrusher",
+    "name": "Dumbbell Skull Crusher",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_shoulders",
+      "bad_wrists"
+    ],
+    "met": 3.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 60,
+    "instructions": "Lie on a bench or floor holding dumbbells over your chest. Keeping elbows fixed, lower the weights toward your forehead, then extend back up using your triceps.",
+    "muscle_group": "arms"
+  },
+  {
+    "id": "db_arnold_press",
+    "name": "Arnold Press",
+    "category": "upper",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "bad_shoulders"
+    ],
+    "met": 4.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 75,
+    "instructions": "Start with dumbbells at shoulder height, palms facing you. Press overhead while rotating your palms to face forward, then reverse on the way down.",
+    "muscle_group": "shoulders"
+  },
+  {
+    "id": "russian_twist",
+    "name": "Russian Twist",
+    "category": "core",
+    "difficulty": 2,
+    "equipment": "bodyweight",
+    "contraindications": [
+      "bad_back"
+    ],
+    "met": 4.0,
+    "default_reps": 20,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Sit with knees bent and heels light, leaning back slightly. Rotate your torso to tap the floor beside each hip, alternating sides with control. Hold a dumbbell for added load.",
+    "muscle_group": "core"
   }
 ]
