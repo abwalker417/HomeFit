@@ -166,5 +166,24 @@
 <script>
   setupWeightForm();
   loadDailyBrief();
+
+  // The native app keeps the dashboard loaded between sessions, so readiness /
+  // sleep / brief would show stale data when reopened. Reload when the page
+  // becomes visible again on a NEW day, or after a long background (≥20 min)
+  // — that's when last night's sleep has synced and readiness has changed.
+  (function () {
+    const RENDERED_DATE = "{{ today_iso }}";
+    let hiddenAt = 0;
+    function localDate() { return new Date().toLocaleDateString('en-CA'); } // YYYY-MM-DD
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+      const newDay = RENDERED_DATE && localDate() !== RENDERED_DATE;
+      const longBg = hiddenAt && (Date.now() - hiddenAt > 20 * 60 * 1000);
+      if (newDay || longBg) location.reload();
+    });
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted && RENDERED_DATE && localDate() !== RENDERED_DATE) location.reload();
+    });
+  })();
 </script>
 {% endblock %}

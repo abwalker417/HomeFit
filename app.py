@@ -608,6 +608,7 @@ def index():
                            resting_hr=int(rhr["value"]) if rhr else None,
                            readiness=database.compute_readiness(uid),
                            has_active_workout=bool(session.get("today_workout")),
+                           today_iso=date.today().isoformat(),
                            ai_online=coach.is_available())
 
 
