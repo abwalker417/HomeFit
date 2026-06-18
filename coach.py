@@ -190,7 +190,7 @@ def _build_context(coaching_data):
         lines.append("")
 
     if nutrition_goals:
-        lines.append("Nutrition targets (from Sparky goals):")
+        lines.append("Nutrition targets (the user's daily goals):")
         lines.append(
             f"- Calories: {nutrition_goals.get('calories')} kcal | "
             f"Protein: {nutrition_goals.get('protein_g')}g | "
@@ -205,7 +205,7 @@ def _build_context(coaching_data):
         lines.append("")
 
     if nutrition_log:
-        lines.append("Recent nutrition (from Sparky food diary):")
+        lines.append("Recent nutrition (logged in HomeFit):")
         for day in nutrition_log[:5]:
             meals = ", ".join(f"{m}: {', '.join(foods)}" for m, foods in day.get("meals", {}).items())
             lines.append(

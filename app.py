@@ -515,8 +515,12 @@ def log_food_page():
             uid, seeded.get("calories") or 2000, seeded.get("protein_g") or 120,
             seeded.get("carbs_g") or 200, seeded.get("fat_g") or 65)
         goal = database.get_nutrition_goal(uid)
+    from datetime import date as _date
+    _today = _date.today().isoformat()
+    past = [d for d in database.get_food_log_days(uid, days=14) if d["meal_date"] != _today]
     return render_template("log_food.html",
-                           today_foods=database.get_food_log_today(uid), goal=goal)
+                           today_foods=database.get_food_log_today(uid), goal=goal,
+                           past_days=past)
 
 
 @app.route("/api/food/goals", methods=["POST"])

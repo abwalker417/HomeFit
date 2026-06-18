@@ -45,6 +45,25 @@
 
   <div id="today-summary" class="card" style="padding:16px; margin-top:10px;"></div>
   <ul id="today-list" class="exercise-list" style="margin-top:10px;"></ul>
+
+  {% if past_days %}
+  <h2 style="margin-top:24px;">Past days</h2>
+  <ul class="exercise-list" style="margin-top:8px;">
+    {% for d in past_days %}
+    {% set pct = ((d.calories / goal.calories * 100) | round | int) if goal.calories else 0 %}
+    <li class="card" style="padding:12px 14px; margin-bottom:8px;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline;">
+        <strong>{{ d.meal_date }}</strong>
+        <span><strong>{{ d.calories }}</strong> <span class="subtle" style="font-size:12px;">/ {{ goal.calories }} cal</span></span>
+      </div>
+      <div style="height:6px; background:var(--border); border-radius:3px; overflow:hidden; margin:6px 0;">
+        <div style="height:100%; width:{{ [pct, 100]|min }}%; background:{{ 'var(--danger, #ef4444)' if d.calories > goal.calories else 'var(--accent)' }};"></div>
+      </div>
+      <div class="subtle" style="font-size:12px;">{{ d.protein_g|round|int }}g protein · {{ d.carbs_g|round|int }}g carbs · {{ d.fat_g|round|int }}g fat</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
 </section>
 
 <script id="today-data" type="application/json">{{ today_foods|tojson }}</script>

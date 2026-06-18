@@ -569,6 +569,17 @@ def get_coaching_context(user_id):
             other_activity = sparky_sync.fetch_external_activity(days=7, api_key=sparky_key)
         except Exception:
             pass
+
+    # Prefer HomeFit's own food log + goal once we have data (moving off Sparky).
+    homefit_food = get_food_log_days(user_id, days=7)
+    if homefit_food:
+        nutrition = [{"date": d["meal_date"], "calories": d["calories"],
+                      "protein_g": round(d["protein_g"]), "carbs_g": round(d["carbs_g"]),
+                      "fat_g": round(d["fat_g"]), "meals": {}} for d in homefit_food]
+    hf_goal = get_nutrition_goal(user_id)
+    if hf_goal:
+        goals = {"calories": hf_goal["calories"], "protein_g": hf_goal["protein_g"],
+                 "carbs_g": hf_goal["carbs_g"], "fat_g": hf_goal["fat_g"]}
     return {
         "profile": profile,
         "recent_workouts": workouts,
@@ -1122,17 +1133,35 @@ def get_apex_chat_updated_at(user_id):
     return row["updated_at"] if row else None
 
 
-def add_food_log(user_id, description, items, totals, cost_usd=0.0):
+def add_food_log(user_id, description, items, totals, cost_usd=0.0, on_date=None):
     now = datetime.now()
+    meal_date = on_date or now.date().isoformat()
+    # for back-dated imports, stamp created_at at noon of that day so ordering is sane
+    created = now.isoformat() if not on_date else f"{on_date}T12:00:00"
     with get_connection() as conn:
         conn.execute(
             """INSERT INTO food_log (user_id, meal_date, description, items_json,
                    calories, protein_g, carbs_g, fat_g, cost_usd, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (user_id, now.date().isoformat(), description, json.dumps(items),
+            (user_id, meal_date, description, json.dumps(items),
              int(totals.get("calories", 0)), totals.get("protein_g", 0),
-             totals.get("carbs_g", 0), totals.get("fat_g", 0), cost_usd, now.isoformat()),
+             totals.get("carbs_g", 0), totals.get("fat_g", 0), cost_usd, created),
         )
+
+
+def get_food_log_days(user_id, days=14):
+    """Per-day nutrition totals (newest first) for the history view + APEX."""
+    cutoff = (datetime.now().date() - timedelta(days=days)).isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            """SELECT meal_date,
+                      SUM(calories) AS calories, SUM(protein_g) AS protein_g,
+                      SUM(carbs_g) AS carbs_g, SUM(fat_g) AS fat_g, COUNT(*) AS n
+               FROM food_log WHERE user_id = ? AND meal_date >= ?
+               GROUP BY meal_date ORDER BY meal_date DESC""",
+            (user_id, cutoff),
+        ).fetchall()
+    return [dict(r) for r in rows]
 
 
 def get_food_log_today(user_id):
