@@ -494,6 +494,56 @@ def save_apex_memory_route():
     return jsonify({"ok": True})
 
 
+# ── Food logging prototype (single-call parser, the cheap path) ───────────────
+
+@app.route("/log-food")
+def log_food_page():
+    uid = session.get("user_id")
+    if not uid:
+        return redirect(url_for("profiles"))
+    return render_template("log_food.html", today_foods=database.get_food_log_today(uid))
+
+
+@app.route("/api/food/parse", methods=["POST"])
+def api_food_parse():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    text = (request.get_json(silent=True) or {}).get("text", "").strip()
+    if not text:
+        return jsonify({"error": "empty"}), 400
+    try:
+        import food_parser
+        return jsonify(food_parser.parse_meal(text))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
+@app.route("/api/food/log", methods=["POST"])
+def api_food_log():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    items = d.get("items") or []
+    totals = d.get("totals") or {}
+    if not items:
+        return jsonify({"error": "no items"}), 400
+    database.add_food_log(uid, d.get("description", ""), items, totals, d.get("cost_usd", 0) or 0)
+    return jsonify({"ok": True, "today": database.get_food_log_today(uid)})
+
+
+@app.route("/api/food/delete", methods=["POST"])
+def api_food_delete():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    log_id = (request.get_json(silent=True) or {}).get("id")
+    if log_id:
+        database.delete_food_log(uid, int(log_id))
+    return jsonify({"ok": True, "today": database.get_food_log_today(uid)})
+
+
 @app.route("/profiles/switch", methods=["POST", "GET"])
 def profile_switch_out():
     session.pop("user_id", None)

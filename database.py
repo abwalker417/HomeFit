@@ -179,6 +179,21 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS food_log (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                meal_date   TEXT NOT NULL,
+                description TEXT NOT NULL,
+                items_json  TEXT NOT NULL,
+                calories    INTEGER NOT NULL DEFAULT 0,
+                protein_g   REAL NOT NULL DEFAULT 0,
+                carbs_g     REAL NOT NULL DEFAULT 0,
+                fat_g       REAL NOT NULL DEFAULT 0,
+                cost_usd    REAL NOT NULL DEFAULT 0,
+                created_at  TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS push_subscriptions (
                 endpoint          TEXT PRIMARY KEY,
                 user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1095,6 +1110,41 @@ def get_apex_chat_updated_at(user_id):
             "SELECT updated_at FROM apex_chat WHERE user_id = ?", (user_id,)
         ).fetchone()
     return row["updated_at"] if row else None
+
+
+def add_food_log(user_id, description, items, totals, cost_usd=0.0):
+    now = datetime.now()
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO food_log (user_id, meal_date, description, items_json,
+                   calories, protein_g, carbs_g, fat_g, cost_usd, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, now.date().isoformat(), description, json.dumps(items),
+             int(totals.get("calories", 0)), totals.get("protein_g", 0),
+             totals.get("carbs_g", 0), totals.get("fat_g", 0), cost_usd, now.isoformat()),
+        )
+
+
+def get_food_log_today(user_id):
+    today = datetime.now().date().isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT id, description, items_json, calories, protein_g, carbs_g, fat_g, created_at "
+            "FROM food_log WHERE user_id = ? AND meal_date = ? ORDER BY created_at",
+            (user_id, today),
+        ).fetchall()
+    out = [dict(r) for r in rows]
+    for r in out:
+        try:
+            r["items"] = json.loads(r.pop("items_json"))
+        except Exception:
+            r["items"] = []
+    return out
+
+
+def delete_food_log(user_id, log_id):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM food_log WHERE id = ? AND user_id = ?", (log_id, user_id))
 
 
 def get_apex_plan(user_id):

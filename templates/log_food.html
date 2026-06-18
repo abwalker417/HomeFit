@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Log Food — HomeFit{% endblock %}
+
+{% block content %}
+<section style="max-width:560px; margin:0 auto;">
+  <a class="back-link" href="{{ url_for('index') }}">← Home</a>
+  <h1>Log Food <span class="pill" style="font-size:11px; vertical-align:middle;">prototype</span></h1>
+  <p class="subtle" style="font-size:13px;">Type what you ate in plain English — one cheap AI call estimates the macros (no Sparky agent).</p>
+
+  <div class="card" style="padding:16px;">
+    <textarea id="meal-input" rows="2" placeholder="e.g. 2 eggs, wheat toast with butter, and a banana"
+              style="width:100%; box-sizing:border-box; font-family:inherit; font-size:15px; resize:vertical;"></textarea>
+    <button id="parse-btn" class="btn btn-primary" style="width:100%; margin-top:10px;">Estimate macros</button>
+    <p id="parse-status" class="subtle" style="font-size:12px; margin:8px 0 0;"></p>
+  </div>
+
+  <div id="result-card" class="card hidden" style="padding:16px; margin-top:12px;">
+    <div id="result-items"></div>
+    <div id="result-total" style="font-weight:700; margin-top:10px; padding-top:10px; border-top:1px solid var(--border);"></div>
+    <p id="result-cost" class="subtle" style="font-size:12px; margin:6px 0 0;"></p>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button id="log-btn" class="btn btn-primary" style="flex:1;">Log it</button>
+      <button id="discard-btn" class="btn btn-secondary">Discard</button>
+    </div>
+  </div>
+
+  <h2 style="margin-top:24px;">Today</h2>
+  <div id="today-total" class="card" style="padding:14px; font-weight:700;"></div>
+  <ul id="today-list" class="exercise-list" style="margin-top:10px;"></ul>
+</section>
+
+<script id="today-data" type="application/json">{{ today_foods|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const input = document.getElementById('meal-input');
+  const parseBtn = document.getElementById('parse-btn');
+  const status = document.getElementById('parse-status');
+  const resultCard = document.getElementById('result-card');
+  const resultItems = document.getElementById('result-items');
+  const resultTotal = document.getElementById('result-total');
+  const resultCost = document.getElementById('result-cost');
+  const logBtn = document.getElementById('log-btn');
+  const discardBtn = document.getElementById('discard-btn');
+  let parsed = null;
+
+  let today = [];
+  try { today = JSON.parse(document.getElementById('today-data').textContent) || []; } catch (_) {}
+
+  const macro = (i) => `${i.calories} cal · ${i.protein_g}p ${i.carbs_g}c ${i.fat_g}f`;
+
+  function renderToday() {
+    const t = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
+    today.forEach((m) => { t.calories += m.calories; t.protein_g += m.protein_g; t.carbs_g += m.carbs_g; t.fat_g += m.fat_g; });
+    document.getElementById('today-total').textContent =
+      today.length ? `${t.calories} cal  ·  ${Math.round(t.protein_g)}g protein  ·  ${Math.round(t.carbs_g)}g carbs  ·  ${Math.round(t.fat_g)}g fat`
+                   : 'Nothing logged yet today.';
+    const list = document.getElementById('today-list');
+    list.innerHTML = '';
+    today.forEach((m) => {
+      const li = document.createElement('li');
+      li.className = 'card';
+      li.style.cssText = 'padding:10px 12px; margin-bottom:8px;';
+      const names = (m.items || []).map((i) => i.name).join(', ');
+      li.innerHTML = `<div style="display:flex; justify-content:space-between; gap:10px;">
+        <div><strong>${m.calories} cal</strong> <span class="subtle" style="font-size:12px;">${Math.round(m.protein_g)}p ${Math.round(m.carbs_g)}c ${Math.round(m.fat_g)}f</span>
+        <div class="subtle" style="font-size:12px;">${names}</div></div>
+        <button class="del-btn pill" data-id="${m.id}" style="cursor:pointer;border:none;align-self:start;">✕</button></div>`;
+      list.appendChild(li);
+    });
+    list.querySelectorAll('.del-btn').forEach((b) => b.addEventListener('click', async () => {
+      const r = await fetch('/api/food/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: b.dataset.id }) });
+      const d = await r.json(); today = d.today || []; renderToday();
+    }));
+  }
+
+  parseBtn.addEventListener('click', async () => {
+    const text = input.value.trim();
+    if (!text) return;
+    parseBtn.disabled = true; status.textContent = 'Estimating…'; resultCard.classList.add('hidden');
+    try {
+      const r = await fetch('/api/food/parse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      parsed = d;
+      resultItems.innerHTML = d.items.map((i) =>
+        `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>${i.name} <span class="subtle" style="font-size:12px;">${i.quantity}</span></span><span class="subtle" style="font-size:12px;">${macro(i)}</span></div>`).join('');
+      const t = d.totals;
+      resultTotal.textContent = `Total: ${t.calories} cal · ${t.protein_g}g protein · ${t.carbs_g}g carbs · ${t.fat_g}g fat`;
+      resultCost.textContent = `Cost of this estimate: $${d.cost_usd.toFixed(5)} (${d.tokens} tokens, ${d.model})`;
+      resultCard.classList.remove('hidden');
+      status.textContent = '';
+    } catch (e) {
+      status.textContent = 'Couldn\'t parse that (' + e.message + ').';
+    } finally { parseBtn.disabled = false; }
+  });
+
+  logBtn.addEventListener('click', async () => {
+    if (!parsed) return;
+    logBtn.disabled = true;
+    const r = await fetch('/api/food/log', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: input.value.trim(), items: parsed.items, totals: parsed.totals, cost_usd: parsed.cost_usd }) });
+    const d = await r.json();
+    today = d.today || []; renderToday();
+    input.value = ''; resultCard.classList.add('hidden'); parsed = null; logBtn.disabled = false;
+  });
+
+  discardBtn.addEventListener('click', () => { resultCard.classList.add('hidden'); parsed = null; });
+
+  renderToday();
+})();
+</script>
+{% endblock %}
