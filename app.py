@@ -501,7 +501,33 @@ def log_food_page():
     uid = session.get("user_id")
     if not uid:
         return redirect(url_for("profiles"))
-    return render_template("log_food.html", today_foods=database.get_food_log_today(uid))
+    goal = database.get_nutrition_goal(uid)
+    if not goal:
+        # Seed from the user's existing Sparky goals so it carries over; else defaults.
+        seeded = {}
+        try:
+            profile = database.get_profile(uid) or {}
+            if profile.get("sparky_sync"):
+                seeded = sparky_sync.fetch_goals(api_key=profile.get("sparky_api_key")) or {}
+        except Exception:
+            seeded = {}
+        database.save_nutrition_goal(
+            uid, seeded.get("calories") or 2000, seeded.get("protein_g") or 120,
+            seeded.get("carbs_g") or 200, seeded.get("fat_g") or 65)
+        goal = database.get_nutrition_goal(uid)
+    return render_template("log_food.html",
+                           today_foods=database.get_food_log_today(uid), goal=goal)
+
+
+@app.route("/api/food/goals", methods=["POST"])
+def api_food_goals():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    database.save_nutrition_goal(uid, d.get("calories"), d.get("protein_g"),
+                                 d.get("carbs_g"), d.get("fat_g"))
+    return jsonify({"ok": True, "goal": database.get_nutrition_goal(uid)})
 
 
 @app.route("/api/food/parse", methods=["POST"])

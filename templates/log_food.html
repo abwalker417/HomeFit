@@ -28,12 +28,27 @@
     </div>
   </div>
 
-  <h2 style="margin-top:24px;">Today</h2>
-  <div id="today-total" class="card" style="padding:14px; font-weight:700;"></div>
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-top:24px;">
+    <h2 style="margin:0;">Today</h2>
+    <button id="edit-goal-btn" class="pill" style="font-size:11px; cursor:pointer; border:none;">Edit goals</button>
+  </div>
+
+  <div id="goal-editor" class="card hidden" style="padding:14px; margin-top:8px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <label style="font-size:13px;">Calories<input id="g-cal" type="number" style="width:100%;"></label>
+      <label style="font-size:13px;">Protein (g)<input id="g-pro" type="number" style="width:100%;"></label>
+      <label style="font-size:13px;">Carbs (g)<input id="g-carb" type="number" style="width:100%;"></label>
+      <label style="font-size:13px;">Fat (g)<input id="g-fat" type="number" style="width:100%;"></label>
+    </div>
+    <button id="save-goal-btn" class="btn btn-primary" style="margin-top:10px; width:100%;">Save goals</button>
+  </div>
+
+  <div id="today-summary" class="card" style="padding:16px; margin-top:10px;"></div>
   <ul id="today-list" class="exercise-list" style="margin-top:10px;"></ul>
 </section>
 
 <script id="today-data" type="application/json">{{ today_foods|tojson }}</script>
+<script id="goal-data" type="application/json">{{ goal|tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
@@ -52,15 +67,34 @@
 
   let today = [];
   try { today = JSON.parse(document.getElementById('today-data').textContent) || []; } catch (_) {}
+  let goal = { calories: 2000, protein_g: 120, carbs_g: 200, fat_g: 65 };
+  try { goal = JSON.parse(document.getElementById('goal-data').textContent) || goal; } catch (_) {}
 
   const macro = (i) => `${i.calories} cal · ${i.protein_g}p ${i.carbs_g}c ${i.fat_g}f`;
+
+  function bar(label, val, target, unit) {
+    const pct = target > 0 ? Math.min(100, Math.round(val / target * 100)) : 0;
+    const over = val > target;
+    const color = over ? 'var(--danger, #ef4444)' : 'var(--accent)';
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px;">
+        <span>${label}</span><span class="subtle">${Math.round(val)}${unit} / ${Math.round(target)}${unit}</span>
+      </div>
+      <div style="height:8px; background:var(--border); border-radius:4px; overflow:hidden;">
+        <div style="height:100%; width:${pct}%; background:${color};"></div>
+      </div></div>`;
+  }
 
   function renderToday() {
     const t = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
     today.forEach((m) => { t.calories += m.calories; t.protein_g += m.protein_g; t.carbs_g += m.carbs_g; t.fat_g += m.fat_g; });
-    document.getElementById('today-total').textContent =
-      today.length ? `${t.calories} cal  ·  ${Math.round(t.protein_g)}g protein  ·  ${Math.round(t.carbs_g)}g carbs  ·  ${Math.round(t.fat_g)}g fat`
-                   : 'Nothing logged yet today.';
+    const remaining = goal.calories - t.calories;
+    document.getElementById('today-summary').innerHTML =
+      `<div style="font-size:22px; font-weight:800; margin-bottom:2px;">${t.calories} <span class="subtle" style="font-size:14px; font-weight:600;">/ ${goal.calories} cal</span></div>
+       <div class="subtle" style="font-size:12px; margin-bottom:12px;">${remaining >= 0 ? remaining + ' left' : (-remaining) + ' over'}</div>`
+      + bar('Protein', t.protein_g, goal.protein_g, 'g')
+      + bar('Carbs', t.carbs_g, goal.carbs_g, 'g')
+      + bar('Fat', t.fat_g, goal.fat_g, 'g');
     const list = document.getElementById('today-list');
     list.innerHTML = '';
     today.forEach((m) => {
@@ -160,6 +194,31 @@
   });
 
   discardBtn.addEventListener('click', () => { resultCard.classList.add('hidden'); parsed = null; });
+
+  // Goal editor
+  const goalEditor = document.getElementById('goal-editor');
+  document.getElementById('edit-goal-btn').addEventListener('click', () => {
+    const nowHidden = goalEditor.classList.toggle('hidden');
+    if (!nowHidden) {
+      document.getElementById('g-cal').value = goal.calories;
+      document.getElementById('g-pro').value = goal.protein_g;
+      document.getElementById('g-carb').value = goal.carbs_g;
+      document.getElementById('g-fat').value = goal.fat_g;
+    }
+  });
+  document.getElementById('save-goal-btn').addEventListener('click', async () => {
+    const body = {
+      calories: parseInt(document.getElementById('g-cal').value, 10) || 0,
+      protein_g: parseFloat(document.getElementById('g-pro').value) || 0,
+      carbs_g: parseFloat(document.getElementById('g-carb').value) || 0,
+      fat_g: parseFloat(document.getElementById('g-fat').value) || 0,
+    };
+    const r = await fetch('/api/food/goals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (d.goal) goal = d.goal;
+    goalEditor.classList.add('hidden');
+    renderToday();
+  });
 
   renderToday();
 })();

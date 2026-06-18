@@ -194,6 +194,16 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS nutrition_goal (
+                user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                calories   INTEGER NOT NULL DEFAULT 2000,
+                protein_g  REAL NOT NULL DEFAULT 120,
+                carbs_g    REAL NOT NULL DEFAULT 200,
+                fat_g      REAL NOT NULL DEFAULT 65,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS push_subscriptions (
                 endpoint          TEXT PRIMARY KEY,
                 user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1145,6 +1155,29 @@ def get_food_log_today(user_id):
 def delete_food_log(user_id, log_id):
     with get_connection() as conn:
         conn.execute("DELETE FROM food_log WHERE id = ? AND user_id = ?", (log_id, user_id))
+
+
+def get_nutrition_goal(user_id):
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT calories, protein_g, carbs_g, fat_g FROM nutrition_goal WHERE user_id = ?",
+            (user_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def save_nutrition_goal(user_id, calories, protein_g, carbs_g, fat_g):
+    now = datetime.now().isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO nutrition_goal (user_id, calories, protein_g, carbs_g, fat_g, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON CONFLICT(user_id) DO UPDATE SET
+                 calories=excluded.calories, protein_g=excluded.protein_g,
+                 carbs_g=excluded.carbs_g, fat_g=excluded.fat_g, updated_at=excluded.updated_at""",
+            (user_id, int(calories or 0), float(protein_g or 0), float(carbs_g or 0),
+             float(fat_g or 0), now),
+        )
 
 
 def get_apex_plan(user_id):
