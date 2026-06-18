@@ -299,6 +299,24 @@ def chat(message, coaching_data, history=None):
     messages = [{"role": "system", "content": system}]
     for turn in (history or []):
         messages.append({"role": turn["role"], "content": turn["content"]})
+
+    # Re-assert TODAY's date AFTER the history. A chat thread can span multiple
+    # days; APEX otherwise anchors on the date it stated earlier in the thread
+    # and thinks it's still yesterday. Placing this last gives it the most weight.
+    from datetime import datetime as _dt
+    _now = _dt.now()
+    ld, lday = coaching_data.get("local_date"), coaching_data.get("local_day")
+    _today = f"{lday}, {ld}" if (ld and lday) else _now.strftime("%A, %Y-%m-%d")
+    messages.append({
+        "role": "system",
+        "content": (
+            f"CURRENT DATE & TIME (authoritative): it is now {_today}, "
+            f"{_now.strftime('%-I:%M %p')}. The conversation above may have started on a "
+            f"PREVIOUS day — ignore any 'today is …' you stated earlier; anchor 'today' to "
+            f"THIS date for everything (today's workout, recommendations, greetings)."
+        ),
+    })
+
     # Re-assert the live data AFTER the history so it outranks any stale
     # "I can't see it / sync delay" replies earlier in the thread.
     workouts = coaching_data.get("recent_workouts") or []
