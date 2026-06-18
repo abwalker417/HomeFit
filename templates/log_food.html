@@ -249,6 +249,17 @@
       body: JSON.stringify({ description: input.value.trim(), items, totals, cost_usd: parsed ? parsed.cost_usd : 0 }) });
     const d = await r.json();
     today = d.today || []; renderToday();
+    // Also write the macros to Apple Health (native app only — no-op in Safari)
+    try {
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.healthKit) {
+        window.webkit.messageHandlers.healthKit.postMessage({
+          type: 'logFood',
+          calories: totals.calories, protein_g: totals.protein_g,
+          carbs_g: totals.carbs_g, fat_g: totals.fat_g,
+          date: new Date().toISOString(),
+        });
+      }
+    } catch (_) {}
     input.value = ''; resultCard.classList.add('hidden'); parsed = null; logBtn.disabled = false;
   });
 
