@@ -127,17 +127,46 @@
   const photoBtn = document.getElementById('photo-btn');
   const photoInput = document.getElementById('photo-input');
 
+  function readItems() {
+    return Array.from(resultItems.querySelectorAll('.pi-row')).map((row) => ({
+      name: row.dataset.name, quantity: row.dataset.qty,
+      calories: parseInt(row.querySelector('.pi-cal').value, 10) || 0,
+      protein_g: parseFloat(row.querySelector('.pi-pro').value) || 0,
+      carbs_g: parseFloat(row.querySelector('.pi-carb').value) || 0,
+      fat_g: parseFloat(row.querySelector('.pi-fat').value) || 0,
+    }));
+  }
+  function recompute() {
+    const t = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
+    readItems().forEach((i) => { t.calories += i.calories; t.protein_g += i.protein_g; t.carbs_g += i.carbs_g; t.fat_g += i.fat_g; });
+    resultTotal.textContent = `Total: ${t.calories} cal · ${Math.round(t.protein_g)}g protein · ${Math.round(t.carbs_g)}g carbs · ${Math.round(t.fat_g)}g fat`;
+    return t;
+  }
   function showResult(d) {
     parsed = d;
     if (!d.items || !d.items.length) {
       status.textContent = "Couldn't identify any food — try a clearer photo or type it in.";
       return;
     }
+    const esc = (s) => String(s == null ? '' : s).replace(/"/g, '&quot;');
     resultItems.innerHTML = d.items.map((i) =>
-      `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>${i.name} <span class="subtle" style="font-size:12px;">${i.quantity}</span></span><span class="subtle" style="font-size:12px;">${macro(i)}</span></div>`).join('');
-    const t = d.totals;
-    resultTotal.textContent = `Total: ${t.calories} cal · ${t.protein_g}g protein · ${t.carbs_g}g carbs · ${t.fat_g}g fat`;
-    resultCost.textContent = `Cost of this estimate: $${d.cost_usd.toFixed(5)} (${d.tokens} tokens, ${d.model})`;
+      `<div class="pi-row" data-name="${esc(i.name)}" data-qty="${esc(i.quantity)}" style="padding:8px 0; border-bottom:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span>${i.name} <span class="subtle" style="font-size:12px;">${i.quantity}</span></span>
+          <button type="button" class="pi-del pill" style="cursor:pointer; border:none; font-size:11px;">remove</button>
+        </div>
+        <div style="display:flex; gap:5px; margin-top:4px; font-size:12px; color:var(--subtle); align-items:center;">
+          <input class="pi-cal" type="number" value="${i.calories}" style="width:56px;"> cal
+          <input class="pi-pro" type="number" value="${i.protein_g}" style="width:44px;"> p
+          <input class="pi-carb" type="number" value="${i.carbs_g}" style="width:44px;"> c
+          <input class="pi-fat" type="number" value="${i.fat_g}" style="width:44px;"> f
+        </div>
+      </div>`).join('');
+    resultItems.querySelectorAll('input').forEach((inp) => inp.addEventListener('input', recompute));
+    resultItems.querySelectorAll('.pi-del').forEach((b) =>
+      b.addEventListener('click', () => { b.closest('.pi-row').remove(); recompute(); }));
+    recompute();
+    resultCost.textContent = `Estimate cost: $${d.cost_usd.toFixed(5)} — tweak any number before logging.`;
     resultCard.classList.remove('hidden');
     status.textContent = '';
   }
@@ -194,10 +223,12 @@
   });
 
   logBtn.addEventListener('click', async () => {
-    if (!parsed) return;
+    const items = readItems();
+    if (!items.length) return;
+    const totals = recompute();  // use the (possibly edited) values
     logBtn.disabled = true;
     const r = await fetch('/api/food/log', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: input.value.trim(), items: parsed.items, totals: parsed.totals, cost_usd: parsed.cost_usd }) });
+      body: JSON.stringify({ description: input.value.trim(), items, totals, cost_usd: parsed ? parsed.cost_usd : 0 }) });
     const d = await r.json();
     today = d.today || []; renderToday();
     input.value = ''; resultCard.classList.add('hidden'); parsed = null; logBtn.disabled = false;
