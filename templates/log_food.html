@@ -108,10 +108,20 @@
         <button class="del-btn pill" data-id="${m.id}" style="cursor:pointer;border:none;align-self:start;">✕</button></div>`;
       list.appendChild(li);
     });
-    list.querySelectorAll('.del-btn').forEach((b) => b.addEventListener('click', async () => {
-      const r = await fetch('/api/food/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: b.dataset.id }) });
-      const d = await r.json(); today = d.today || []; renderToday();
-    }));
+    list.querySelectorAll('.del-btn').forEach((b) => {
+      let armed = false, t = null;
+      b.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        if (!armed) {  // first tap just arms it — a stray touch can't delete
+          armed = true; b.textContent = 'Remove?'; b.style.color = 'var(--danger, #ef4444)';
+          t = setTimeout(() => { armed = false; b.textContent = '✕'; b.style.color = ''; }, 3000);
+          return;
+        }
+        clearTimeout(t);
+        const r = await fetch('/api/food/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: b.dataset.id }) });
+        const d = await r.json(); today = d.today || []; renderToday();
+      });
+    });
   }
 
   const photoBtn = document.getElementById('photo-btn');
