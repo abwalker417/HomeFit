@@ -1345,3 +1345,38 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 @media (prefers-reduced-motion: reduce) {
   .ex-anim .ex-anim-frame2 { animation: none; opacity: 0; }
 }
+
+/* Nutrition composer (chat-style: photo + text + send) */
+.food-composer { padding: 10px; }
+.composer-row { display: flex; gap: 8px; align-items: flex-end; }
+.composer-row textarea {
+  flex: 1; border: none; background: transparent; color: var(--text);
+  font-family: inherit; font-size: 15px; line-height: 1.4; resize: none;
+  max-height: 140px; padding: 8px 4px; outline: none;
+}
+.composer-attach, .composer-send {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+  border: none; cursor: pointer; font-size: 18px; display: flex;
+  align-items: center; justify-content: center; transition: opacity .15s;
+}
+.composer-attach { background: var(--surface-2, var(--border)); color: var(--text); }
+.composer-send { background: var(--accent); color: #06181c; font-size: 16px; }
+.composer-send:disabled { opacity: .4; cursor: default; }
+#photo-preview { position: relative; margin-bottom: 8px; display: inline-block; }
+#photo-preview.hidden { display: none; }
+#photo-preview img { max-height: 130px; border-radius: 12px; display: block; }
+#photo-remove {
+  position: absolute; top: 6px; left: 6px; width: 26px; height: 26px;
+  border-radius: 50%; border: none; background: rgba(0,0,0,.6); color: #fff;
+  cursor: pointer; font-size: 13px; line-height: 1;
+}
+/* Toast feedback */
+.food-toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(10px);
+  background: var(--accent); color: #06181c; font-weight: 700; font-size: 14px;
+  padding: 12px 20px; border-radius: 999px; box-shadow: 0 6px 24px rgba(0,0,0,.4);
+  opacity: 0; transition: opacity .2s, transform .2s; z-index: 80; pointer-events: none;
+}
+.food-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.food-toast.hidden { display: none; }

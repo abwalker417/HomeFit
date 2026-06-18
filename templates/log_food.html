@@ -6,15 +6,18 @@
   <h1>Nutrition</h1>
   <p class="subtle" style="font-size:13px;">Type what you ate or snap a photo — it estimates the macros and tracks your day.</p>
 
-  <div class="card" style="padding:16px;">
-    <textarea id="meal-input" rows="2" placeholder="e.g. 2 eggs, wheat toast with butter, and a banana — or just snap a photo below"
-              style="width:100%; box-sizing:border-box; font-family:inherit; font-size:15px; resize:vertical;"></textarea>
-    <div style="display:flex; gap:8px; margin-top:10px;">
-      <button id="parse-btn" class="btn btn-primary" style="flex:1;">Estimate from text</button>
-      <button id="photo-btn" class="btn btn-secondary" style="flex:1;">📷 Snap / upload</button>
+  <div class="card food-composer">
+    <div id="photo-preview" class="hidden">
+      <img id="photo-thumb" alt="meal photo">
+      <button id="photo-remove" type="button" aria-label="Remove photo">✕</button>
+    </div>
+    <div class="composer-row">
+      <button id="photo-btn" type="button" class="composer-attach" title="Add a photo" aria-label="Add a photo">📷</button>
+      <textarea id="meal-input" rows="1" placeholder="What did you eat? Add a photo or describe it…"></textarea>
+      <button id="send-btn" class="composer-send" disabled aria-label="Send">➤</button>
     </div>
     <input id="photo-input" type="file" accept="image/*" style="display:none;">
-    <p id="parse-status" class="subtle" style="font-size:12px; margin:8px 0 0;"></p>
+    <p id="parse-status" class="subtle" style="font-size:12px; margin:8px 4px 0;"></p>
   </div>
 
   <div id="result-card" class="card hidden" style="padding:16px; margin-top:12px;">
@@ -65,6 +68,8 @@
   {% endif %}
 </section>
 
+<div id="food-toast" class="food-toast hidden"></div>
+
 <script id="today-data" type="application/json">{{ today_foods|tojson }}</script>
 <script id="goal-data" type="application/json">{{ goal|tojson }}</script>
 {% endblock %}
@@ -73,7 +78,11 @@
 <script>
 (function () {
   const input = document.getElementById('meal-input');
-  const parseBtn = document.getElementById('parse-btn');
+  const sendBtn = document.getElementById('send-btn');
+  const photoBtn = document.getElementById('photo-btn');
+  const photoInput = document.getElementById('photo-input');
+  const photoPreview = document.getElementById('photo-preview');
+  const photoThumb = document.getElementById('photo-thumb');
   const status = document.getElementById('parse-status');
   const resultCard = document.getElementById('result-card');
   const resultItems = document.getElementById('result-items');
@@ -81,7 +90,22 @@
   const resultCost = document.getElementById('result-cost');
   const logBtn = document.getElementById('log-btn');
   const discardBtn = document.getElementById('discard-btn');
+  const toastEl = document.getElementById('food-toast');
   let parsed = null;
+  let attachedImage = null;  // data URL of an attached photo, if any
+
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.remove('hidden');
+    requestAnimationFrame(() => toastEl.classList.add('show'));
+    setTimeout(() => {
+      toastEl.classList.remove('show');
+      setTimeout(() => toastEl.classList.add('hidden'), 250);
+    }, 2200);
+  }
+  function updateSendState() {
+    sendBtn.disabled = !(input.value.trim() || attachedImage);
+  }
 
   let today = [];
   try { today = JSON.parse(document.getElementById('today-data').textContent) || []; } catch (_) {}
@@ -142,9 +166,6 @@
     });
   }
 
-  const photoBtn = document.getElementById('photo-btn');
-  const photoInput = document.getElementById('photo-input');
-
   function readItems() {
     return Array.from(resultItems.querySelectorAll('.pi-row')).map((row) => ({
       name: row.dataset.name, quantity: row.dataset.qty,
@@ -189,20 +210,6 @@
     status.textContent = '';
   }
 
-  parseBtn.addEventListener('click', async () => {
-    const text = input.value.trim();
-    if (!text) return;
-    parseBtn.disabled = true; status.textContent = 'Estimating…'; resultCard.classList.add('hidden');
-    try {
-      const r = await fetch('/api/food/parse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
-      const d = await r.json();
-      if (d.error) throw new Error(d.error);
-      showResult(d);
-    } catch (e) {
-      status.textContent = 'Couldn\'t parse that (' + e.message + ').';
-    } finally { parseBtn.disabled = false; }
-  });
-
   // Downscale the photo in-browser before upload (faster + cheaper + smaller call)
   function resizeImage(file, maxDim, quality) {
     return new Promise((resolve, reject) => {
@@ -223,21 +230,56 @@
     });
   }
 
+  // Auto-grow the input + toggle Send as you type
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+    updateSendState();
+  });
+
+  function clearPhoto() {
+    attachedImage = null;
+    photoPreview.classList.add('hidden');
+    photoThumb.removeAttribute('src');
+    updateSendState();
+  }
+  document.getElementById('photo-remove').addEventListener('click', clearPhoto);
+
+  // Attach (not analyze) a photo — preview it; Send does the analysis
   photoBtn.addEventListener('click', () => photoInput.click());
   photoInput.addEventListener('change', async () => {
     const file = photoInput.files[0];
+    photoInput.value = '';
     if (!file) return;
-    photoBtn.disabled = true; parseBtn.disabled = true;
-    status.textContent = 'Analyzing photo…'; resultCard.classList.add('hidden');
     try {
-      const dataUrl = await resizeImage(file, 1024, 0.8);
-      const r = await fetch('/api/food/parse-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: dataUrl, note: input.value.trim() }) });
-      const d = await r.json();
+      attachedImage = await resizeImage(file, 1024, 0.8);
+      photoThumb.src = attachedImage;
+      photoPreview.classList.remove('hidden');
+      updateSendState();
+    } catch (_) { status.textContent = "Couldn't load that photo."; }
+  });
+
+  // One Send button: photo (with optional note) or plain text
+  sendBtn.addEventListener('click', async () => {
+    const text = input.value.trim();
+    if (!text && !attachedImage) return;
+    sendBtn.disabled = true; photoBtn.disabled = true;
+    status.textContent = attachedImage ? 'Analyzing photo…' : 'Estimating…';
+    resultCard.classList.add('hidden');
+    try {
+      let d;
+      if (attachedImage) {
+        const r = await fetch('/api/food/parse-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: attachedImage, note: text }) });
+        d = await r.json();
+      } else {
+        const r = await fetch('/api/food/parse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+        d = await r.json();
+      }
       if (d.error) throw new Error(d.error);
       showResult(d);
     } catch (e) {
-      status.textContent = "Couldn't read that photo (" + e.message + ").";
-    } finally { photoBtn.disabled = false; parseBtn.disabled = false; photoInput.value = ''; }
+      status.textContent = "Couldn't read that (" + e.message + ").";
+    } finally { photoBtn.disabled = false; updateSendState(); }
   });
 
   logBtn.addEventListener('click', async () => {
@@ -260,7 +302,11 @@
         });
       }
     } catch (_) {}
-    input.value = ''; resultCard.classList.add('hidden'); parsed = null; logBtn.disabled = false;
+    toast(`✓ Logged · ${totals.calories} cal`);
+    input.value = ''; input.style.height = 'auto';
+    clearPhoto();
+    resultCard.classList.add('hidden'); parsed = null; logBtn.disabled = false;
+    updateSendState();
   });
 
   discardBtn.addEventListener('click', () => { resultCard.classList.add('hidden'); parsed = null; });
