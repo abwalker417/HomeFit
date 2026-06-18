@@ -1380,3 +1380,12 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 }
 .food-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .food-toast.hidden { display: none; }
+
+/* APEX one-line coaching note on a parsed meal */
+.coach-note {
+  margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(var(--accent-rgb), .12);
+  border-left: 3px solid var(--accent);
+  font-size: 13px; line-height: 1.4; color: var(--text);
+}
+.coach-note.hidden { display: none; }

@@ -23,6 +23,7 @@
   <div id="result-card" class="card hidden" style="padding:16px; margin-top:12px;">
     <div id="result-items"></div>
     <div id="result-total" style="font-weight:700; margin-top:10px; padding-top:10px; border-top:1px solid var(--border);"></div>
+    <div id="result-note" class="coach-note hidden"></div>
     <p id="result-cost" class="subtle" style="font-size:12px; margin:6px 0 0;"></p>
     <div style="display:flex; gap:8px; margin-top:12px;">
       <button id="log-btn" class="btn btn-primary" style="flex:1;">Log it</button>
@@ -205,6 +206,13 @@
     resultItems.querySelectorAll('.pi-del').forEach((b) =>
       b.addEventListener('click', () => { b.closest('.pi-row').remove(); recompute(); }));
     recompute();
+    const noteEl = document.getElementById('result-note');
+    if (d.note && d.note.trim()) {
+      noteEl.textContent = d.note.trim();
+      noteEl.classList.remove('hidden');
+    } else {
+      noteEl.classList.add('hidden');
+    }
     resultCost.textContent = `Estimate cost: $${d.cost_usd.toFixed(5)} — tweak any number before logging.`;
     resultCard.classList.remove('hidden');
     status.textContent = '';
@@ -302,7 +310,8 @@
         });
       }
     } catch (_) {}
-    toast(`✓ Logged · ${totals.calories} cal`);
+    const note = parsed && parsed.note ? parsed.note.trim() : '';
+    toast(note ? `✓ Logged · ${totals.calories} cal — ${note}` : `✓ Logged · ${totals.calories} cal`);
     input.value = ''; input.style.height = 'auto';
     clearPhoto();
     resultCard.classList.add('hidden'); parsed = null; logBtn.disabled = false;

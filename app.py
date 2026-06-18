@@ -534,6 +534,17 @@ def api_food_goals():
     return jsonify({"ok": True, "goal": database.get_nutrition_goal(uid)})
 
 
+def _food_day_total(uid):
+    """Sum of today's logged meals, for goal-aware coaching context."""
+    foods = database.get_food_log_today(uid)
+    return {
+        "calories": sum(f.get("calories") or 0 for f in foods),
+        "protein_g": round(sum(f.get("protein_g") or 0 for f in foods), 1),
+        "carbs_g": round(sum(f.get("carbs_g") or 0 for f in foods), 1),
+        "fat_g": round(sum(f.get("fat_g") or 0 for f in foods), 1),
+    }
+
+
 @app.route("/api/food/parse", methods=["POST"])
 def api_food_parse():
     uid = session.get("user_id")
@@ -544,7 +555,9 @@ def api_food_parse():
         return jsonify({"error": "empty"}), 400
     try:
         import food_parser
-        return jsonify(food_parser.parse_meal(text))
+        return jsonify(food_parser.parse_meal(
+            text, goal=database.get_nutrition_goal(uid),
+            day_total=_food_day_total(uid)))
     except Exception as e:
         return jsonify({"error": str(e)}), 502
 
@@ -562,7 +575,9 @@ def api_food_parse_image():
         return jsonify({"error": "image too large"}), 413
     try:
         import food_parser
-        return jsonify(food_parser.parse_meal_image(data_url, d.get("note", "")))
+        return jsonify(food_parser.parse_meal_image(
+            data_url, d.get("note", ""), goal=database.get_nutrition_goal(uid),
+            day_total=_food_day_total(uid)))
     except Exception as e:
         return jsonify({"error": str(e)}), 502
 

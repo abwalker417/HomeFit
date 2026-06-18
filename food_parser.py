@@ -21,12 +21,34 @@ _PRICE = {"gpt-4o-mini": (0.15, 0.60), "gpt-4o": (2.50, 10.00)}
 SYSTEM = (
     "You estimate nutrition for a meal. Break it into individual food items with "
     "realistic quantities and per-item nutrition using common nutrition data. If a "
-    "quantity is vague, assume a standard serving. Return ONLY JSON:\n"
+    "quantity is vague, assume a standard serving. Also give a short, friendly "
+    "one-line coaching note (max ~12 words) reacting to the meal — praise good "
+    "choices, or gently flag if it's heavy on calories or light on protein. If "
+    "daily goal/progress context is provided, make the note aware of it (e.g. "
+    "running low on protein for the day, or near the calorie goal). Return ONLY "
+    "JSON:\n"
     '{"items":[{"name":"string","quantity":"string","calories":int,'
-    '"protein_g":number,"carbs_g":number,"fat_g":number}]}\n'
+    '"protein_g":number,"carbs_g":number,"fat_g":number}],"note":"string"}\n'
     "No prose, no code fences. If you cannot identify any food, return "
-    '{"items":[]}.'
+    '{"items":[],"note":""}.'
 )
+
+
+def _context_line(goal=None, day_total=None):
+    """Build a one-line goal/progress hint to inject into the user message."""
+    if not goal:
+        return ""
+    parts = [f"User's daily goal: {int(goal.get('calories') or 0)} cal, "
+             f"{int(goal.get('protein_g') or 0)}g protein, "
+             f"{int(goal.get('carbs_g') or 0)}g carbs, "
+             f"{int(goal.get('fat_g') or 0)}g fat."]
+    if day_total:
+        parts.append(
+            f"So far today (before this meal): {int(day_total.get('calories') or 0)} cal, "
+            f"{int(day_total.get('protein_g') or 0)}g protein, "
+            f"{int(day_total.get('carbs_g') or 0)}g carbs, "
+            f"{int(day_total.get('fat_g') or 0)}g fat.")
+    return " ".join(parts)
 
 
 def _num(v):
@@ -71,28 +93,34 @@ def _extract(data, model, in_est, out_est_text):
         "carbs_g": round(sum(i["carbs_g"] for i in items), 1),
         "fat_g": round(sum(i["fat_g"] for i in items), 1),
     }
+    note = str(obj.get("note", "") or "").strip()[:120]
     usage = data.get("usage", {}) or {}
     pin, pout = _PRICE.get(model, (0.15, 0.60))
     in_tok = usage.get("prompt_tokens") or in_est
     out_tok = usage.get("completion_tokens") or (len(content) // 4)
     cost = (in_tok * pin + out_tok * pout) / 1_000_000
-    return {"items": items, "totals": totals,
+    return {"items": items, "totals": totals, "note": note,
             "cost_usd": round(cost, 6), "model": model, "tokens": in_tok + out_tok}
 
 
-def parse_meal(text):
+def parse_meal(text, goal=None, day_total=None):
     text = text.strip()[:500]
+    ctx = _context_line(goal, day_total)
+    user_msg = f"{ctx}\n\nMeal: {text}" if ctx else text
     data = _call([{"role": "system", "content": SYSTEM},
-                  {"role": "user", "content": text}], TEXT_MODEL)
-    return _extract(data, TEXT_MODEL, (len(SYSTEM) + len(text)) // 4, None)
+                  {"role": "user", "content": user_msg}], TEXT_MODEL)
+    return _extract(data, TEXT_MODEL, (len(SYSTEM) + len(user_msg)) // 4, None)
 
 
-def parse_meal_image(data_url, note=""):
+def parse_meal_image(data_url, note="", goal=None, day_total=None):
     """data_url = 'data:image/jpeg;base64,...'. Optional text note adds context."""
     user_content = [{"type": "image_url", "image_url": {"url": data_url}}]
     prompt = "Identify the foods in this meal photo and estimate the nutrition."
     if note.strip():
         prompt += f" Note from the user: {note.strip()[:200]}"
+    ctx = _context_line(goal, day_total)
+    if ctx:
+        prompt += f" {ctx}"
     user_content.insert(0, {"type": "text", "text": prompt})
     data = _call([{"role": "system", "content": SYSTEM},
                   {"role": "user", "content": user_content}], IMAGE_MODEL)
