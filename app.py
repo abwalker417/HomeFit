@@ -519,6 +519,24 @@ def api_food_parse():
         return jsonify({"error": str(e)}), 502
 
 
+@app.route("/api/food/parse-image", methods=["POST"])
+def api_food_parse_image():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    data_url = d.get("image", "")
+    if not data_url.startswith("data:image"):
+        return jsonify({"error": "no image"}), 400
+    if len(data_url) > 8_000_000:  # ~6MB image; client should downscale first
+        return jsonify({"error": "image too large"}), 413
+    try:
+        import food_parser
+        return jsonify(food_parser.parse_meal_image(data_url, d.get("note", "")))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
 @app.route("/api/food/log", methods=["POST"])
 def api_food_log():
     uid = session.get("user_id")

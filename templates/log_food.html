@@ -8,9 +8,13 @@
   <p class="subtle" style="font-size:13px;">Type what you ate in plain English — one cheap AI call estimates the macros (no Sparky agent).</p>
 
   <div class="card" style="padding:16px;">
-    <textarea id="meal-input" rows="2" placeholder="e.g. 2 eggs, wheat toast with butter, and a banana"
+    <textarea id="meal-input" rows="2" placeholder="e.g. 2 eggs, wheat toast with butter, and a banana — or just snap a photo below"
               style="width:100%; box-sizing:border-box; font-family:inherit; font-size:15px; resize:vertical;"></textarea>
-    <button id="parse-btn" class="btn btn-primary" style="width:100%; margin-top:10px;">Estimate macros</button>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button id="parse-btn" class="btn btn-primary" style="flex:1;">Estimate from text</button>
+      <button id="photo-btn" class="btn btn-secondary" style="flex:1;">📷 Snap / upload</button>
+    </div>
+    <input id="photo-input" type="file" accept="image/*" capture="environment" style="display:none;">
     <p id="parse-status" class="subtle" style="font-size:12px; margin:8px 0 0;"></p>
   </div>
 
@@ -76,6 +80,24 @@
     }));
   }
 
+  const photoBtn = document.getElementById('photo-btn');
+  const photoInput = document.getElementById('photo-input');
+
+  function showResult(d) {
+    parsed = d;
+    if (!d.items || !d.items.length) {
+      status.textContent = "Couldn't identify any food — try a clearer photo or type it in.";
+      return;
+    }
+    resultItems.innerHTML = d.items.map((i) =>
+      `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>${i.name} <span class="subtle" style="font-size:12px;">${i.quantity}</span></span><span class="subtle" style="font-size:12px;">${macro(i)}</span></div>`).join('');
+    const t = d.totals;
+    resultTotal.textContent = `Total: ${t.calories} cal · ${t.protein_g}g protein · ${t.carbs_g}g carbs · ${t.fat_g}g fat`;
+    resultCost.textContent = `Cost of this estimate: $${d.cost_usd.toFixed(5)} (${d.tokens} tokens, ${d.model})`;
+    resultCard.classList.remove('hidden');
+    status.textContent = '';
+  }
+
   parseBtn.addEventListener('click', async () => {
     const text = input.value.trim();
     if (!text) return;
@@ -84,17 +106,47 @@
       const r = await fetch('/api/food/parse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
-      parsed = d;
-      resultItems.innerHTML = d.items.map((i) =>
-        `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>${i.name} <span class="subtle" style="font-size:12px;">${i.quantity}</span></span><span class="subtle" style="font-size:12px;">${macro(i)}</span></div>`).join('');
-      const t = d.totals;
-      resultTotal.textContent = `Total: ${t.calories} cal · ${t.protein_g}g protein · ${t.carbs_g}g carbs · ${t.fat_g}g fat`;
-      resultCost.textContent = `Cost of this estimate: $${d.cost_usd.toFixed(5)} (${d.tokens} tokens, ${d.model})`;
-      resultCard.classList.remove('hidden');
-      status.textContent = '';
+      showResult(d);
     } catch (e) {
       status.textContent = 'Couldn\'t parse that (' + e.message + ').';
     } finally { parseBtn.disabled = false; }
+  });
+
+  // Downscale the photo in-browser before upload (faster + cheaper + smaller call)
+  function resizeImage(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let w = img.width, h = img.height;
+        if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(cv.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  photoBtn.addEventListener('click', () => photoInput.click());
+  photoInput.addEventListener('change', async () => {
+    const file = photoInput.files[0];
+    if (!file) return;
+    photoBtn.disabled = true; parseBtn.disabled = true;
+    status.textContent = 'Analyzing photo…'; resultCard.classList.add('hidden');
+    try {
+      const dataUrl = await resizeImage(file, 1024, 0.8);
+      const r = await fetch('/api/food/parse-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: dataUrl, note: input.value.trim() }) });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      showResult(d);
+    } catch (e) {
+      status.textContent = "Couldn't read that photo (" + e.message + ").";
+    } finally { photoBtn.disabled = false; parseBtn.disabled = false; photoInput.value = ''; }
   });
 
   logBtn.addEventListener('click', async () => {
