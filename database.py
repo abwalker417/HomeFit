@@ -613,8 +613,32 @@ def get_coaching_context(user_id):
         "readiness": compute_readiness(user_id),
         "training_load": training_load(user_id),
         "energy_log": get_energy_log(user_id, days=7),
+        "steps_log": [{"date": r["metric_date"], "steps": int(r["value"])}
+                      for r in get_recent_metric(user_id, "steps", days=7)],
+        "step_goal": get_step_goal(user_id),
         "apex_memory": get_apex_memory(user_id),
     }
+
+
+def get_steps_today(user_id):
+    today = datetime.now().date().isoformat()
+    for r in get_recent_metric(user_id, "steps", days=2):
+        if r["metric_date"] == today:
+            return int(r["value"])
+    return None
+
+
+def get_step_goal(user_id):
+    """Personalized step goal = each person's own ~2-week average (floored).
+    Self-adjusts per lifestyle (office vs on-your-feet); 8000 default until
+    there's enough history."""
+    today = datetime.now().date().isoformat()
+    vals = [r["value"] for r in get_recent_metric(user_id, "steps", days=15)
+            if r["metric_date"] != today and r["value"]]   # exclude today (partial)
+    if len(vals) >= 5:
+        avg = sum(vals) / len(vals)
+        return int(max(6000, round(avg / 500) * 500))
+    return 8000
 
 
 def get_activity_rings(user_id):

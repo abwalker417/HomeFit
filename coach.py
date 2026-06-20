@@ -272,6 +272,16 @@ def _build_context(coaching_data):
                      "their rough energy balance; use it for fueling/deficit guidance, not as a hard number.")
         lines.append("")
 
+    steps_log = coaching_data.get("steps_log") or []
+    if steps_log:
+        goal = coaching_data.get("step_goal")
+        recent = ", ".join(f"{s['date']}: {s['steps']:,}" for s in steps_log[:5])
+        lines.append(f"Recent daily steps (personal goal ~{goal:,}): {recent}.")
+        lines.append("Steps are a NEAT / general-activity signal beyond logged training. The goal is their own "
+                     "rolling average, so low-step days (especially rest days) are worth a gentle 'get a walk in' "
+                     "nudge; consistently high steps means an active lifestyle to factor into recovery/fueling.")
+        lines.append("")
+
     other_activity = coaching_data.get("other_activity") or []
     if other_activity:
         lines.append("Other activity (Apple Health / Oura / manual — NOT HomeFit workouts):")

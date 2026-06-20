@@ -1478,7 +1478,7 @@ def api_sleep():
 # Daily health metrics the app may post (resting HR; extensible later)
 ALLOWED_METRICS = {"resting_hr", "active_energy", "resting_energy",
                    "move_goal", "exercise_minutes", "exercise_goal",
-                   "stand_hours", "stand_goal"}
+                   "stand_hours", "stand_goal", "steps"}
 
 
 @app.route("/api/health-metric", methods=["POST"])
@@ -1806,6 +1806,7 @@ def api_panel_summary():
         "workout_minutes": workout_minutes,
         "nutrition": nutrition,
         "rings": rings,
+        "steps": {"current": database.get_steps_today(uid), "goal": database.get_step_goal(uid)},
         "energy": {
             "active": (energy_today or {}).get("active"),
             "resting": (energy_today or {}).get("resting"),
