@@ -220,6 +220,17 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS nudge_log (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                nudge_type TEXT NOT NULL,
+                nudge_date TEXT NOT NULL,
+                body       TEXT,
+                created_at TEXT NOT NULL,
+                UNIQUE(user_id, nudge_type, nudge_date)
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS external_workouts (
                 id               INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1093,6 +1104,36 @@ def get_apns_tokens(user_id=None):
 def delete_apns_token(device_token):
     with get_connection() as conn:
         conn.execute("DELETE FROM apns_tokens WHERE device_token = ?", (device_token,))
+
+
+def get_push_user_ids():
+    """Every user reachable on ANY push channel (web push OR native APNs).
+    The cron loops use this so native-only users still get notifications."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT user_id FROM push_subscriptions "
+            "UNION SELECT user_id FROM apns_tokens"
+        ).fetchall()
+    return sorted({r["user_id"] for r in rows})
+
+
+def nudge_already_sent(user_id, nudge_type, nudge_date):
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM nudge_log WHERE user_id=? AND nudge_type=? AND nudge_date=?",
+            (user_id, nudge_type, nudge_date),
+        ).fetchone()
+    return row is not None
+
+
+def record_nudge(user_id, nudge_type, nudge_date, body=""):
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO nudge_log (user_id, nudge_type, nudge_date, body, created_at)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(user_id, nudge_type, nudge_date) DO NOTHING""",
+            (user_id, nudge_type, nudge_date, body, datetime.now().isoformat()),
+        )
 
 
 def save_weekly_digest(user_id, digest_text):

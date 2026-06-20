@@ -7,6 +7,9 @@ Usage:
                                   # recap + today's focus)
     python3 push_send.py streak   # evening: remind anyone who hasn't trained yet
                                   # and is still short of the weekly target
+    python3 push_send.py nudge    # late afternoon/evening: one proactive,
+                                  # data-driven APEX nudge (train / log dinner /
+                                  # protein), personable and deduped per day
     python3 push_send.py memory   # nightly: APEX updates its persistent memory
                                   # of each user from the day's conversation
 """
@@ -19,8 +22,7 @@ import push_notify
 
 def send_digests():
     import digest_service
-    user_ids = {s["user_id"] for s in database.get_push_subscriptions()}
-    for uid in sorted(user_ids):
+    for uid in database.get_push_user_ids():
         try:
             digest = digest_service.get_or_generate(uid)
         except Exception as e:
@@ -38,8 +40,7 @@ def send_digests():
 
 def send_daily_briefs():
     import daily_service
-    user_ids = {s["user_id"] for s in database.get_push_subscriptions()}
-    for uid in sorted(user_ids):
+    for uid in database.get_push_user_ids():
         try:
             brief = daily_service.get_or_generate(uid)
         except Exception as e:
@@ -56,8 +57,7 @@ def send_streak_reminders():
     today = date.today()
     days_left = 7 - today.weekday()  # includes today
     monday = (today - timedelta(days=today.weekday())).isoformat()
-    user_ids = {s["user_id"] for s in database.get_push_subscriptions()}
-    for uid in sorted(user_ids):
+    for uid in database.get_push_user_ids():
         profile = database.get_profile(uid) or {}
         target = profile.get("days_per_week") or 4
         history = database.get_workout_history(uid, limit=30)
@@ -84,6 +84,41 @@ def send_streak_reminders():
             body = f"No workout logged today — you're at {done} of {target} this week."
         n = push_notify.send_to_user(uid, title, body, url="/")
         print(f"user {uid}: streak push sent to {n} device(s)")
+
+
+def send_nudges():
+    """Proactive contextual nudges: one per user per run, deduped per type/day.
+    Triggers are data-driven (nudge_service); APEX phrases them personably."""
+    import coach
+    import nudge_service
+    from datetime import date
+    today = date.today().isoformat()
+    ai_ok = coach.is_available()
+    for uid in database.get_push_user_ids():
+        try:
+            nudge = nudge_service.evaluate(uid)
+        except Exception as e:
+            print(f"nudge eval failed for user {uid}: {e}")
+            continue
+        if not nudge:
+            continue
+        if database.nudge_already_sent(uid, nudge["type"], today):
+            print(f"user {uid}: {nudge['type']} already sent today")
+            continue
+        title = body = None
+        if ai_ok:
+            try:
+                ctx = database.get_coaching_context(uid)
+                out = coach.generate_nudge(ctx, nudge["type"], nudge["facts"])
+                if out:
+                    title, body = out
+            except Exception as e:
+                print(f"nudge phrasing failed for user {uid}: {e}")
+        if not body:
+            title, body = nudge_service.fallback_text(nudge)
+        n = push_notify.send_to_user(uid, title, body, url="/")
+        database.record_nudge(uid, nudge["type"], today, body)
+        print(f"user {uid}: nudge '{nudge['type']}' sent to {n} device(s): {body}")
 
 
 def update_memories():
@@ -123,6 +158,8 @@ if __name__ == "__main__":
         send_daily_briefs()
     elif cmd == "streak":
         send_streak_reminders()
+    elif cmd == "nudge":
+        send_nudges()
     elif cmd == "memory":
         update_memories()
     else:

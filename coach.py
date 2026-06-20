@@ -451,6 +451,52 @@ Write a 2-3 sentence post-workout insight. Reference something specific from the
     return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
 
 
+_NUDGE_GUIDE = {
+    "untrained_plan_day":
+        "It's a planned training day ({day_name}: {exercises}) and they haven't logged "
+        "a workout yet. Nudge them to get it in — warm, motivating, not nagging.",
+    "dinner_reminder":
+        "It's evening and they've only eaten {eaten} of {goal} cal ({remaining} left), "
+        "likely haven't logged dinner. Remind them to fuel up / log their meal.",
+    "protein_low":
+        "It's evening; calories are fine but protein is low at {protein}g of {goal}g "
+        "({remaining}g short). Suggest a protein-rich choice to close the gap.",
+}
+
+
+def generate_nudge(coaching_data, nudge_type, facts):
+    """A single short, personable push notification. Returns (title, body).
+
+    Uses the live context (so APEX's memory + the user's name come through). Falls
+    back to None if the AI is offline so the caller can use a deterministic line."""
+    guide = _NUDGE_GUIDE.get(nudge_type)
+    if not guide:
+        return None
+    try:
+        situation = guide.format(
+            day_name=facts.get("day_name", ""),
+            exercises=", ".join(facts.get("exercises", [])) or "your session",
+            eaten=facts.get("eaten", 0), goal=facts.get("goal", 0),
+            remaining=facts.get("remaining", 0), protein=facts.get("protein", 0))
+    except Exception:
+        situation = guide
+    context = _build_context(coaching_data)
+    prompt = f"""{context}
+Situation: {situation}
+
+Write ONE short push notification from APEX to this user. Personable and specific
+to them (use their name/memory naturally if it fits), under 120 characters, plain
+text, no emoji-spam (one tasteful emoji max), no hashtags. Return ONLY JSON:
+{{"title": "2-4 word title", "body": "the one-line message"}}"""
+    obj = _parse_json_safe(_generate(prompt, json_mode=True, system=SYSTEM_PROMPT,
+                                     max_tokens=200, timeout=45))
+    if isinstance(obj, dict) and obj.get("body"):
+        title = str(obj.get("title") or "HomeFit").strip()[:40]
+        body = str(obj["body"]).strip().strip('"')[:160]
+        return (title, body)
+    return None
+
+
 def generate_weekly_digest(coaching_data):
     """Generate a weekly summary digest for the dashboard card."""
     from datetime import date, timedelta
