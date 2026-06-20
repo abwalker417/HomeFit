@@ -681,13 +681,13 @@ def _sleep_display(uid, days=14):
     return items
 
 
-@app.route("/")
 def _dashboard_steps(uid):
     sc = database.get_steps_today(uid)
     disp = (f"{sc / 1000:.1f}k" if sc and sc >= 1000 else (str(sc) if sc is not None else "–"))
     return {"current": sc, "goal": database.get_step_goal(uid), "display": disp}
 
 
+@app.route("/")
 def index():
     uid = session["user_id"]
     profile = database.get_profile(uid)
