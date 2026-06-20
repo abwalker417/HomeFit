@@ -1475,7 +1475,9 @@ def api_sleep():
 
 
 # Daily health metrics the app may post (resting HR; extensible later)
-ALLOWED_METRICS = {"resting_hr", "active_energy", "resting_energy"}
+ALLOWED_METRICS = {"resting_hr", "active_energy", "resting_energy",
+                   "move_goal", "exercise_minutes", "exercise_goal",
+                   "stand_hours", "stand_goal"}
 
 
 @app.route("/api/health-metric", methods=["POST"])
@@ -1792,7 +1794,17 @@ def api_panel_summary():
         "goal_protein_g": goal.get("protein_g") or 0,
     }
 
-    # Apple Health energy (today): active "move" + basal "resting" kcal
+    # Apple Activity rings (today) — Move / Exercise / Stand with the user's goals
+    def _today_metric(name):
+        for r in database.get_recent_metric(uid, name, days=2):
+            if r["metric_date"] == today:
+                return r["value"]
+        return None
+    rings = {
+        "move":     {"current": _today_metric("active_energy"),    "goal": _today_metric("move_goal")},
+        "exercise": {"current": _today_metric("exercise_minutes"), "goal": _today_metric("exercise_goal")},
+        "stand":    {"current": _today_metric("stand_hours"),      "goal": _today_metric("stand_goal")},
+    }
     energy_today = next((e for e in database.get_energy_log(uid, days=2) if e["date"] == today), None)
 
     return jsonify({
@@ -1800,12 +1812,11 @@ def api_panel_summary():
         "readiness": database.compute_readiness(uid),
         "workout": workout,
         "workout_minutes": workout_minutes,
-        "workout_goal_minutes": 60,
         "nutrition": nutrition,
+        "rings": rings,
         "energy": {
             "active": (energy_today or {}).get("active"),
             "resting": (energy_today or {}).get("resting"),
-            "active_goal": 800,
         },
     })
 
