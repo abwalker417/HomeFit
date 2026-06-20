@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Garage · HomeFit</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/garage.css') }}?v={{ static_version }}">
+</head>
+<body class="g-body">
+  <div class="g-picker">
+    <div class="g-pick-title">Who's lifting?</div>
+    <div class="g-users">
+      {% for u in users %}
+      <form method="post" action="{{ url_for('garage_pick') }}">
+        <input type="hidden" name="user_id" value="{{ u.id }}">
+        <button class="g-user" type="submit">
+          {% if u.photo %}
+          <img class="g-avatar" src="{{ url_for('static', filename='uploads/' + u.photo) }}" alt="">
+          {% else %}
+          <span class="g-avatar g-avatar-letter">{{ u.name[0]|upper }}</span>
+          {% endif %}
+          <span class="g-user-name">{{ u.name }}</span>
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

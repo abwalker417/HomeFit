@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>{{ user.name }} · Garage</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/garage.css') }}?v={{ static_version }}">
+</head>
+<body class="g-body">
+  {% if not workout %}
+  <div class="g-msg">No plan set for today.<a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a></div>
+  {% elif workout.rest %}
+  <div class="g-msg">Today is a rest day.<a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a></div>
+  {% else %}
+  <div class="g-workout">
+    <!-- LEFT: who -->
+    <div class="g-who">
+      {% if user.photo %}
+      <img class="g-avatar" src="{{ url_for('static', filename='uploads/' + user.photo) }}" alt="">
+      {% else %}
+      <span class="g-avatar g-avatar-letter">{{ user.name[0]|upper }}</span>
+      {% endif %}
+      <div class="g-who-name">{{ user.name }}</div>
+      <div class="g-who-plan">{{ workout.name }}</div>
+      <a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a>
+    </div>
+
+    <!-- CENTER: current exercise -->
+    <div class="g-current">
+      <div class="g-ex-head">
+        <span id="g-ex-name" class="g-ex-name">--</span>
+        <span id="g-progress" class="g-progress">--</span>
+      </div>
+      <div id="g-set-line" class="g-set-line">--</div>
+      <div class="g-steppers">
+        <div class="g-stepper">
+          <span class="g-step-k">Weight</span>
+          <button class="g-step-btn" data-act="w-">−</button>
+          <span><span id="g-weight" class="g-step-v">--</span><span class="g-step-u">lb</span></span>
+          <button class="g-step-btn" data-act="w+">+</button>
+        </div>
+        <div class="g-stepper">
+          <span class="g-step-k">Reps</span>
+          <button class="g-step-btn" data-act="r-">−</button>
+          <span id="g-reps" class="g-step-v">--</span>
+          <button class="g-step-btn" data-act="r+">+</button>
+        </div>
+      </div>
+      <div id="g-dots" class="g-dots"></div>
+      <div class="g-actions">
+        <button id="g-prev" class="g-nav-btn">‹</button>
+        <button id="g-log" class="g-log-btn">✓ Log Set</button>
+        <button id="g-next" class="g-nav-btn">›</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: rest timer + finish -->
+    <div class="g-right">
+      <div id="g-rest" class="g-rest">
+        <div class="g-rest-k">REST</div>
+        <div id="g-rest-time" class="g-rest-time">0:00</div>
+        <button id="g-rest-skip" class="g-rest-skip">Skip</button>
+      </div>
+      <button id="g-finish" class="g-finish-btn">Finish</button>
+    </div>
+  </div>
+
+  <div id="g-done" class="g-done hidden">
+    <div class="g-done-check">✓</div>
+    <div id="g-done-msg" class="g-done-msg">Workout logged</div>
+  </div>
+
+  <script>window.GARAGE = {{ workout|tojson }};</script>
+  <script src="{{ url_for('static', filename='js/garage.js') }}?v={{ static_version }}"></script>
+  {% endif %}
+</body>
+</html>

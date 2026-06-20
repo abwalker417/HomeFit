@@ -67,6 +67,7 @@ PUBLIC_ENDPOINTS = {
     "profile_switch_out", "manifest", "service_worker", "static",
     "api_last_workout", "api_last_weight", "api_external_workout", "api_sleep",
     "api_health_metric", "push_register_apns", "api_panel_summary",
+    "garage", "garage_pick", "garage_workout_view", "garage_complete",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
@@ -867,6 +868,94 @@ def workout_ready():
     session["today_workout"] = workout
     session.pop("building_workout", None)
     return jsonify({"ready": True})
+
+
+# ── Garage kiosk: HomeFit workout logger for a wall-mounted strip panel ──────
+# Standalone, no-PIN, big-button. Reuses the plan + logging; own lean template.
+
+def _garage_workout(uid):
+    """Today's planned workout for the garage logger (from the saved plan)."""
+    from datetime import date
+    plan_data = database.get_apex_plan(uid)
+    if not plan_data or not plan_data.get("plan"):
+        return None
+    plan = plan_data["plan"]
+    wd = date.today().weekday()
+    if wd >= len(plan):
+        return None
+    day = plan[wd]
+    if day.get("rest"):
+        return {"rest": True, "name": day.get("name") or "Rest Day"}
+    ex_history = database.get_exercise_history(uid, limit=15)
+
+    def last_weight(ex_id):
+        for s in ex_history.get(ex_id, []):
+            ws = [w["weight"] for w in s.get("sets", []) if w.get("weight")]
+            if ws:
+                return max(ws)
+        return None
+
+    exercises = []
+    for e in day.get("exercises", []):
+        exercises.append({
+            "id": e.get("id"), "name": e.get("name", "?"),
+            "sets": int(e.get("sets") or 3), "reps": int(e.get("reps") or 10),
+            "unit": e.get("unit", "reps"), "rest": int(e.get("rest") or 60),
+            "last_weight": last_weight(e.get("id")),
+        })
+    return {"rest": False, "name": day.get("name", "Workout"), "exercises": exercises}
+
+
+@app.route("/garage")
+def garage():
+    return render_template("garage.html", users=database.list_users())
+
+
+@app.route("/garage/pick", methods=["POST"])
+def garage_pick():
+    try:
+        uid = int(request.form.get("user_id", 0))
+    except (TypeError, ValueError):
+        uid = 0
+    if database.get_user(uid):
+        session["garage_user"] = uid
+        session.permanent = True
+    return redirect(url_for("garage_workout_view"))
+
+
+@app.route("/garage/workout")
+def garage_workout_view():
+    uid = session.get("garage_user")
+    if not uid or not database.get_user(uid):
+        return redirect(url_for("garage"))
+    return render_template("garage_workout.html", workout=_garage_workout(uid),
+                           user=database.get_user(uid), uid=uid)
+
+
+@app.route("/api/garage/complete", methods=["POST"])
+def garage_complete():
+    uid = session.get("garage_user")
+    if not uid:
+        return jsonify({"error": "no garage user"}), 400
+    from datetime import date
+    data = request.get_json(force=True) or {}
+    exercises = data.get("exercises", [])
+    duration = data.get("duration_seconds")
+    day_name = data.get("day_name", "Garage Workout")
+    database.log_workout(uid, day_name, 1, exercises, duration)
+    completed = [e for e in exercises if e.get("completed") and e.get("id")]
+    enriched = [get_exercise_by_id(e["id"]) for e in completed]
+    enriched = [e for e in enriched if e]
+    sets_by_id = {e["id"]: e.get("sets", []) for e in completed}
+    for e in enriched:
+        e["sets_logged"] = sets_by_id.get(e["id"], [])
+    profile = database.get_profile(uid)
+    if enriched and (profile or {}).get("sparky_sync"):
+        sparky_sync.sync_workout_async(enriched, date.today(), duration,
+                                       api_key=(profile or {}).get("sparky_api_key"))
+    kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
+    session.pop("garage_user", None)
+    return jsonify({"ok": True, "kcal": kcal, "exercises_completed": len(enriched)})
 
 
 @app.route("/today-workout")
