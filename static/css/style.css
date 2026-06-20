@@ -39,6 +39,8 @@
 
 
 * { box-sizing: border-box; }
+/* Disable double-tap-to-zoom on tap targets (native app, not a web page) */
+button, a, input, select, textarea, label, .key, .pill, .checkbox { touch-action: manipulation; }
 
 html { background: var(--bg); }
 html, body {
