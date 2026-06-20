@@ -83,4 +83,10 @@ def send_to_user(user_id, title, body, url="/"):
                 logging.warning("push failed for user %s: %s", user_id, e)
         except Exception as e:
             logging.warning("push failed for user %s: %s", user_id, e)
+    # Also deliver to native iOS devices via APNs (no-op if unconfigured).
+    try:
+        import push_apns
+        sent += push_apns.send_to_user_apns(user_id, title, body, url)
+    except Exception as e:
+        logging.warning("apns channel failed for user %s: %s", user_id, e)
     return sent

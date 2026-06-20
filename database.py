@@ -212,6 +212,14 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS apns_tokens (
+                device_token TEXT PRIMARY KEY,
+                user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                environment  TEXT NOT NULL DEFAULT 'production',
+                updated_at   TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS external_workouts (
                 id               INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1051,6 +1059,40 @@ def get_push_subscriptions(user_id=None):
 def delete_push_subscription(endpoint):
     with get_connection() as conn:
         conn.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", (endpoint,))
+
+
+def save_apns_token(user_id, device_token, environment="production"):
+    """Store/refresh a native iOS APNs device token (one row per device)."""
+    if not device_token:
+        return False
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO apns_tokens (device_token, user_id, environment, updated_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(device_token) DO UPDATE SET
+                 user_id=excluded.user_id,
+                 environment=excluded.environment,
+                 updated_at=excluded.updated_at""",
+            (device_token, user_id, environment, datetime.now().isoformat()),
+        )
+    return True
+
+
+def get_apns_tokens(user_id=None):
+    with get_connection() as conn:
+        if user_id is None:
+            rows = conn.execute("SELECT * FROM apns_tokens").fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM apns_tokens WHERE user_id = ?", (user_id,)
+            ).fetchall()
+    return [{"user_id": r["user_id"], "device_token": r["device_token"],
+             "environment": r["environment"]} for r in rows]
+
+
+def delete_apns_token(device_token):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM apns_tokens WHERE device_token = ?", (device_token,))
 
 
 def save_weekly_digest(user_id, digest_text):

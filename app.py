@@ -1718,6 +1718,36 @@ def push_unsubscribe():
     return jsonify({"ok": True})
 
 
+@app.route("/api/push/register-apns", methods=["POST"])
+def push_register_apns():
+    """The native iOS app registers its APNs device token here.
+    Auth: Bearer api_token (same as the Apple Health relay). Body:
+    {device_token, environment: 'sandbox'|'production'}."""
+    token = request.args.get("token", "") or \
+        request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
+    uid = database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "invalid token"}), 401
+    data = request.get_json(silent=True) or {}
+    device_token = (data.get("device_token") or "").strip()
+    if not device_token:
+        return jsonify({"error": "device_token required"}), 400
+    env = data.get("environment") if data.get("environment") in ("sandbox", "production") else "production"
+    database.save_apns_token(uid, device_token, env)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/push/test", methods=["POST"])
+def push_test():
+    """Send a test notification to the logged-in user (web push + APNs)."""
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    import push_notify
+    n = push_notify.send_to_user(uid, "HomeFit", "Test notification — you're wired up.", "/")
+    return jsonify({"ok": True, "sent": n})
+
+
 @app.route("/api/strength-history")
 def strength_history():
     """Per-exercise max logged weight per session — feeds the strength chart."""
