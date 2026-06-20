@@ -256,6 +256,22 @@ def _build_context(coaching_data):
         lines.append("Use sleep to inform recovery — flag under-recovery, suggest lighter days or rest when sleep is short or deep/REM is low.")
         lines.append("")
 
+    energy_log = coaching_data.get("energy_log") or []
+    if energy_log:
+        lines.append("Recent Apple Health energy (active 'move' + resting kcal):")
+        for e in energy_log[:5]:
+            parts = []
+            if e.get("active") is not None:
+                parts.append(f"{e['active']} active")
+            if e.get("resting") is not None:
+                parts.append(f"{e['resting']} resting")
+            if parts:
+                lines.append(f"- {e['date']}: {', '.join(parts)} kcal (total ~{e.get('total', 0)})")
+        lines.append("Active (move) calories reflect today's effort/NEAT — a good gauge of how active they've "
+                     "actually been beyond logged workouts. Total burn (active+resting) vs logged intake gives "
+                     "their rough energy balance; use it for fueling/deficit guidance, not as a hard number.")
+        lines.append("")
+
     other_activity = coaching_data.get("other_activity") or []
     if other_activity:
         lines.append("Other activity (Apple Health / Oura / manual — NOT HomeFit workouts):")

@@ -1475,7 +1475,7 @@ def api_sleep():
 
 
 # Daily health metrics the app may post (resting HR; extensible later)
-ALLOWED_METRICS = {"resting_hr"}
+ALLOWED_METRICS = {"resting_hr", "active_energy", "resting_energy"}
 
 
 @app.route("/api/health-metric", methods=["POST"])
@@ -1775,8 +1775,10 @@ def api_panel_summary():
         else:
             workout = {"name": day.get("name") or "Workout", "rest": False,
                        "exercises": len(day.get("exercises", []))}
-    trained = any((w.get("completed_at") or "").startswith(today)
-                  for w in database.get_workout_history(uid, limit=10))
+    recent = database.get_workout_history(uid, limit=10)
+    today_workouts = [w for w in recent if (w.get("completed_at") or "").startswith(today)]
+    trained = bool(today_workouts)
+    workout_minutes = sum((w.get("duration_seconds") or 0) // 60 for w in today_workouts)
     if workout:
         workout["done"] = trained
 
@@ -1790,11 +1792,21 @@ def api_panel_summary():
         "goal_protein_g": goal.get("protein_g") or 0,
     }
 
+    # Apple Health energy (today): active "move" + basal "resting" kcal
+    energy_today = next((e for e in database.get_energy_log(uid, days=2) if e["date"] == today), None)
+
     return jsonify({
         "name": (database.get_profile(uid) or {}).get("name"),
         "readiness": database.compute_readiness(uid),
         "workout": workout,
+        "workout_minutes": workout_minutes,
+        "workout_goal_minutes": 60,
         "nutrition": nutrition,
+        "energy": {
+            "active": (energy_today or {}).get("active"),
+            "resting": (energy_today or {}).get("resting"),
+            "active_goal": 800,
+        },
     })
 
 

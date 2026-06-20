@@ -612,8 +612,20 @@ def get_coaching_context(user_id):
         "sleep_log": get_recent_sleep(user_id, days=7),
         "readiness": compute_readiness(user_id),
         "training_load": training_load(user_id),
+        "energy_log": get_energy_log(user_id, days=7),
         "apex_memory": get_apex_memory(user_id),
     }
+
+
+def get_energy_log(user_id, days=7):
+    """Per-day Apple Health energy: active (move) + basal (resting) kcal."""
+    active = {r["metric_date"]: int(r["value"]) for r in get_recent_metric(user_id, "active_energy", days)}
+    resting = {r["metric_date"]: int(r["value"]) for r in get_recent_metric(user_id, "resting_energy", days)}
+    out = []
+    for d in sorted(set(active) | set(resting), reverse=True):
+        out.append({"date": d, "active": active.get(d), "resting": resting.get(d),
+                    "total": (active.get(d) or 0) + (resting.get(d) or 0)})
+    return out
 
 
 def get_or_create_api_token(user_id):
