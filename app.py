@@ -66,7 +66,7 @@ PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
     "api_last_workout", "api_last_weight", "api_external_workout", "api_sleep",
-    "api_health_metric",
+    "api_health_metric", "push_register_apns",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
