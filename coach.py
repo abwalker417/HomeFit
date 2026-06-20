@@ -559,17 +559,29 @@ def generate_weekly_digest(coaching_data):
     if other:
         cardio_note = f"\nCardio/other activity logged on {len(other)} of the last 7 days."
 
+    activity_note = ""
+    steps_week = [s for s in (coaching_data.get("steps_log") or []) if (s.get("date") or "") >= week_start_str]
+    if steps_week:
+        avg_steps = sum(s["steps"] for s in steps_week) // len(steps_week)
+        goal = coaching_data.get("step_goal")
+        activity_note += f"\nSteps avg this week: {avg_steps:,}/day" + (f" (personal goal ~{goal:,})." if goal else ".")
+    energy_week = [e for e in (coaching_data.get("energy_log") or [])
+                   if (e.get("date") or "") >= week_start_str and e.get("active") is not None]
+    if energy_week:
+        avg_active = sum(e["active"] for e in energy_week) // len(energy_week)
+        activity_note += f"\nActive (move) calories avg: {avg_active}/day."
+
     prompt = f"""{context}
 
 WEEKLY REVIEW for {week_start_str} to today:
-- Training: {len(this_week)} of {goal_days} planned workouts completed; {tl.get('sessions_7d', 0)} total sessions / {tl.get('minutes_7d', 0)} min over 7 days.{nutrition_note}{sleep_note}{cardio_note}
+- Training: {len(this_week)} of {goal_days} planned workouts completed; {tl.get('sessions_7d', 0)} total sessions / {tl.get('minutes_7d', 0)} min over 7 days.{nutrition_note}{sleep_note}{cardio_note}{activity_note}
 
 Write a weekly review as 4-6 short plain-text bullets (each starting with "- ", one sentence each,
 no headers, no greeting, no sign-off). Cover ONLY the areas that have data:
 - Training: consistency vs goal + total volume
 - A standout lift/improvement from the data
 - Sleep: average + consistency, and how it tracked with training
-- Cardio/activity if any
+- Daily movement: steps / active calories as a NEAT signal (active lifestyle vs sedentary week)
 - Nutrition: protein/calorie adherence if logged
 - One specific focus for next week that ties it together (recovery-aware)."""
 
@@ -601,19 +613,48 @@ def generate_daily_brief(coaching_data):
         deep = (n.get("deep_seconds") or 0) // 60
         sleep_note = f" Last night: {h}h{m:02d}m asleep, {deep}m deep sleep."
 
+    # Yesterday's Apple Health activity: steps + active (move) calories
+    activity_note = ""
+    yday_steps = next((s["steps"] for s in coaching_data.get("steps_log") or []
+                       if s.get("date") == yesterday), None)
+    yday_energy = next((e for e in coaching_data.get("energy_log") or []
+                        if e.get("date") == yesterday), None)
+    if yday_steps is not None:
+        goal = coaching_data.get("step_goal")
+        activity_note += f" {yday_steps:,} steps" + (f" (goal ~{goal:,})" if goal else "") + "."
+    if yday_energy and yday_energy.get("active") is not None:
+        activity_note += f" {yday_energy['active']} active kcal."
+
+    # Today's outlook: planned session + readiness
+    today_note = ""
+    plan = coaching_data.get("apex_plan")
+    if plan:
+        wd = date.today().weekday()
+        if wd < len(plan):
+            day = plan[wd]
+            today_note = " Today's plan: " + ("a rest day." if day.get("rest")
+                                              else f"{day.get('name', 'a workout')}.")
+    readiness = coaching_data.get("readiness")
+    if readiness:
+        today_note += f" Readiness {readiness.get('score')} ({readiness.get('label')})."
+
     prompt = f"""{context}
 
-Yesterday ({yesterday}) the user {trained_note}.{nutrition_note}{sleep_note}
+Yesterday ({yesterday}): the user {trained_note}.{nutrition_note}{sleep_note}{activity_note}
+Today:{today_note or ' (no plan set).'}
 
-Write a daily brief: 2-3 short sentences, plain text, under 280 characters.
-- One specific observation about yesterday (training, nutrition, or sleep).
-- Today's recommendation based on the weekly plan AND recovery: if sleep was short
-  (under ~6.5h) or deep/REM was low, suggest dialing back intensity or taking a
-  recovery/rest day; if well-rested, encourage pushing today's planned session.
-Output ONLY the brief sentences — no title, no date, no header, no separators,
-no bullet points, no markdown, no greeting, no sign-off, no character count."""
+Write the user's DAILY DIGEST — a real recap of yesterday and what today looks like.
+3-4 short sentences, plain text, under ~420 characters, conversational and specific.
+- Recap YESTERDAY using the most notable real numbers across training, nutrition,
+  sleep, steps, and active calories — call out what went well and what slipped.
+- Then TODAY: state what's planned, and give a recovery-aware recommendation from
+  readiness + last night's sleep (short sleep / low readiness -> dial back or
+  recover; well-rested -> push the planned session). If steps were low yesterday
+  and today is light, a "get a walk in" nudge fits.
+Reference only data that exists. Output ONLY the digest sentences — no title, date,
+header, separators, bullets, markdown, greeting, sign-off, or character count."""
 
-    return _clean_brief(_generate(prompt, system=SYSTEM_PROMPT, timeout=60))
+    return _clean_brief(_generate(prompt, system=SYSTEM_PROMPT, max_tokens=400, timeout=60))
 
 
 def _clean_brief(text):
