@@ -66,7 +66,7 @@ PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
     "api_last_workout", "api_last_weight", "api_external_workout", "api_sleep",
-    "api_health_metric", "push_register_apns",
+    "api_health_metric", "push_register_apns", "api_panel_summary",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
@@ -1748,6 +1748,54 @@ def push_test():
     import push_notify
     n = push_notify.send_to_user(uid, "HomeFit", "Test notification — you're wired up.", "/")
     return jsonify({"ok": True, "sent": n})
+
+
+@app.route("/api/panel-summary")
+def api_panel_summary():
+    """Compact 'today' summary for an external panel (homestrip). Read-only.
+    Auth: Bearer api_token (or ?token=). Returns readiness + today's workout +
+    nutrition-vs-goal."""
+    from datetime import date
+    token = request.args.get("token", "") or \
+        request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
+    uid = database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "invalid token"}), 401
+
+    today = date.today().isoformat()
+    weekday = date.today().weekday()
+
+    # today's planned workout
+    plan_data = database.get_apex_plan(uid)
+    workout = None
+    if plan_data and plan_data.get("plan") and weekday < len(plan_data["plan"]):
+        day = plan_data["plan"][weekday]
+        if day.get("rest"):
+            workout = {"name": "Rest Day", "rest": True}
+        else:
+            workout = {"name": day.get("name") or "Workout", "rest": False,
+                       "exercises": len(day.get("exercises", []))}
+    trained = any((w.get("completed_at") or "").startswith(today)
+                  for w in database.get_workout_history(uid, limit=10))
+    if workout:
+        workout["done"] = trained
+
+    # nutrition vs goal
+    foods = database.get_food_log_today(uid)
+    goal = database.get_nutrition_goal(uid) or {}
+    nutrition = {
+        "calories": sum(f.get("calories") or 0 for f in foods),
+        "protein_g": round(sum(f.get("protein_g") or 0 for f in foods)),
+        "goal_calories": goal.get("calories") or 0,
+        "goal_protein_g": goal.get("protein_g") or 0,
+    }
+
+    return jsonify({
+        "name": (database.get_profile(uid) or {}).get("name"),
+        "readiness": database.compute_readiness(uid),
+        "workout": workout,
+        "nutrition": nutrition,
+    })
 
 
 @app.route("/api/strength-history")
