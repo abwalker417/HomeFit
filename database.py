@@ -617,6 +617,23 @@ def get_coaching_context(user_id):
     }
 
 
+def get_activity_rings(user_id):
+    """Today's Apple Activity rings (Move/Exercise/Stand) with the user's goals."""
+    today = datetime.now().date().isoformat()
+
+    def m(name):
+        for r in get_recent_metric(user_id, name, days=2):
+            if r["metric_date"] == today:
+                return int(r["value"])
+        return None
+
+    return {
+        "move":     {"current": m("active_energy"),    "goal": m("move_goal")},
+        "exercise": {"current": m("exercise_minutes"), "goal": m("exercise_goal")},
+        "stand":    {"current": m("stand_hours"),      "goal": m("stand_goal")},
+    }
+
+
 def get_energy_log(user_id, days=7):
     """Per-day Apple Health energy: active (move) + basal (resting) kcal."""
     active = {r["metric_date"]: int(r["value"]) for r in get_recent_metric(user_id, "active_energy", days)}

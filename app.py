@@ -720,6 +720,7 @@ def index():
                            last_sleep=sleep[0] if sleep else None,
                            resting_hr=int(rhr["value"]) if rhr else None,
                            readiness=database.compute_readiness(uid),
+                           rings=database.get_activity_rings(uid),
                            has_active_workout=bool(session.get("today_workout")),
                            today_iso=date.today().isoformat(),
                            ai_online=coach.is_available())
@@ -1795,16 +1796,7 @@ def api_panel_summary():
     }
 
     # Apple Activity rings (today) — Move / Exercise / Stand with the user's goals
-    def _today_metric(name):
-        for r in database.get_recent_metric(uid, name, days=2):
-            if r["metric_date"] == today:
-                return r["value"]
-        return None
-    rings = {
-        "move":     {"current": _today_metric("active_energy"),    "goal": _today_metric("move_goal")},
-        "exercise": {"current": _today_metric("exercise_minutes"), "goal": _today_metric("exercise_goal")},
-        "stand":    {"current": _today_metric("stand_hours"),      "goal": _today_metric("stand_goal")},
-    }
+    rings = database.get_activity_rings(uid)
     energy_today = next((e for e in database.get_energy_log(uid, days=2) if e["date"] == today), None)
 
     return jsonify({

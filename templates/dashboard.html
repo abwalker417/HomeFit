@@ -2,13 +2,35 @@
 {% block title %}Home — HomeFit{% endblock %}
 
 {% block content %}
-{% if readiness %}
-<section class="card readiness readiness--{{ readiness.level }}">
-  <div class="readiness-num">{{ readiness.score }}</div>
-  <div class="readiness-info">
-    <p class="card-eyebrow" style="margin:0;">Readiness · {{ readiness.label }}</p>
-    <p class="subtle" style="margin:4px 0 0; font-size:13px;">{{ readiness.reason }}</p>
+{% if readiness or rings.move.current is not none %}
+<section class="card rings-card">
+  <div class="rings-row">
+    {% if readiness %}
+    <div class="ring-wrap">
+      <div class="dring dring--{{ readiness.level }}" style="--p:{{ [readiness.score, 100]|min }}%"><span>{{ readiness.score }}</span></div>
+      <div class="dring-k">Readiness</div>
+    </div>
+    {% endif %}
+    {% set rm = rings.move %}
+    {% set pm = ([(rm.current / rm.goal * 100)|round, 100]|min) if (rm.goal and rm.current is not none) else 0 %}
+    <div class="ring-wrap">
+      <div class="dring dring-move" style="--p:{{ pm }}%"><span>{{ rm.current if rm.current is not none else '–' }}<small>cal</small></span></div>
+      <div class="dring-k">Move</div>
+    </div>
+    {% set re = rings.exercise %}
+    {% set pe = ([(re.current / re.goal * 100)|round, 100]|min) if (re.goal and re.current is not none) else 0 %}
+    <div class="ring-wrap">
+      <div class="dring dring-ex" style="--p:{{ pe }}%"><span>{{ re.current if re.current is not none else '–' }}<small>min</small></span></div>
+      <div class="dring-k">Exercise</div>
+    </div>
+    {% set rs = rings.stand %}
+    {% set ps = ([(rs.current / rs.goal * 100)|round, 100]|min) if (rs.goal and rs.current is not none) else 0 %}
+    <div class="ring-wrap">
+      <div class="dring dring-stand" style="--p:{{ ps }}%"><span>{{ rs.current if rs.current is not none else '–' }}<small>hr</small></span></div>
+      <div class="dring-k">Stand</div>
+    </div>
   </div>
+  {% if readiness %}<p class="rings-reason subtle">{{ readiness.label }} · {{ readiness.reason }}</p>{% endif %}
 </section>
 {% endif %}
 
