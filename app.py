@@ -1734,6 +1734,8 @@ def push_register_apns():
         return jsonify({"error": "device_token required"}), 400
     env = data.get("environment") if data.get("environment") in ("sandbox", "production") else "production"
     database.save_apns_token(uid, device_token, env)
+    app.logger.info("APNs token registered: user=%s env=%s token=%s…%s",
+                    uid, env, device_token[:8], device_token[-6:])
     return jsonify({"ok": True})
 
 
