@@ -682,6 +682,12 @@ def _sleep_display(uid, days=14):
 
 
 @app.route("/")
+def _dashboard_steps(uid):
+    sc = database.get_steps_today(uid)
+    disp = (f"{sc / 1000:.1f}k" if sc and sc >= 1000 else (str(sc) if sc is not None else "–"))
+    return {"current": sc, "goal": database.get_step_goal(uid), "display": disp}
+
+
 def index():
     uid = session["user_id"]
     profile = database.get_profile(uid)
@@ -721,6 +727,7 @@ def index():
                            resting_hr=int(rhr["value"]) if rhr else None,
                            readiness=database.compute_readiness(uid),
                            rings=database.get_activity_rings(uid),
+                           steps=_dashboard_steps(uid),
                            has_active_workout=bool(session.get("today_workout")),
                            today_iso=date.today().isoformat(),
                            ai_online=coach.is_available())

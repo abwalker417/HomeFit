@@ -29,6 +29,11 @@
       <div class="dring dring-stand" style="--p:{{ ps }}%"><span>{{ rs.current if rs.current is not none else '–' }}<small>hr</small></span></div>
       <div class="dring-k">Stand</div>
     </div>
+    {% set pst = ([(steps.current / steps.goal * 100)|round, 100]|min) if (steps.goal and steps.current is not none) else 0 %}
+    <div class="ring-wrap">
+      <div class="dring dring-steps" style="--p:{{ pst }}%"><span>{{ steps.display }}<small>steps</small></span></div>
+      <div class="dring-k">Steps</div>
+    </div>
   </div>
   {% if readiness %}<p class="rings-reason subtle">{{ readiness.label }} · {{ readiness.reason }}</p>{% endif %}
 </section>

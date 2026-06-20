@@ -44,17 +44,17 @@ button, a, input, select, textarea, label, .key, .pill, .checkbox { touch-action
 
 /* Activity rings card (mirrors homestrip: Readiness + Apple Move/Exercise/Stand) */
 .rings-card { padding: 16px; }
-.rings-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.dring { width: 68px; height: 68px; border-radius: 50%; position: relative; display: flex;
+.rings-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
+.dring { width: 58px; height: 58px; border-radius: 50%; position: relative; display: flex;
   flex-direction: column; align-items: center; justify-content: center; line-height: 1;
   background: conic-gradient(var(--ring, var(--accent)) var(--p, 0%), rgba(255,255,255,.08) 0); }
 .dring::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface-2); }
-.dring span { position: relative; z-index: 1; font-size: 19px; font-weight: 800; color: #fff; }
+.dring span { position: relative; z-index: 1; font-size: 16px; font-weight: 800; color: #fff; }
 .dring small { position: relative; z-index: 1; font-size: 9px; font-weight: 700; letter-spacing: .5px;
   text-transform: uppercase; color: var(--subtle); margin-top: 2px; }
 .dring-k { font-size: 11px; font-weight: 700; color: var(--subtle); }
-.dring-move { --ring: #fa114f; } .dring-ex { --ring: #92e82a; } .dring-stand { --ring: #00d9e0; }
+.dring-move { --ring: #fa114f; } .dring-ex { --ring: #92e82a; } .dring-stand { --ring: #00d9e0; } .dring-steps { --ring: #b06bff; }
 .dring--good { --ring: #3ddc97; } .dring--mod { --ring: #f7b955; } .dring--low { --ring: #ff6b6b; }
 .rings-reason { margin: 12px 0 0; font-size: 12px; text-align: center; line-height: 1.4; }
 
