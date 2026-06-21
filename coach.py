@@ -188,7 +188,10 @@ def _build_context(coaching_data):
     ext_week = [c for c in externals
                 if (c.get("started_at") or "")[:10] >= monday_iso
                 and (c.get("duration_minutes") or 0) >= 45]
-    sessions = len(hf_week) + len(ext_week)
+    workout_days = {(w.get("completed_at") or "")[:10] for w in hf_week}
+    workout_days |= {(c.get("started_at") or "")[:10] for c in ext_week}
+    workout_days.discard("")
+    sessions = len(workout_days)
     hf_list = ", ".join(f"{_dow(w.get('completed_at',''))} {w.get('day_name') or 'workout'}"
                         for w in hf_week) or "none yet"
     ext_list = ", ".join(f"{_dow(c.get('started_at',''))} {c.get('workout_type','activity')} "
@@ -200,7 +203,7 @@ def _build_context(coaching_data):
     cardio_dow = ", ".join(_dow(d) for d in cardio_days) or "none yet"
     lines += [
         f"THIS WEEK so far (Monday {monday_iso} through today) — USE THESE NUMBERS, do not recount by hand:",
-        f"- Workout sessions toward the {goal_days}x/week goal: {sessions} of {goal_days}",
+        f"- Workout days toward the {goal_days}x/week goal: {sessions} of {goal_days}",
         f"    · HomeFit workouts: {hf_list}",
         f"    · Long external sessions counted (golf / cardio ≥ 45 min): {ext_list}",
         f"- Cardio/walk days toward the {cardio_goal}x/week cardio goal: {len(cardio_days)} of {cardio_goal} ({cardio_dow})",
@@ -592,7 +595,10 @@ def generate_weekly_digest(coaching_data):
     ext_week = [c for c in (coaching_data.get("external_workouts") or [])
                 if (c.get("started_at") or "")[:10] >= week_start_str
                 and (c.get("duration_minutes") or 0) >= 45]
-    week_sessions = len(this_week) + len(ext_week)
+    week_days = {(w.get("completed_at") or "")[:10] for w in this_week}
+    week_days |= {(c.get("started_at") or "")[:10] for c in ext_week}
+    week_days.discard("")
+    week_sessions = len(week_days)
     goal_days = int(profile.get("days_per_week") or 4)
 
     nutrition_log = coaching_data.get("nutrition_log") or []
@@ -632,7 +638,7 @@ def generate_weekly_digest(coaching_data):
     prompt = f"""{context}
 
 WEEKLY REVIEW for {week_start_str} to today:
-- Training: {week_sessions} of {goal_days} weekly sessions done (HomeFit workouts + golf/long cardio ≥45 min); {tl.get('sessions_7d', 0)} total sessions / {tl.get('minutes_7d', 0)} min over 7 days.{nutrition_note}{sleep_note}{cardio_note}{activity_note}
+- Training: {week_sessions} of {goal_days} workout days done (HomeFit workouts + golf/long cardio ≥45 min); {tl.get('minutes_7d', 0)} active min over 7 days.{nutrition_note}{sleep_note}{cardio_note}{activity_note}
 
 Write a weekly review as 4-6 short plain-text bullets (each starting with "- ", one sentence each,
 no headers, no greeting, no sign-off). Cover ONLY the areas that have data:

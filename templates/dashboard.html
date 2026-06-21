@@ -78,6 +78,9 @@
   {% elif stats.week_workouts and stats.week_workouts < stats.target_days %}
   <p class="progress-label">{{ stats.week_workouts }} of {{ stats.target_days }} workouts this week</p>
   {% endif %}
+  {% if stats.cardio_goal %}
+  <p class="progress-label">{{ stats.cardio_days }} of {{ stats.cardio_goal }} cardio days this week</p>
+  {% endif %}
 </section>
 
 <section class="card">

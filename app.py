@@ -249,13 +249,25 @@ def _progress_stats(user_id):
     stats["week_streak"] = database.get_week_streak(user_id, stats["target_days"])
     # Weekly-target tracking (Monday start, matching get_week_streak)
     monday = today - timedelta(days=today.weekday())
+    monday_iso = monday.isoformat()
+    externals = database.get_external_workouts(user_id, days=7)
     week_dates = {(item.get("completed_at") or "")[:10] for item in history
-                  if (item.get("completed_at") or "")[:10] >= monday.isoformat()}
+                  if (item.get("completed_at") or "")[:10] >= monday_iso}
+    # Long external sessions (golf / cardio >=45 min) also count as a workout day
+    week_dates |= {(c.get("started_at") or "")[:10] for c in externals
+                   if (c.get("started_at") or "")[:10] >= monday_iso
+                   and (c.get("duration_minutes") or 0) >= 45}
     week_dates.discard("")
     trained_today = today.isoformat() in week_dates
     days_left = 7 - today.weekday()  # includes today
     done = len(week_dates)
     stats["week_workouts"] = done
+    # Separate cardio goal: distinct days this week with any logged walk/cardio
+    stats["cardio_goal"] = profile.get("cardio_days_per_week") or 5
+    cardio_dates = {(c.get("started_at") or "")[:10] for c in externals
+                    if (c.get("started_at") or "")[:10] >= monday_iso}
+    cardio_dates.discard("")
+    stats["cardio_days"] = len(cardio_dates)
     # Today is the last chance to keep the weekly target reachable
     stats["must_train_today"] = (
         not trained_today
