@@ -2063,17 +2063,11 @@ def strength_history():
 
 @app.route("/api/energy-balance")
 def energy_balance():
-    """Last-7-days calories in (Sparky food log) vs burned (HomeFit workouts)."""
+    """Last-7-days calories in (HomeFit food log) vs burned (HomeFit workouts + Apple Health cardio)."""
     from datetime import date, timedelta
     uid = session["user_id"]
     profile = database.get_profile(uid) or {}
-    if not profile.get("sparky_sync"):
-        return jsonify({"days": []})
-    try:
-        nutrition = sparky_sync.fetch_nutrition_log(days=7, api_key=profile.get("sparky_api_key"))
-    except Exception:
-        nutrition = []
-    eaten = {n["date"]: n["calories"] for n in nutrition}
+    eaten = {d["meal_date"]: (d["calories"] or 0) for d in database.get_food_log_days(uid, days=7)}
 
     weight_lbs = profile.get("current_weight") or 0
     cutoff = (date.today() - timedelta(days=6)).isoformat()
