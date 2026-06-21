@@ -193,14 +193,20 @@ def _build_context(coaching_data):
                         for w in hf_week) or "none yet"
     ext_list = ", ".join(f"{_dow(c.get('started_at',''))} {c.get('workout_type','activity')} "
                          f"({c.get('duration_minutes')}min)" for c in ext_week) or "none"
+    # Separate cardio-days goal: distinct days this week with ANY logged cardio/walk.
+    cardio_goal = profile.get("cardio_days_per_week") or 5
+    cardio_days = sorted({(c.get("started_at") or "")[:10] for c in externals
+                          if (c.get("started_at") or "")[:10] >= monday_iso})
+    cardio_dow = ", ".join(_dow(d) for d in cardio_days) or "none yet"
     lines += [
         f"THIS WEEK so far (Monday {monday_iso} through today) — USE THESE NUMBERS, do not recount by hand:",
-        f"- Sessions toward the {goal_days}x/week goal: {sessions} of {goal_days}",
-        f"- HomeFit workouts this week: {hf_list}",
-        f"- Long external sessions counted (golf / cardio ≥ 45 min): {ext_list}",
-        f"Count BOTH HomeFit workouts and long external sessions toward the {goal_days}x/week goal. "
-        f"Short walks under 45 min are general activity, NOT a counted session. Never count anything "
-        f"dated before {monday_iso} toward this week.",
+        f"- Workout sessions toward the {goal_days}x/week goal: {sessions} of {goal_days}",
+        f"    · HomeFit workouts: {hf_list}",
+        f"    · Long external sessions counted (golf / cardio ≥ 45 min): {ext_list}",
+        f"- Cardio/walk days toward the {cardio_goal}x/week cardio goal: {len(cardio_days)} of {cardio_goal} ({cardio_dow})",
+        f"Two separate weekly goals: (1) {goal_days} WORKOUT sessions (HomeFit workouts + long ≥45-min "
+        f"external sessions); (2) {cardio_goal} CARDIO days (any day with a logged walk/cardio counts, one "
+        f"per day). Use these exact counts; never count anything dated before {monday_iso} toward this week.",
         "",
     ]
 
@@ -605,11 +611,11 @@ def generate_weekly_digest(coaching_data):
         avg_h = sum((s.get("duration_seconds") or 0) for s in sleep_week) / len(sleep_week) / 3600
         sleep_note = f"\nSleep this week: {len(sleep_week)} nights, avg {avg_h:.1f}h."
 
-    cardio_note = ""
     tl = coaching_data.get("training_load") or {}
-    other = coaching_data.get("other_activity") or []
-    if other:
-        cardio_note = f"\nCardio/other activity logged on {len(other)} of the last 7 days."
+    cardio_goal = int(profile.get("cardio_days_per_week") or 5)
+    cardio_days = {(c.get("started_at") or "")[:10] for c in (coaching_data.get("external_workouts") or [])
+                   if (c.get("started_at") or "")[:10] >= week_start_str}
+    cardio_note = f"\nCardio: {len(cardio_days)} of {cardio_goal} walk/cardio days hit this week."
 
     activity_note = ""
     steps_week = [s for s in (coaching_data.get("steps_log") or []) if (s.get("date") or "") >= week_start_str]

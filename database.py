@@ -139,6 +139,7 @@ def init_db():
         _ensure_column(conn, "profile", "target_muscles", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "preferred_equipment", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "ignored_exercises", "TEXT NOT NULL DEFAULT '[]'")
+        _ensure_column(conn, "profile", "cardio_days_per_week", "INTEGER NOT NULL DEFAULT 5")
         _ensure_column(conn, "profile", "fitness_goal", "TEXT NOT NULL DEFAULT 'general'")
         _ensure_column(conn, "profile", "workout_duration_target", "INTEGER NOT NULL DEFAULT 45")
         _ensure_column(conn, "profile", "accent_color", "TEXT NOT NULL DEFAULT '#f97316'")
@@ -204,6 +205,15 @@ def init_db():
                 carbs_g    REAL NOT NULL DEFAULT 200,
                 fat_g      REAL NOT NULL DEFAULT 65,
                 updated_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS readiness_cache (
+                user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                cache_date TEXT NOT NULL,
+                data       TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (user_id, cache_date)
             )
         """)
         conn.execute("""
@@ -592,7 +602,7 @@ def get_coaching_context(user_id):
         "other_activity": other_activity,
         "external_workouts": get_external_workouts(user_id, days=7),
         "sleep_log": get_recent_sleep(user_id, days=7),
-        "readiness": compute_readiness(user_id),
+        "readiness": get_readiness(user_id),
         "training_load": training_load(user_id),
         "energy_log": get_energy_log(user_id, days=7),
         "steps_log": [{"date": r["metric_date"], "steps": int(r["value"])}
@@ -849,6 +859,33 @@ def compute_readiness(user_id):
         reason += f" · {load} sessions in 2 days"
     reason += rhr_note
     return {"score": score, "level": level, "label": label, "reason": reason, "hours": round(hours, 1)}
+
+
+def get_readiness(user_id):
+    """Readiness for today, cached once per local day so the dashboard, daily
+    digest, and APEX chat all show the SAME number. compute_readiness drifts
+    through the day (logging a workout raises the fatigue penalty); caching the
+    first real result keeps every surface consistent. Only a non-None result is
+    cached, so it keeps retrying until last night's sleep is available."""
+    today = datetime.now().date().isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT data FROM readiness_cache WHERE user_id=? AND cache_date=?",
+            (user_id, today)).fetchone()
+    if row:
+        try:
+            return json.loads(row["data"])
+        except Exception:
+            pass
+    r = compute_readiness(user_id)
+    if r:
+        with get_connection() as conn:
+            conn.execute(
+                """INSERT INTO readiness_cache (user_id, cache_date, data, created_at)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(user_id, cache_date) DO NOTHING""",
+                (user_id, today, json.dumps(r), datetime.now().isoformat()))
+    return r
 
 
 def upsert_daily_metric(user_id, metric, metric_date, value, source="apple_health"):

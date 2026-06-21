@@ -714,7 +714,7 @@ def index():
                            cardio=_cardio_display(uid, days=14)[:3],
                            last_sleep=sleep[0] if sleep else None,
                            resting_hr=int(rhr["value"]) if rhr else None,
-                           readiness=database.compute_readiness(uid),
+                           readiness=database.get_readiness(uid),
                            rings=database.get_activity_rings(uid),
                            steps=_dashboard_steps(uid),
                            has_active_workout=bool(session.get("today_workout")),
@@ -1937,7 +1937,7 @@ def api_panel_summary():
 
     return jsonify({
         "name": (database.get_profile(uid) or {}).get("name"),
-        "readiness": database.compute_readiness(uid),
+        "readiness": database.get_readiness(uid),
         "workout": workout,
         "workout_minutes": workout_minutes,
         "nutrition": nutrition,
