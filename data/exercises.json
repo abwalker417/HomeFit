@@ -1614,5 +1614,37 @@
     "instructions": "Lie on your back with knees bent. Bring one elbow across toward the opposite knee, crunching and twisting through your obliques, then return and alternate sides.",
     "equipment": "bodyweight",
     "muscle_group": "core"
+  },
+  {
+    "id": "step_up_knee_drive",
+    "name": "Step-Up with Knee Drive",
+    "category": "legs",
+    "difficulty": 2,
+    "equipment": "bench_or_chair",
+    "contraindications": [
+      "bad_knees"
+    ],
+    "met": 6.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Place one foot flat on a sturdy chair or bench. Press through that heel to stand up onto it while driving the opposite knee up toward your chest. Step back down under control and repeat, then switch legs.",
+    "muscle_group": "full_body"
+  },
+  {
+    "id": "wide_stance_reach",
+    "name": "Wide-Stance Dumbbell Reach",
+    "category": "legs",
+    "difficulty": 2,
+    "equipment": "dumbbells",
+    "contraindications": [
+      "back_pain"
+    ],
+    "met": 5.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Take a wide stance with toes slightly turned out and a dumbbell by each foot. Hinge at the hips with a flat back and reach down to the dumbbells, feeling a stretch through your inner thighs, then drive your hips forward to stand tall. For the obliques, reach one hand across toward the opposite foot, alternating sides.",
+    "muscle_group": "full_body"
   }
 ]
