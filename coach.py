@@ -239,12 +239,15 @@ def _build_context(coaching_data):
         lines.append("")
 
     if externals:
-        lines.append("Recent cardio / outside activity (Apple Health — walks, golf, etc.; these are NOT "
-                     "HomeFit gym sessions, but ≥45-min ones count toward the weekly goal):")
+        lines.append("Recent Apple Health activity (NOT HomeFit gym sessions). Each is tagged: "
+                     "[CARDIO] = counts toward the cardio-days goal only; [WORKOUT] = an Apple-recorded "
+                     "workout (e.g. golf) or long session that ALSO counts as a workout day. Walks are "
+                     "CARDIO, not workouts — never describe a walk as a workout:")
         for c in externals[:6]:
             d = (c.get("started_at") or "")[:10]
             kcal = f", {c.get('kcal')} kcal" if c.get("kcal") else ""
-            lines.append(f"- {_dow(d)} {d}: {c.get('workout_type','activity')} {c.get('duration_minutes')}min{kcal}")
+            tag = "[WORKOUT]" if database.counts_as_workout_session(c) else "[CARDIO]"
+            lines.append(f"- {_dow(d)} {d}: {c.get('workout_type','activity')} {c.get('duration_minutes')}min{kcal} {tag}")
         lines.append("")
 
     if nutrition_goals:
