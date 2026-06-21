@@ -1,4 +1,4 @@
-/* HomeFit garage kiosk — 1920x480 wall panel, big touch targets, lean for a Pi. */
+/* HomeFit garage kiosk — 1920x440 wall panel, big touch targets, lean for a Pi. */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-select: none;
   background: #000; color: #e8eef5;
@@ -7,8 +7,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-selec
 :root { --accent: #22d3ee; --good: #3ddc97; }
 .hidden { display: none !important; }
 
-/* Fixed 1920x480 stage, scaled to fit any display by garage-fit.js */
-.g-stage { width: 1920px; height: 480px; flex: 0 0 auto; position: relative; overflow: hidden;
+/* Fixed 1920x440 stage, scaled to fit any display by garage-fit.js */
+.g-stage { width: 1920px; height: 440px; flex: 0 0 auto; position: relative; overflow: hidden;
   background: #07090c; transform-origin: center center; }
 
 /* avatars (shared) */

@@ -1,22 +1,11 @@
-# --- Garage HomeFit kiosk: GeeekPi EP-0189 (1920x480) ----------------------
+# --- Garage HomeFit kiosk: GeeekPi EP-0189 (11.26", 1920x440) --------------
 # Append to /boot/firmware/config.txt
 #
-# PREFER the GeeekPi resolution tool (README step 2A); it writes the right
-# timing + rotation for you. The hdmi_* block below is the MANUAL FALLBACK
-# (community-proven for the HSD088IPW1 panel). If you used the tool, do NOT
-# also paste the hdmi_timings block — just keep the kiosk bits at the bottom.
-
-# --- panel timing (MANUAL fallback only) ---
-# Native panel is 480x1920 portrait, rotated to 1920x480 landscape.
-hdmi_timings=480 1 48 32 80 1920 0 3 10 56 0 0 0 60 0 75840000 3
-hdmi_group=2
-hdmi_mode=87
-hdmi_force_mode=1
-hdmi_drive=1
-config_hdmi_boost=4
-max_framebuffer_height=1920
-display_hdmi_rotate=1
-# If text is upside down, use display_hdmi_rotate=3 instead.
+# RESOLUTION is NOT hard-coded here on purpose: read the panel's real timing
+# from its EDID first (README step 2A). If EDID auto-detect fails, build the
+# hdmi_timings line from the edid-decode output (step 2B) and add it here with
+# hdmi_group=2 / hdmi_mode=87 / hdmi_force_mode=1. Do not paste another panel's
+# timing — the porches/clock are panel-specific.
 
 # --- kiosk bits (always apply) ---
 # Drive the panel even if it handshakes slowly / is powered after the Pi
