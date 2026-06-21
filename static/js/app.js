@@ -285,8 +285,6 @@ function setupWeightForm() {
       }
       if (!data.ok) {
         status.textContent = 'Could not save.';
-      } else if (data.sparky_synced === false) {
-        status.textContent = 'Logged ✓ (Sparky sync failed)';
       } else {
         status.textContent = 'Logged ✓';
       }

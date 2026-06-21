@@ -201,7 +201,7 @@ def _build_context(coaching_data):
         lines.append("")
         lines.append("Note: You can propose updated nutrition goals. When you do, state them clearly as:")
         lines.append("  Calories: X kcal, Protein: Xg, Carbs: Xg, Fat: Xg")
-        lines.append("Then tell the user to say 'update my goals' to apply them to Sparky.")
+        lines.append("Then tell the user to say 'update my goals' to apply them.")
         lines.append("")
 
     if nutrition_log:
@@ -216,7 +216,7 @@ def _build_context(coaching_data):
         lines.append("")
 
     if hydration_log:
-        lines.append("Recent hydration (from Sparky):")
+        lines.append("Recent hydration:")
         for day in hydration_log[:5]:
             liters = day["water_ml"] / 1000
             flag = " (low)" if liters < 1.5 else ""

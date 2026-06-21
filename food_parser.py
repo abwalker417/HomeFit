@@ -1,9 +1,8 @@
-"""Single-call meal parser — the cheap alternative to Sparky's agentic logger.
+"""Single-call meal parser for HomeFit's food logger.
 
 One LLM call turns a free-text meal OR a photo into structured foods + macros.
-No tool loop, no 15k-token manual re-sent six times — just parse-once. Text uses
-a cheap model; photos use a vision model (gpt-4o) for accuracy. Either way it's
-a single call (~a fraction of a cent) instead of Sparky's ~6-call agentic flow.
+No tool loop — just parse-once. Text uses a cheap model; photos use a vision
+model (gpt-4o) for accuracy. Either way it's a single call (~a fraction of a cent).
 """
 import json
 import re

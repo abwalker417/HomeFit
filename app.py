@@ -29,7 +29,6 @@ from flask import Flask, Response, abort, jsonify, redirect, render_template, re
 
 import coach
 import database
-import sparky_sync
 from workout_logic import (
     VALID_EQUIPMENT,
     VALID_LIMITATIONS,
@@ -120,7 +119,6 @@ def _parse_profile_form(form):
         "target_muscles": [],
         "preferred_equipment": [],
         "days_per_week": int(form.get("days_per_week", 4) or 4),
-        "sparky_sync": form.get("sparky_sync") == "1",
         "fitness_goal": form.get("fitness_goal", "general"),
         "workout_duration_target": int(form.get("workout_duration_target", 45) or 45),
     }
@@ -478,7 +476,6 @@ def profile_edit(user_id):
         valid_limitations=VALID_LIMITATIONS,
         valid_muscles=VALID_MUSCLE_GROUPS,
         all_users=database.list_users(),
-        sparky_configured=bool(sparky_sync.load_config().get("url")),
         api_token=database.get_or_create_api_token(user_id) if user_id == session.get("user_id") else None,
         apex_memory=database.get_apex_memory(user_id),
     )
@@ -505,17 +502,7 @@ def log_food_page():
         return redirect(url_for("profiles"))
     goal = database.get_nutrition_goal(uid)
     if not goal:
-        # Seed from the user's existing Sparky goals so it carries over; else defaults.
-        seeded = {}
-        try:
-            profile = database.get_profile(uid) or {}
-            if profile.get("sparky_sync"):
-                seeded = sparky_sync.fetch_goals(api_key=profile.get("sparky_api_key")) or {}
-        except Exception:
-            seeded = {}
-        database.save_nutrition_goal(
-            uid, seeded.get("calories") or 2000, seeded.get("protein_g") or 120,
-            seeded.get("carbs_g") or 200, seeded.get("fat_g") or 65)
+        database.save_nutrition_goal(uid, 2000, 120, 200, 65)
         goal = database.get_nutrition_goal(uid)
     from datetime import date as _date
     _today = _date.today().isoformat()
@@ -754,7 +741,6 @@ def onboarding():
         valid_limitations=VALID_LIMITATIONS,
         valid_equipment=VALID_EQUIPMENT,
         valid_muscles=VALID_MUSCLE_GROUPS,
-        sparky_configured=bool(sparky_sync.load_config().get("url")),
     )
 
 
@@ -1014,9 +1000,6 @@ def garage_complete():
     for e in enriched:
         e["sets_logged"] = sets_by_id.get(e["id"], [])
     profile = database.get_profile(uid)
-    if enriched and (profile or {}).get("sparky_sync"):
-        sparky_sync.sync_workout_async(enriched, date.today(), duration,
-                                       api_key=(profile or {}).get("sparky_api_key"))
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     session.pop("garage_user", None)
     return jsonify({"ok": True, "kcal": kcal, "exercises_completed": len(enriched)})
@@ -1165,8 +1148,6 @@ def complete_workout():
     for e in enriched:
         e["sets_logged"] = sets_by_id.get(e["id"], [])
     profile = database.get_profile(uid)
-    if enriched and (profile or {}).get("sparky_sync"):
-        sparky_sync.sync_workout_async(enriched, date.today(), duration, api_key=(profile or {}).get("sparky_api_key"))
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     session.pop("today_workout", None)
 
@@ -1444,58 +1425,13 @@ Focus on the most important things to watch. Be direct — no intro, just the cu
         return jsonify({"cue": None})
 
 
-@app.route("/settings/sparky", methods=["GET", "POST"])
-def sparky_settings():
-    uid = session["user_id"]
-    message = None
-    ok = False
-    config = sparky_sync.load_config()
-    profile = database.get_profile(uid) or {}
-
-    if request.method == "POST":
-        action = request.form.get("action", "save")
-        url = request.form.get("url", "").strip()
-        api_key = request.form.get("api_key", "").strip()
-
-        if action == "clear":
-            database.save_sparky_api_key(uid, "", enabled=False)
-            message = "SparkyFitness sync disconnected for your profile."
-            ok = True
-        elif action == "test":
-            ok, message = sparky_sync.test_connection(url, api_key)
-        elif action == "push_exercises":
-            user_key = api_key or profile.get("sparky_api_key") or ""
-            ok, message = sparky_sync.push_exercises_to_sparky(api_key=user_key)
-        elif action == "refresh_exercises":
-            user_key = api_key or profile.get("sparky_api_key") or ""
-            ok, message = sparky_sync.fetch_and_replace_exercises(api_key=user_key)
-        else:
-            sparky_sync.save_config(url)
-            if api_key:
-                database.save_sparky_api_key(uid, api_key, enabled=True)
-            config = sparky_sync.load_config()
-            test_key = api_key or profile.get("sparky_api_key") or ""
-            ok, message = sparky_sync.test_connection(url, test_key)
-            if ok:
-                message = "Settings saved and connection verified."
-        profile = database.get_profile(uid) or {}
-
-    return render_template("sparky_settings.html", config=config, message=message, ok=ok, profile=profile)
-
-
 @app.route("/api/log_weight", methods=["POST"])
 def log_weight():
     uid = session["user_id"]
     data = request.get_json(force=True)
     weight = float(data.get("weight", 0))
     database.log_weight(uid, weight)
-    profile = database.get_profile(uid)
-    synced = None
-    if (profile or {}).get("sparky_sync"):
-        # Synchronous so we can tell the user if it didn't reach Sparky, instead
-        # of silently showing "Logged" while the sync failed in the background.
-        synced = sparky_sync.sync_weight(weight, api_key=(profile or {}).get("sparky_api_key"))
-    return jsonify({"ok": True, "sparky_synced": synced})
+    return jsonify({"ok": True})
 
 
 @app.route("/exercises")
@@ -1561,10 +1497,10 @@ def api_last_weight():
 
 @app.route("/api/external-workout", methods=["POST"])
 def api_external_workout():
-    """Relay for Apple Health workouts (posted by an iOS Shortcut).
+    """Relay for Apple Health workouts (posted by the native app / an iOS Shortcut).
 
-    Dedups against HomeFit's own sessions (which already sync to Sparky with
-    full details), then forwards genuinely external cardio to Sparky.
+    Dedups against HomeFit's own logged sessions, then records genuinely external
+    cardio into HomeFit's external_workouts table (progress + energy balance).
     Body: {type, start, [end], [duration_minutes], [kcal], [distance_mi], [avg_hr], [source]}
     """
     from datetime import datetime, timedelta, timezone
@@ -1616,7 +1552,7 @@ def api_external_workout():
     source = str(data.get("source") or "apple_health").strip()
 
     started_iso = start.isoformat()
-    # Claim the dedup key FIRST so concurrent posts can't both reach Sparky.
+    # Claim the dedup key FIRST so concurrent posts can't both be recorded.
     claimed = database.claim_external_workout(
         uid, source, name, started_iso, end.isoformat(),
         duration_minutes, kcal, distance_mi, avg_hr)
@@ -1628,26 +1564,18 @@ def api_external_workout():
         database.set_external_workout_status(uid, name, started_iso, "skipped_overlap")
         return jsonify({
             "status": "skipped",
-            "reason": f"overlaps HomeFit workout '{overlap['day_name']}' (already synced to Sparky)",
+            "reason": f"overlaps HomeFit workout '{overlap['day_name']}'",
         }), 200
 
-    profile = database.get_profile(uid) or {}
-    synced = False
-    if profile.get("sparky_sync"):
-        synced = sparky_sync.push_external_workout(
-            name, local_date.isoformat(), duration_minutes,
-            kcal=kcal, distance_mi=distance_mi, avg_hr=avg_hr,
-            api_key=profile.get("sparky_api_key"))
-    status = "synced" if synced else "recorded"
-    database.set_external_workout_status(uid, name, started_iso, status)
-    return jsonify({"status": status, "workout": name, "date": local_date.isoformat()}), 201
+    database.set_external_workout_status(uid, name, started_iso, "recorded")
+    return jsonify({"status": "recorded", "workout": name, "date": local_date.isoformat()}), 201
 
 
 @app.route("/api/sleep", methods=["POST"])
 def api_sleep():
     """Relay for Apple Health / Oura sleep (posted by the native app).
     Body: {date, bedtime, wake_time, duration_seconds, [deep_s,rem_s,light_s,awake_s], [source]}
-    Dedups one night per date (UNIQUE), then forwards to Sparky.
+    Dedups one night per date (UNIQUE) and records it into HomeFit's sleep_log.
     """
     from datetime import datetime
     token = request.args.get("token", "") or \
@@ -1686,16 +1614,9 @@ def api_sleep():
     if not claimed:
         return jsonify({"status": "duplicate", "date": entry_date}), 200
 
-    profile = database.get_profile(uid) or {}
-    synced = False
-    if profile.get("sparky_sync"):
-        synced = sparky_sync.push_sleep(
-            entry_date, bedtime, wake, duration_seconds,
-            api_key=profile.get("sparky_api_key"))
-    status = "synced" if synced else "recorded"
-    database.set_sleep_status(uid, entry_date, status)
+    database.set_sleep_status(uid, entry_date, "recorded")
     hrs = round(duration_seconds / 3600, 1)
-    return jsonify({"status": status, "date": entry_date, "hours": hrs}), 201
+    return jsonify({"status": "recorded", "date": entry_date, "hours": hrs}), 201
 
 
 # Daily health metrics the app may post (resting HR; extensible later)
@@ -1817,24 +1738,17 @@ def coach_chat():
                 full_history = history + [{"role": "user", "content": message}]
                 goals = coach.extract_goals_from_chat(full_history)
                 if goals:
-                    profile = database.get_profile(uid) or {}
-                    sparky_key = profile.get("sparky_api_key") or None
-                    ok, msg = sparky_sync.update_goals(
-                        calories=goals.get("calories"),
-                        protein_g=goals.get("protein_g"),
-                        carbs_g=goals.get("carbs_g"),
-                        fat_g=goals.get("fat_g"),
-                        api_key=sparky_key,
-                    )
-                    if ok:
-                        parts = [f"{round(goals[k])}{'g' if k != 'calories' else ' kcal'}"
-                                 for k in ("calories", "protein_g", "carbs_g", "fat_g") if k in goals]
-                        response = f"Done! Your Sparky goals have been updated: {', '.join(parts)}."
-                        goals_updated = True
-                    else:
-                        response = f"I couldn't update your goals in Sparky: {msg}. You can update them manually in Sparky settings."
-                        goals_updated = True  # suppress fallback chat
-            except Exception as e:
+                    current = database.get_nutrition_goal(uid) or {}
+                    cal = goals.get("calories") or current.get("calories") or 2000
+                    pro = goals.get("protein_g") or current.get("protein_g") or 150
+                    carb = goals.get("carbs_g") or current.get("carbs_g") or 200
+                    fat = goals.get("fat_g") or current.get("fat_g") or 65
+                    database.save_nutrition_goal(uid, cal, pro, carb, fat)
+                    parts = [f"{round(goals[k])}{'g' if k != 'calories' else ' kcal'}"
+                             for k in ("calories", "protein_g", "carbs_g", "fat_g") if k in goals]
+                    response = f"Done! Your nutrition goals are updated: {', '.join(parts)}."
+                    goals_updated = True
+            except Exception:
                 pass
 
         if not plan_saved and not goals_updated:
@@ -1914,8 +1828,7 @@ def progress():
     sleep = _sleep_display(uid, days=14)
     return render_template("progress.html", profile=profile, weights=weights,
                            history=workouts, history_weeks=history_weeks, stats=stats,
-                           cardio=cardio, cardio_kcal=cardio_kcal, sleep=sleep,
-                           sparky_enabled=bool((profile or {}).get("sparky_sync")))
+                           cardio=cardio, cardio_kcal=cardio_kcal, sleep=sleep)
 
 
 @app.route("/api/push/public-key")

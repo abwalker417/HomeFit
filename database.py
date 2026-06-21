@@ -138,8 +138,6 @@ def init_db():
         _ensure_column(conn, "profile", "custom_equipment", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "target_muscles", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "preferred_equipment", "TEXT NOT NULL DEFAULT '[]'")
-        _ensure_column(conn, "profile", "sparky_sync", "INTEGER NOT NULL DEFAULT 0")
-        _ensure_column(conn, "profile", "sparky_api_key", "TEXT")
         _ensure_column(conn, "profile", "ignored_exercises", "TEXT NOT NULL DEFAULT '[]'")
         _ensure_column(conn, "profile", "fitness_goal", "TEXT NOT NULL DEFAULT 'general'")
         _ensure_column(conn, "profile", "workout_duration_target", "INTEGER NOT NULL DEFAULT 45")
@@ -397,7 +395,6 @@ def save_profile(
     custom_equipment=None,
     target_muscles=None,
     preferred_equipment=None,
-    sparky_sync=False,
     ignored_exercises=None,
     fitness_goal="general",
     workout_duration_target=45,
@@ -414,7 +411,6 @@ def save_profile(
         json.dumps(target_muscles or []),
         json.dumps(preferred_equipment or []),
         days_per_week,
-        1 if sparky_sync else 0,
         json.dumps(ignored_exercises or []),
         fitness_goal,
         int(workout_duration_target),
@@ -426,10 +422,10 @@ def save_profile(
             INSERT INTO profile (
                 user_id, current_weight, goal_weight, fitness_level, limitations,
                 equipment, custom_equipment, target_muscles, preferred_equipment,
-                days_per_week, sparky_sync, ignored_exercises,
+                days_per_week, ignored_exercises,
                 fitness_goal, workout_duration_target, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
                 current_weight=excluded.current_weight,
                 goal_weight=excluded.goal_weight,
@@ -440,7 +436,6 @@ def save_profile(
                 target_muscles=excluded.target_muscles,
                 preferred_equipment=excluded.preferred_equipment,
                 days_per_week=excluded.days_per_week,
-                sparky_sync=excluded.sparky_sync,
                 ignored_exercises=excluded.ignored_exercises,
                 fitness_goal=excluded.fitness_goal,
                 workout_duration_target=excluded.workout_duration_target,
@@ -562,14 +557,6 @@ def get_exercise_history(user_id, limit=10):
     return history
 
 
-def save_sparky_api_key(user_id, api_key, enabled=True):
-    with get_connection() as conn:
-        conn.execute(
-            "UPDATE profile SET sparky_api_key = ?, sparky_sync = ? WHERE user_id = ?",
-            (api_key or None, 1 if (enabled and api_key) else 0, user_id),
-        )
-
-
 def get_coaching_context(user_id):
     """Build full context for the AI coach — profile, history, progression."""
     profile = get_profile(user_id)
@@ -582,19 +569,8 @@ def get_coaching_context(user_id):
     hydration = []
     goals = {}
     other_activity = []
-    if profile.get("sparky_sync"):
-        try:
-            import sparky_sync
-            sparky_key = profile.get("sparky_api_key") or None
-            nutrition = sparky_sync.fetch_nutrition_log(days=7, api_key=sparky_key)
-            hydration = sparky_sync.fetch_hydration_log(days=7, api_key=sparky_key)
-            goals = sparky_sync.fetch_goals(api_key=sparky_key)
-            # Activity from outside HomeFit — Apple Health, Oura, manual logs
-            other_activity = sparky_sync.fetch_external_activity(days=7, api_key=sparky_key)
-        except Exception:
-            pass
 
-    # Prefer HomeFit's own food log + goal once we have data (moving off Sparky).
+    # Nutrition + goals come from HomeFit's own food log.
     homefit_food = get_food_log_days(user_id, days=7)
     if homefit_food:
         nutrition = [{"date": d["meal_date"], "calories": d["calories"],
@@ -739,7 +715,7 @@ def claim_external_workout(user_id, source, workout_type, started_at, ended_at,
 
     Returns True only for the request that actually inserted the row — concurrent
     duplicate POSTs (the app fires sync on launch AND foreground) get False, so
-    only one of them pushes to Sparky. Status starts 'pending'; caller updates it.
+    only one of them is recorded. Status starts 'pending'; caller updates it.
     """
     with get_connection() as conn:
         cur = conn.execute(
@@ -768,7 +744,7 @@ def set_external_workout_status(user_id, workout_type, started_at, status):
 def claim_sleep(user_id, source, entry_date, bedtime, wake_time, duration_seconds,
                 deep_s, rem_s, light_s, awake_s):
     """Atomically claim one night via UNIQUE(user, entry_date). Returns True if
-    newly inserted (caller pushes to Sparky), False if this night already exists.
+    newly inserted (caller records it), False if this night already exists.
     Updates stats if a later post for the same night has a longer duration."""
     now = datetime.now().isoformat()
     with get_connection() as conn:
@@ -961,7 +937,7 @@ def find_overlapping_homefit_workout(user_id, start, end, pad_minutes=20):
     """Return the HomeFit workout whose time window overlaps [start, end], or None.
 
     Used to dedup external (HealthKit) workouts: a gym session recorded on the
-    watch overlaps the HomeFit session that already synced to Sparky.
+    watch overlaps the HomeFit session that was already logged.
     start/end are naive-UTC datetimes; workout_log.completed_at is naive-UTC ISO.
     """
     pad = timedelta(minutes=pad_minutes)
