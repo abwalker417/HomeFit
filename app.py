@@ -25,7 +25,7 @@ def _git_version():
 
 STATIC_VERSION = _git_version()
 
-from flask import Flask, abort, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, jsonify, redirect, render_template, request, session, url_for
 
 import coach
 import database
@@ -68,6 +68,7 @@ PUBLIC_ENDPOINTS = {
     "api_last_workout", "api_last_weight", "api_external_workout", "api_sleep",
     "api_health_metric", "push_register_apns", "api_panel_summary",
     "garage", "garage_pick", "garage_workout_view", "garage_complete",
+    "garage_media", "garage_media_control", "garage_media_art",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
@@ -929,7 +930,70 @@ def garage_workout_view():
     if not uid or not database.get_user(uid):
         return redirect(url_for("garage"))
     return render_template("garage_workout.html", workout=_garage_workout(uid),
-                           user=database.get_user(uid), uid=uid)
+                           user=database.get_user(uid), uid=uid,
+                           has_media=bool(_garage_media_cfg().get("player")))
+
+
+_GARAGE_MEDIA_FILE = os.path.join(os.path.dirname(__file__), "data", "garage_media.json")
+
+
+def _garage_media_cfg():
+    """Garage media player config (gitignored): {ha_url, ha_token, player}."""
+    try:
+        with open(_GARAGE_MEDIA_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+@app.route("/api/garage/media")
+def garage_media():
+    cfg = _garage_media_cfg()
+    if not cfg.get("ha_url") or not cfg.get("player"):
+        return jsonify({"available": False})
+    try:
+        r = requests.get(f"{cfg['ha_url'].rstrip('/')}/api/states/{cfg['player']}",
+                         headers={"Authorization": f"Bearer {cfg.get('ha_token', '')}"}, timeout=6)
+        r.raise_for_status()
+        st = r.json()
+        a = st.get("attributes", {}) or {}
+        return jsonify({"available": True, "state": st.get("state"),
+                        "title": a.get("media_title"), "artist": a.get("media_artist"),
+                        "volume": a.get("volume_level"),
+                        "art": a.get("entity_picture_local") or a.get("entity_picture")})
+    except Exception as e:
+        return jsonify({"available": False, "error": str(e)})
+
+
+@app.route("/api/garage/media/<action>", methods=["POST"])
+def garage_media_control(action):
+    cfg = _garage_media_cfg()
+    svc = {"play": "media_play_pause", "next": "media_next_track", "prev": "media_previous_track",
+           "volup": "volume_up", "voldown": "volume_down"}.get(action)
+    if not cfg.get("ha_url") or not svc:
+        return jsonify({"error": "bad request"}), 400
+    try:
+        requests.post(f"{cfg['ha_url'].rstrip('/')}/api/services/media_player/{svc}",
+                      headers={"Authorization": f"Bearer {cfg.get('ha_token', '')}"},
+                      json={"entity_id": cfg["player"]}, timeout=6)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
+@app.route("/api/garage/media/art")
+def garage_media_art():
+    cfg = _garage_media_cfg()
+    path = request.args.get("path", "")
+    if not cfg.get("ha_url") or not path.startswith("/api/"):
+        return Response(status=204)
+    try:
+        r = requests.get(f"{cfg['ha_url'].rstrip('/')}{path}",
+                         headers={"Authorization": f"Bearer {cfg.get('ha_token', '')}"}, timeout=6)
+        r.raise_for_status()
+        return Response(r.content, content_type=r.headers.get("Content-Type", "image/jpeg"))
+    except Exception:
+        return Response(status=502)
 
 
 @app.route("/api/garage/complete", methods=["POST"])

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/garage.css') }}?v={{ static_version }}">
 </head>
 <body class="g-body">
+  <div class="g-stage">
   <div class="g-picker">
     <div class="g-pick-title">Who's lifting?</div>
     <div class="g-users">
@@ -25,5 +26,7 @@
       {% endfor %}
     </div>
   </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/garage-fit.js') }}?v={{ static_version }}"></script>
 </body>
 </html>

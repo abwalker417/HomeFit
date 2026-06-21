@@ -7,62 +7,83 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/garage.css') }}?v={{ static_version }}">
 </head>
 <body class="g-body">
+  <div class="g-stage">
   {% if not workout %}
   <div class="g-msg">No plan set for today.<a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a></div>
   {% elif workout.rest %}
   <div class="g-msg">Today is a rest day.<a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a></div>
   {% else %}
-  <div class="g-workout">
-    <!-- LEFT: who -->
-    <div class="g-who">
-      {% if user.photo %}
-      <img class="g-avatar" src="{{ url_for('static', filename='uploads/' + user.photo) }}" alt="">
-      {% else %}
-      <span class="g-avatar g-avatar-letter">{{ user.name[0]|upper }}</span>
-      {% endif %}
-      <div class="g-who-name">{{ user.name }}</div>
-      <div class="g-who-plan">{{ workout.name }}</div>
-      <a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a>
+  <div class="g-shell">
+    <div class="g-workout">
+      <!-- LEFT: who -->
+      <div class="g-who">
+        {% if user.photo %}
+        <img class="g-avatar" src="{{ url_for('static', filename='uploads/' + user.photo) }}" alt="">
+        {% else %}
+        <span class="g-avatar g-avatar-letter">{{ user.name[0]|upper }}</span>
+        {% endif %}
+        <div class="g-who-name">{{ user.name }}</div>
+        <div class="g-who-plan">{{ workout.name }}</div>
+        <a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a>
+      </div>
+
+      <!-- CENTER: current exercise -->
+      <div class="g-current">
+        <div class="g-ex-head">
+          <span id="g-ex-name" class="g-ex-name">--</span>
+          <span id="g-progress" class="g-progress">--</span>
+        </div>
+        <div id="g-set-line" class="g-set-line">--</div>
+        <div class="g-steppers">
+          <div class="g-stepper">
+            <span class="g-step-k">Weight</span>
+            <button class="g-step-btn" data-act="w-">−</button>
+            <span><span id="g-weight" class="g-step-v">--</span><span class="g-step-u">lb</span></span>
+            <button class="g-step-btn" data-act="w+">+</button>
+          </div>
+          <div class="g-stepper">
+            <span class="g-step-k">Reps</span>
+            <button class="g-step-btn" data-act="r-">−</button>
+            <span id="g-reps" class="g-step-v">--</span>
+            <button class="g-step-btn" data-act="r+">+</button>
+          </div>
+        </div>
+        <div id="g-dots" class="g-dots"></div>
+        <div class="g-actions">
+          <button id="g-prev" class="g-nav-btn">‹</button>
+          <button id="g-log" class="g-log-btn">✓ Log Set</button>
+          <button id="g-next" class="g-nav-btn">›</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: rest timer + finish -->
+      <div class="g-right">
+        <div id="g-rest" class="g-rest">
+          <div class="g-rest-k">REST</div>
+          <div id="g-rest-time" class="g-rest-time">0:00</div>
+          <button id="g-rest-skip" class="g-rest-skip">Skip</button>
+        </div>
+        <button id="g-finish" class="g-finish-btn">Finish</button>
+      </div>
     </div>
 
-    <!-- CENTER: current exercise -->
-    <div class="g-current">
-      <div class="g-ex-head">
-        <span id="g-ex-name" class="g-ex-name">--</span>
-        <span id="g-progress" class="g-progress">--</span>
+    <!-- BOTTOM: now playing (garage media player) -->
+    {% if has_media %}
+    <div class="g-np" id="g-np">
+      <div class="g-np-art" id="g-np-art"></div>
+      <div class="g-np-meta">
+        <div id="g-np-title" class="g-np-title">Nothing playing</div>
+        <div id="g-np-artist" class="g-np-artist"></div>
       </div>
-      <div id="g-set-line" class="g-set-line">--</div>
-      <div class="g-steppers">
-        <div class="g-stepper">
-          <span class="g-step-k">Weight</span>
-          <button class="g-step-btn" data-act="w-">−</button>
-          <span><span id="g-weight" class="g-step-v">--</span><span class="g-step-u">lb</span></span>
-          <button class="g-step-btn" data-act="w+">+</button>
-        </div>
-        <div class="g-stepper">
-          <span class="g-step-k">Reps</span>
-          <button class="g-step-btn" data-act="r-">−</button>
-          <span id="g-reps" class="g-step-v">--</span>
-          <button class="g-step-btn" data-act="r+">+</button>
-        </div>
-      </div>
-      <div id="g-dots" class="g-dots"></div>
-      <div class="g-actions">
-        <button id="g-prev" class="g-nav-btn">‹</button>
-        <button id="g-log" class="g-log-btn">✓ Log Set</button>
-        <button id="g-next" class="g-nav-btn">›</button>
+      <div class="g-np-ctrl">
+        <button class="g-np-btn" data-m="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6,18V6H8V18H6M9.5,12L18,6V18L9.5,12Z"/></svg></button>
+        <button class="g-np-btn g-np-play" id="g-np-play" data-m="play" aria-label="Play/Pause"><svg viewBox="0 0 24 24"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg></button>
+        <button class="g-np-btn" data-m="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16,18H18V6H16M6,18L14.5,12L6,6V18Z"/></svg></button>
+        <button class="g-np-btn" data-m="voldown" aria-label="Vol down"><svg viewBox="0 0 24 24"><path d="M3,9H7L12,4V20L7,15H3V9M14,11H22V13H14V11Z"/></svg></button>
+        <button class="g-np-btn" data-m="volup" aria-label="Vol up"><svg viewBox="0 0 24 24"><path d="M3,9H7L12,4V20L7,15H3V9M14,11H17V8H19V11H22V13H19V16H17V13H14V11Z"/></svg></button>
       </div>
     </div>
-
-    <!-- RIGHT: rest timer + finish -->
-    <div class="g-right">
-      <div id="g-rest" class="g-rest">
-        <div class="g-rest-k">REST</div>
-        <div id="g-rest-time" class="g-rest-time">0:00</div>
-        <button id="g-rest-skip" class="g-rest-skip">Skip</button>
-      </div>
-      <button id="g-finish" class="g-finish-btn">Finish</button>
-    </div>
+    {% endif %}
   </div>
 
   <div id="g-done" class="g-done hidden">
@@ -70,8 +91,10 @@
     <div id="g-done-msg" class="g-done-msg">Workout logged</div>
   </div>
 
-  <script>window.GARAGE = {{ workout|tojson }};</script>
+  <script>window.GARAGE = {{ workout|tojson }}; window.G_MEDIA = {{ 'true' if has_media else 'false' }};</script>
   <script src="{{ url_for('static', filename='js/garage.js') }}?v={{ static_version }}"></script>
   {% endif %}
+  </div>
+  <script src="{{ url_for('static', filename='js/garage-fit.js') }}?v={{ static_version }}"></script>
 </body>
 </html>

@@ -1,0 +1,5 @@
+# --- Garage HomeFit kiosk: launch on the physical console only ---
+# Append to ~/.bash_profile of the autologin (garage) user.
+if [ "$(tty)" = "/dev/tty1" ]; then
+  exec garage-kiosk
+fi

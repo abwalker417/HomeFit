@@ -102,5 +102,30 @@
     setTimeout(() => { location.href = "/garage"; }, 3500);
   });
 
+  // ---- now playing (garage media player) ----
+  if (window.G_MEDIA) {
+    let lastArt = "";
+    async function loadNP() {
+      let d;
+      try { d = await (await fetch("/api/garage/media")).json(); } catch (_) { return; }
+      if (!d || !d.available) return;
+      $("g-np-title").textContent = d.title || "Nothing playing";
+      $("g-np-artist").textContent = d.artist || "";
+      const art = $("g-np-art");
+      if (d.art && d.art.startsWith("/")) {
+        const url = "/api/garage/media/art?path=" + encodeURIComponent(d.art);
+        if (url !== lastArt) { art.innerHTML = '<img src="' + url + '" alt="">'; art.classList.add("has-art"); lastArt = url; }
+      } else if (lastArt) { art.innerHTML = ""; art.classList.remove("has-art"); lastArt = ""; }
+      const pb = $("g-np-play");
+      if (pb) pb.querySelector("svg").innerHTML = d.state === "playing"
+        ? '<path d="M14,19H18V5H14M6,19H10V5H6V19Z"/>' : '<path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>';
+    }
+    document.querySelectorAll(".g-np-btn").forEach((b) => b.addEventListener("click", async () => {
+      try { await fetch("/api/garage/media/" + b.dataset.m, { method: "POST" }); } catch (_) {}
+      setTimeout(loadNP, 350);
+    }));
+    loadNP(); setInterval(loadNP, 4000);
+  }
+
   render();
 })();

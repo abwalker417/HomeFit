@@ -14,6 +14,7 @@ data/sparky_config.json
 data/sparky_exercise_cache.json
 data/workout.db
 data/exercise_images.json
+data/garage_media.json
 memory/
 .claude/
 HomeFitIcon-Transparent.png

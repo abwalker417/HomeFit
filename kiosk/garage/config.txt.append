@@ -1,0 +1,15 @@
+# --- Garage HomeFit kiosk (1920x440 strip panel) ---------------------------
+# Append to /boot/firmware/config.txt
+
+# KMS driver (Bookworm default) — required for cage / Wayland
+dtoverlay=vc4-kms-v3d
+max_framebuffers=2
+
+# Drive the panel even if it handshakes slowly / is powered after the Pi
+hdmi_force_hotplug=1
+
+# No black borders around the custom resolution
+disable_overscan=1
+
+# Never blank the console behind the kiosk
+# (also add `consoleblank=0` to the end of /boot/firmware/cmdline.txt)
