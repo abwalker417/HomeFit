@@ -30,9 +30,14 @@ SECRET_KEY_PATH = Path(os.environ.get(
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=15)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # WAL so readers (dashboard, every page) never block on a writer (iOS
+    # health/workout syncs); busy_timeout lets concurrent writers wait instead
+    # of erroring with "database is locked".
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 8000")
     return conn
 
 
