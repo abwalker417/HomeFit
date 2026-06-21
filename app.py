@@ -1254,6 +1254,69 @@ def _load_exercise_animations():
     return _exercise_animations
 
 
+@app.route("/api/identify-exercise", methods=["POST"])
+def api_identify_exercise():
+    """Upload a short clip -> identify the move + match a free-exercise-db demo.
+    Returns a PREVIEW proposal (nothing is saved until /confirm)."""
+    if not session.get("user_id"):
+        return jsonify({"error": "unauthorized"}), 401
+    f = request.files.get("video")
+    if not f:
+        return jsonify({"error": "no video uploaded"}), 400
+    import tempfile
+    import exercise_identifier
+    suffix = os.path.splitext(f.filename or "")[1] or ".mov"
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    tmp.close()
+    try:
+        f.save(tmp.name)
+        if os.path.getsize(tmp.name) > 40_000_000:
+            return jsonify({"error": "video too large (40MB max — keep it a few seconds)"}), 413
+        return jsonify(exercise_identifier.identify_video(tmp.name))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+    finally:
+        try:
+            os.remove(tmp.name)
+        except OSError:
+            pass
+
+
+@app.route("/api/identify-exercise/confirm", methods=["POST"])
+def api_identify_exercise_confirm():
+    """Persist a confirmed proposal into the exercise library (+ its demo)."""
+    if not session.get("user_id"):
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    entry = d.get("exercise") or {}
+    demo = d.get("demo")
+    if not entry.get("id") or not entry.get("name"):
+        return jsonify({"error": "invalid exercise"}), 400
+
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    ex_path = os.path.join(data_dir, "exercises.json")
+    with open(ex_path) as fh:
+        lib = json.load(fh)
+    created = entry["id"] not in {e["id"] for e in lib}
+    if created:
+        lib.append(entry)
+        with open(ex_path, "w") as fh:
+            json.dump(lib, fh, indent=2, ensure_ascii=False)
+
+    if demo and len(demo) >= 2:
+        anim_path = os.path.join(data_dir, "exercise_animations.json")
+        with open(anim_path) as fh:
+            anims = json.load(fh)
+        if entry["id"] not in anims:
+            anims[entry["id"]] = demo[:2]
+            with open(anim_path, "w") as fh:
+                json.dump(anims, fh, indent=1, ensure_ascii=False)
+        global _exercise_animations
+        _exercise_animations = None  # invalidate cache so the new demo loads
+
+    return jsonify({"ok": True, "id": entry["id"], "created": created})
+
+
 @app.route("/apex-plan")
 def apex_plan_page():
     uid = session.get("user_id")

@@ -1133,4 +1133,72 @@ function setupAddExercise(root, state, STORE_KEY, wireExercise) {
   modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.classList.add('hidden'); });
   ['input', 'keyup', 'change', 'search'].forEach((ev) => search.addEventListener(ev, renderList));
   filter.addEventListener('change', renderList);
+
+  // --- Identify a move from video -------------------------------------------
+  const idBtn = document.getElementById('identify-btn');
+  const videoInput = document.getElementById('add-ex-video');
+  const idResult = document.getElementById('identify-result');
+  if (idBtn && videoInput && idResult) {
+    const reset = () => { idResult.classList.add('hidden'); idResult.innerHTML = ''; };
+    idBtn.addEventListener('click', () => videoInput.click());
+    videoInput.addEventListener('change', async () => {
+      const file = videoInput.files[0];
+      if (!file) return;
+      idResult.classList.remove('hidden');
+      idResult.innerHTML = '<p class="subtle" style="padding:8px 0;">Analyzing the clip… this takes a few seconds.</p>';
+      const fd = new FormData(); fd.append('video', file);
+      let data;
+      try {
+        const r = await fetch('/api/identify-exercise', { method: 'POST', body: fd });
+        data = await r.json();
+      } catch (_) { idResult.innerHTML = '<p class="subtle" style="padding:8px 0;">Upload failed — try again.</p>'; return; }
+      videoInput.value = '';
+      if (!data || data.error) { idResult.innerHTML = `<p class="subtle" style="padding:8px 0;">Couldn’t identify it: ${(data && data.error) || 'unknown error'}</p>`; return; }
+      renderProposal(data);
+    });
+
+    function renderProposal(data) {
+      const ex = data.exercise;
+      const repLabel = ex.unit === 'seconds' ? `${ex.default_reps}s` : `${ex.default_reps} reps`;
+      const demo = (data.demo && data.demo.length >= 2)
+        ? `<div class="ex-demo-wrap ex-anim"><img class="ex-demo-img" src="${data.demo[0]}" loading="lazy"><img class="ex-demo-img ex-anim-frame2" src="${data.demo[1]}" loading="lazy"></div>`
+        : '<p class="subtle" style="font-size:13px;">No matching demo in the database — it’ll be added without one.</p>';
+      const match = data.db_match
+        ? `Matched to “${data.db_match}” (${Math.round((data.confidence || 0) * 100)}% confidence).`
+        : 'No confident database match — built from the video itself.';
+      idResult.innerHTML = `
+        <div class="identify-card" style="border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:10px;">
+          <strong class="id-name"></strong>
+          <div class="ex-meta id-meta"></div>
+          ${demo}
+          <p class="subtle id-match" style="font-size:12px;"></p>
+          <p class="ex-instr id-instr" style="font-size:13px;"></p>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button type="button" class="btn id-add" style="flex:1;">Add to workout</button>
+            <button type="button" class="btn btn-secondary id-cancel" style="flex:1;">Cancel</button>
+          </div>
+        </div>`;
+      idResult.querySelector('.id-name').textContent = ex.name;
+      idResult.querySelector('.id-meta').textContent = `${ex.category} · ${ex.equipment} · ${ex.default_sets} × ${repLabel}`;
+      idResult.querySelector('.id-match').textContent = match;
+      idResult.querySelector('.id-instr').textContent = ex.instructions || '';
+      idResult.querySelector('.id-cancel').addEventListener('click', reset);
+      idResult.querySelector('.id-add').addEventListener('click', async () => {
+        try {
+          await fetch('/api/identify-exercise/confirm', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exercise: ex, demo: data.demo }),
+          });
+        } catch (_) {}
+        addExercise({
+          id: ex.id, name: ex.name, category: ex.category, equipment: [ex.equipment],
+          default_sets: ex.default_sets, default_reps: ex.default_reps, unit: ex.unit || 'reps',
+          instructions: ex.instructions, rest_seconds: ex.rest_seconds,
+          anim: (data.demo && data.demo.length >= 2) ? data.demo : null, available: true,
+        }, true);
+        reset();
+        modal.classList.add('hidden');
+      });
+    }
+  }
 }
