@@ -1,7 +1,11 @@
 # Garage HomeFit Kiosk — Pi 4 setup
 
-Drop-in kit for driving the 1920×440 garage strip panel as a HomeFit workout
-kiosk. Target: **Raspberry Pi 4 (4GB)** + Raspberry Pi OS **Lite (64-bit, Bookworm)**.
+Drop-in kit for driving the garage strip panel as a HomeFit workout kiosk.
+Target: **Raspberry Pi 4 (4GB)** + Raspberry Pi OS **Lite (64-bit, Bookworm)**.
+
+**Panel: GeeekPi EP-0189** — 8.8" letterbox LCD, **1920×480** (HSD088IPW1). It is
+physically a 480×1920 *portrait* panel rotated 90° to landscape, which is why it
+needs explicit timings + rotation rather than plug-and-play EDID.
 
 The kiosk boots straight into Chromium fullscreen on
 `http://192.168.68.15:5000/garage` — nothing else on screen. The garage page is
@@ -30,62 +34,64 @@ sudo apt install -y cage chromium-browser edid-decode
 `cage` is a single-app Wayland kiosk compositor — it runs Chromium fullscreen and
 nothing else.
 
-## 2. The resolution (the only fiddly part)
+## 2. The resolution (the fiddly part — but this panel is well-documented)
 
-1920×440 is a non-standard mode. Three outcomes, in order of likelihood:
+1920×480 is non-standard *and* the panel is internally 480×1920 rotated, so EDID
+auto-detect won't do it. Use GeeekPi's own tool first; the manual line is the
+fallback.
 
-### A. It just works (try this first)
-Many strip panels advertise their native mode correctly over EDID. Plug the panel
-into `HDMI-A-1`, boot, then check what the kernel sees:
-
-```bash
-cat /sys/class/drm/card*-HDMI-A-1/modes
-```
-
-If `1920x440` (or the panel's native, e.g. `1920x480`) is listed at the top →
-you're done, skip to step 3. `cage` picks the preferred mode automatically.
-
-### B. Force the mode via cmdline (quick try if A is wrong)
-Add to the **end of the single line** in `/boot/firmware/cmdline.txt`:
-
-```
-video=HDMI-A-1:1920x440M@60
-```
-
-Reboot, re-check `modes`. The trailing `M` asks the kernel to generate a CVT
-timing. If the panel accepts it, great. If it's blank or wrong, use C.
-
-### C. Custom EDID override (the robust fix)
-Tells the kernel the panel's exact native timing, so everything downstream
-(cage, Chromium) runs at scale 1.
+### A. GeeekPi's resolution tool (try this first)
+GeeekPi ships a config script that knows the EP-0189's exact timing + rotation:
 
 ```bash
-# Read what the panel currently reports
-sudo edid-decode /sys/class/drm/card*-HDMI-A-1/edid
-
-# Build a corrected EDID binary from the panel's real timings
-#   - easiest: github.com/akatrevorjay/edid-generator  (edit Makefile timing, `make`)
-#   - or fix the read-back EDID in wxEDID
-# Place the result:
-sudo mkdir -p /lib/firmware/edid
-sudo cp garage-panel.bin /lib/firmware/edid/
+sudo apt install -y git
+git clone https://github.com/geeekpi/lcd-config.git
+cd lcd-config
+sudo ./resolution_tool.sh    # pick the 8.8" 1920x480 panel, reboot
 ```
 
-Then add to `/boot/firmware/cmdline.txt`:
+After reboot, confirm the mode and that a DRM device exists (cage needs it):
+
+```bash
+cat /sys/class/drm/card*-HDMI-A-1/modes   # expect 1920x480 (or 480x1920 pre-rotate)
+ls /dev/dri/card*                          # KMS present → use cage (step 4)
+```
+
+### B. Manual config (fallback if the tool misbehaves)
+Append the verbatim, community-proven timing to `/boot/firmware/config.txt` — it's
+in [`config.txt.append`](./config.txt.append). The key lines:
 
 ```
-drm.edid_firmware=HDMI-A-1:edid/garage-panel.bin
+hdmi_timings=480 1 48 32 80 1920 0 3 10 56 0 0 0 60 0 75840000 3
+hdmi_group=2
+hdmi_mode=87
+hdmi_force_mode=1
+hdmi_drive=1
+config_hdmi_boost=4
+max_framebuffer_height=1920
+display_hdmi_rotate=1       # rotate the 480x1920 panel to 1920x480 landscape
 ```
 
-Reboot. `modes` should now show the panel's native resolution as preferred.
+> **Bookworm/KMS caveat:** `hdmi_timings` is a *legacy firmware* mechanism. It is
+> honored by the firmware for the boot console, but the modern KMS driver
+> (`vc4-kms-v3d`) may ignore it. If after the manual route the console shows
+> 1920×480 but Wayland/cage comes up wrong, the cleanest fix is a **custom EDID**:
+> `sudo edid-decode /sys/class/drm/card*-HDMI-A-1/edid`, rebuild a 480×1920 EDID
+> (github.com/akatrevorjay/edid-generator), drop it at
+> `/lib/firmware/edid/ep0189.bin`, and add
+> `drm.edid_firmware=HDMI-A-1:edid/ep0189.bin` to `cmdline.txt`. **The GeeekPi
+> tool (A) is preferred precisely because it handles this for you.**
 
-> **Rotation:** the strip mounts horizontally (native landscape) — no rotation
-> needed. If you ever mount it sideways, append `,rotate=90` to the `video=` line.
+> **Rotation:** mounted horizontally = landscape. The panel is native portrait,
+> so the rotate flag above (or the GeeekPi tool) is what makes it read left-to-
+> right. If text comes out upside down, use `display_hdmi_rotate=3`.
 
-## 3. config.txt
+## 3. config.txt (kiosk bits)
 
-Append the contents of [`config.txt.append`](./config.txt.append) to
-`/boot/firmware/config.txt` (KMS driver, no overscan, force hotplug).
+Append the "kiosk bits" from [`config.txt.append`](./config.txt.append) to
+`/boot/firmware/config.txt` (force-hotplug, no overscan, no blanking). If you went
+the **manual** resolution route in 2B, that file also holds the panel timing block
+— if you used the GeeekPi tool (2A), skip the `hdmi_timings` block.
 
 ## 4. Kiosk autostart
 
@@ -102,6 +108,11 @@ cat bash_profile.snippet >> ~/.bash_profile
 ```
 
 Reboot. It should come up in the garage picker, fullscreen, cursor hidden.
+
+> `cage` needs a KMS DRM device (`/dev/dri/card*`). If the resolution route left
+> the Pi on legacy firmware graphics (no `/dev/dri`), run the page under X11
+> instead: `sudo apt install -y xserver-xorg xinit openbox` and swap the launcher
+> to `startx /usr/bin/chromium-browser -- --kiosk --app=$URL` from `.bash_profile`.
 
 ## 5. Verify
 
