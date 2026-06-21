@@ -9,9 +9,9 @@
 <body class="g-body">
   <div class="g-stage">
   {% if not workout %}
-  <div class="g-msg">No plan set for today.<a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a></div>
+  <div class="g-msg">No plan set for today.<a class="g-switch" href="{{ url_for('garage_choose') }}">⇄ Switch</a></div>
   {% elif workout.rest %}
-  <div class="g-msg">Today is a rest day.<a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a></div>
+  <div class="g-msg">Today is a rest day.<a class="g-switch" href="{{ url_for('garage_choose') }}">⇄ Switch</a></div>
   {% else %}
   <div class="g-shell">
     <div class="g-workout">
@@ -24,7 +24,7 @@
         {% endif %}
         <div class="g-who-name">{{ user.name }}</div>
         <div class="g-who-plan">{{ workout.name }}</div>
-        <a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch</a>
+        <a class="g-switch" href="{{ url_for('garage_choose') }}">⇄ Switch</a>
       </div>
 
       <!-- CENTER: current exercise -->

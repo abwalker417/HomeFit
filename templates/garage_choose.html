@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>{{ user.name }} · Garage</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/garage.css') }}?v={{ static_version }}">
+</head>
+<body class="g-body">
+  <div class="g-stage">
+  <div class="g-choose">
+    <div class="g-choose-head">
+      <div class="g-pick-title">What are we training, {{ user.name }}?</div>
+      <a class="g-switch" href="{{ url_for('garage') }}">⇄ Switch user</a>
+    </div>
+    <div class="g-choices">
+      <a class="g-choice g-choice-apex" href="{{ url_for('garage_workout_view', type='apex') }}">
+        <span class="g-choice-k">APEX</span>
+        <span class="g-choice-sub">Today's plan</span>
+      </a>
+      <a class="g-choice" href="{{ url_for('garage_workout_view', type='upper') }}">
+        <span class="g-choice-k">Upper Body</span>
+      </a>
+      <a class="g-choice" href="{{ url_for('garage_workout_view', type='lower') }}">
+        <span class="g-choice-k">Lower Body</span>
+      </a>
+      <a class="g-choice" href="{{ url_for('garage_workout_view', type='core') }}">
+        <span class="g-choice-k">Core</span>
+      </a>
+      <a class="g-choice" href="{{ url_for('garage_workout_view', type='recovery') }}">
+        <span class="g-choice-k">Recovery</span>
+      </a>
+    </div>
+  </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/garage-fit.js') }}?v={{ static_version }}"></script>
+</body>
+</html>

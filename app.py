@@ -66,7 +66,7 @@ PUBLIC_ENDPOINTS = {
     "profile_switch_out", "manifest", "service_worker", "static",
     "api_last_workout", "api_last_weight", "api_external_workout", "api_sleep",
     "api_health_metric", "push_register_apns", "api_panel_summary",
-    "garage", "garage_pick", "garage_workout_view", "garage_complete",
+    "garage", "garage_pick", "garage_choose", "garage_workout_view", "garage_complete",
     "garage_media", "garage_media_control", "garage_media_art",
 }
 
@@ -906,6 +906,63 @@ def _garage_workout(uid):
     return {"rest": False, "name": day.get("name", "Workout"), "exercises": exercises}
 
 
+GARAGE_TYPES = {
+    "apex":     "APEX",
+    "upper":    "Upper Body",
+    "lower":    "Lower Body",
+    "core":     "Core",
+    "recovery": "Recovery",
+}
+
+
+def _garage_workout_for_type(uid, wtype):
+    """Garage workout for the chosen option: 'apex' = today's saved plan;
+    upper/lower/core = a fresh pick from that category; recovery = light
+    bodyweight movements. Deterministic (no AI call)."""
+    if not wtype or wtype == "apex":
+        return _garage_workout(uid)
+    if wtype not in GARAGE_TYPES:
+        return _garage_workout(uid)
+
+    import random
+    from workout_logic import all_exercises_with_status, load_exercises
+    profile = database.get_profile(uid) or {}
+    raw = {e["id"]: e for e in load_exercises()}
+    ex_history = database.get_exercise_history(uid, limit=15)
+
+    def last_weight(ex_id):
+        for s in ex_history.get(ex_id, []):
+            ws = [w["weight"] for w in s.get("sets", []) if w.get("weight")]
+            if ws:
+                return max(ws)
+        return None
+
+    avail = [s for s in all_exercises_with_status(profile)
+             if s.get("available") and not s.get("ignored")]
+    cat = {"upper": "upper", "lower": "legs", "core": "core"}.get(wtype)
+    if wtype == "recovery":
+        pool = [s for s in avail
+                if raw.get(s["id"], {}).get("difficulty", 1) <= 1
+                and raw.get(s["id"], {}).get("equipment") in ("bodyweight", "resistance_bands")]
+    else:
+        pool = [s for s in avail if s.get("category") == cat]
+    random.shuffle(pool)
+    chosen = pool[:6]
+    if not chosen:
+        return None
+
+    exercises = []
+    for s in chosen:
+        e = raw.get(s["id"], {})
+        exercises.append({
+            "id": s["id"], "name": s["name"],
+            "sets": int(e.get("default_sets") or 3), "reps": int(e.get("default_reps") or 10),
+            "unit": e.get("unit", "reps"), "rest": int(e.get("rest_seconds") or 45),
+            "last_weight": last_weight(s["id"]),
+        })
+    return {"rest": False, "name": GARAGE_TYPES[wtype], "exercises": exercises}
+
+
 @app.route("/garage")
 def garage():
     return render_template("garage.html", users=database.list_users())
@@ -920,7 +977,15 @@ def garage_pick():
     if database.get_user(uid):
         session["garage_user"] = uid
         session.permanent = True
-    return redirect(url_for("garage_workout_view"))
+    return redirect(url_for("garage_choose"))
+
+
+@app.route("/garage/choose")
+def garage_choose():
+    uid = session.get("garage_user")
+    if not uid or not database.get_user(uid):
+        return redirect(url_for("garage"))
+    return render_template("garage_choose.html", user=database.get_user(uid))
 
 
 @app.route("/garage/workout")
@@ -928,8 +993,10 @@ def garage_workout_view():
     uid = session.get("garage_user")
     if not uid or not database.get_user(uid):
         return redirect(url_for("garage"))
-    return render_template("garage_workout.html", workout=_garage_workout(uid),
-                           user=database.get_user(uid), uid=uid,
+    wtype = request.args.get("type", "apex")
+    return render_template("garage_workout.html",
+                           workout=_garage_workout_for_type(uid, wtype),
+                           user=database.get_user(uid), uid=uid, wtype=wtype,
                            has_media=bool(_garage_media_cfg().get("player")))
 
 
