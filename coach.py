@@ -167,9 +167,46 @@ def _build_context(coaching_data):
         lines.append(f"Weight trend: {start} lbs → {current} lbs over {len(weight_history)} entries")
         lines.append("")
 
+    from datetime import timedelta as _td
+    dow_short = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    def _dow(iso):
+        try:
+            return dow_short[_date.fromisoformat((iso or "")[:10]).weekday()]
+        except Exception:
+            return "?"
+
+    # Pre-compute THIS WEEK's sessions so APEX never does its own (error-prone)
+    # date math. Week runs Monday→Sunday. HomeFit workouts always count; an
+    # external/Apple-Health session counts toward the weekly goal ONLY if it's a
+    # real workout (>=45 min) — golf and long cardio count, short daily walks do not.
+    monday = today - _td(days=today.weekday())
+    monday_iso = monday.isoformat()
+    externals = coaching_data.get("external_workouts") or []
+    goal_days = profile.get("days_per_week") or 4
+    hf_week = [w for w in workouts if (w.get("completed_at") or "")[:10] >= monday_iso]
+    ext_week = [c for c in externals
+                if (c.get("started_at") or "")[:10] >= monday_iso
+                and (c.get("duration_minutes") or 0) >= 45]
+    sessions = len(hf_week) + len(ext_week)
+    hf_list = ", ".join(f"{_dow(w.get('completed_at',''))} {w.get('day_name') or 'workout'}"
+                        for w in hf_week) or "none yet"
+    ext_list = ", ".join(f"{_dow(c.get('started_at',''))} {c.get('workout_type','activity')} "
+                         f"({c.get('duration_minutes')}min)" for c in ext_week) or "none"
+    lines += [
+        f"THIS WEEK so far (Monday {monday_iso} through today) — USE THESE NUMBERS, do not recount by hand:",
+        f"- Sessions toward the {goal_days}x/week goal: {sessions} of {goal_days}",
+        f"- HomeFit workouts this week: {hf_list}",
+        f"- Long external sessions counted (golf / cardio ≥ 45 min): {ext_list}",
+        f"Count BOTH HomeFit workouts and long external sessions toward the {goal_days}x/week goal. "
+        f"Short walks under 45 min are general activity, NOT a counted session. Never count anything "
+        f"dated before {monday_iso} toward this week.",
+        "",
+    ]
+
     if workouts:
-        lines.append(f"Recent workouts ({len(workouts)} total):")
-        for w in workouts[:5]:
+        lines.append("Recent HomeFit workouts (newest first):")
+        for w in workouts[:6]:
             exercises = w.get("exercises", [])
             completed = [e for e in exercises if e.get("completed")]
             ex_names = []
@@ -186,7 +223,16 @@ def _build_context(coaching_data):
             today_tag = " [TODAY]" if w_date == today.isoformat() else ""
             name = w.get('day_name', '')
             name_part = f"{name} — " if name else ""
-            lines.append(f"- {w_date}{today_tag} ({duration}): {name_part}{', '.join(ex_names)}")
+            lines.append(f"- {_dow(w_date)} {w_date}{today_tag} ({duration}): {name_part}{', '.join(ex_names)}")
+        lines.append("")
+
+    if externals:
+        lines.append("Recent cardio / outside activity (Apple Health — walks, golf, etc.; these are NOT "
+                     "HomeFit gym sessions, but ≥45-min ones count toward the weekly goal):")
+        for c in externals[:6]:
+            d = (c.get("started_at") or "")[:10]
+            kcal = f", {c.get('kcal')} kcal" if c.get("kcal") else ""
+            lines.append(f"- {_dow(d)} {d}: {c.get('workout_type','activity')} {c.get('duration_minutes')}min{kcal}")
         lines.append("")
 
     if nutrition_goals:
@@ -535,6 +581,12 @@ def generate_weekly_digest(coaching_data):
     week_start_str = week_start_date.isoformat()
 
     this_week = [w for w in workouts if (w.get("completed_at") or "") >= week_start_str]
+    # Long external sessions (golf / cardio >=45 min) also count toward the weekly
+    # goal; short daily walks do not.
+    ext_week = [c for c in (coaching_data.get("external_workouts") or [])
+                if (c.get("started_at") or "")[:10] >= week_start_str
+                and (c.get("duration_minutes") or 0) >= 45]
+    week_sessions = len(this_week) + len(ext_week)
     goal_days = int(profile.get("days_per_week") or 4)
 
     nutrition_log = coaching_data.get("nutrition_log") or []
@@ -574,7 +626,7 @@ def generate_weekly_digest(coaching_data):
     prompt = f"""{context}
 
 WEEKLY REVIEW for {week_start_str} to today:
-- Training: {len(this_week)} of {goal_days} planned workouts completed; {tl.get('sessions_7d', 0)} total sessions / {tl.get('minutes_7d', 0)} min over 7 days.{nutrition_note}{sleep_note}{cardio_note}{activity_note}
+- Training: {week_sessions} of {goal_days} weekly sessions done (HomeFit workouts + golf/long cardio ≥45 min); {tl.get('sessions_7d', 0)} total sessions / {tl.get('minutes_7d', 0)} min over 7 days.{nutrition_note}{sleep_note}{cardio_note}{activity_note}
 
 Write a weekly review as 4-6 short plain-text bullets (each starting with "- ", one sentence each,
 no headers, no greeting, no sign-off). Cover ONLY the areas that have data:

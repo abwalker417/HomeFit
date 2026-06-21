@@ -590,6 +590,7 @@ def get_coaching_context(user_id):
         "hydration_log": hydration,
         "nutrition_goals": goals,
         "other_activity": other_activity,
+        "external_workouts": get_external_workouts(user_id, days=7),
         "sleep_log": get_recent_sleep(user_id, days=7),
         "readiness": compute_readiness(user_id),
         "training_load": training_load(user_id),
