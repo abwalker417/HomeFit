@@ -1586,5 +1586,33 @@
     "rest_seconds": 45,
     "instructions": "Sit with knees bent and heels light, leaning back slightly. Rotate your torso to tap the floor beside each hip, alternating sides with control. Hold a dumbbell for added load.",
     "muscle_group": "core"
+  },
+  {
+    "id": "oblique_drops",
+    "name": "Oblique Drops",
+    "category": "core",
+    "difficulty": 2,
+    "contraindications": [],
+    "met": 4.0,
+    "default_reps": 10,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "From a forearm side plank, lower your hip toward the floor under control, then drive it back up by squeezing your oblique. Complete the reps on one side, then switch.",
+    "equipment": "bodyweight",
+    "muscle_group": "core"
+  },
+  {
+    "id": "crossbody_crunch",
+    "name": "Crossbody Crunch",
+    "category": "core",
+    "difficulty": 1,
+    "contraindications": [],
+    "met": 3.8,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 45,
+    "instructions": "Lie on your back with knees bent. Bring one elbow across toward the opposite knee, crunching and twisting through your obliques, then return and alternate sides.",
+    "equipment": "bodyweight",
+    "muscle_group": "core"
   }
 ]
