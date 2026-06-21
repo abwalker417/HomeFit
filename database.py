@@ -408,6 +408,7 @@ def save_profile(
     ignored_exercises=None,
     fitness_goal="general",
     workout_duration_target=45,
+    cardio_days_per_week=5,
 ):
     now = datetime.now().isoformat()
     values = (
@@ -424,6 +425,7 @@ def save_profile(
         json.dumps(ignored_exercises or []),
         fitness_goal,
         int(workout_duration_target),
+        int(cardio_days_per_week or 5),
         now,
     )
     with get_connection() as conn:
@@ -433,9 +435,9 @@ def save_profile(
                 user_id, current_weight, goal_weight, fitness_level, limitations,
                 equipment, custom_equipment, target_muscles, preferred_equipment,
                 days_per_week, ignored_exercises,
-                fitness_goal, workout_duration_target, updated_at
+                fitness_goal, workout_duration_target, cardio_days_per_week, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(user_id) DO UPDATE SET
                 current_weight=excluded.current_weight,
                 goal_weight=excluded.goal_weight,
@@ -446,6 +448,7 @@ def save_profile(
                 target_muscles=excluded.target_muscles,
                 preferred_equipment=excluded.preferred_equipment,
                 days_per_week=excluded.days_per_week,
+                cardio_days_per_week=excluded.cardio_days_per_week,
                 ignored_exercises=excluded.ignored_exercises,
                 fitness_goal=excluded.fitness_goal,
                 workout_duration_target=excluded.workout_duration_target,
@@ -953,6 +956,15 @@ def get_external_workouts(user_id, days=14, limit=50):
             (user_id, cutoff, limit),
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def counts_as_workout_session(c):
+    """True if an external/Apple-Health activity counts toward the weekly WORKOUT
+    goal: Apple recorded it as a real workout (any type except a plain 'Walking'
+    entry) OR it's a long session (>=45 min). Short daily walks don't count as a
+    workout — they count toward the separate cardio-days goal instead."""
+    wtype = (c.get("workout_type") or "").strip().lower()
+    return wtype not in ("", "walking") or (c.get("duration_minutes") or 0) >= 45
 
 
 def record_external_workout(user_id, source, workout_type, started_at, ended_at,

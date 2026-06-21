@@ -3,6 +3,8 @@
 import json
 import requests
 
+import database
+
 PEAKAI_URL = "http://192.168.68.33:4000"
 PEAKAI_API_KEY = "peak-homelab-key"
 PEAKAI_MODEL = "claude-haiku"
@@ -187,7 +189,7 @@ def _build_context(coaching_data):
     hf_week = [w for w in workouts if (w.get("completed_at") or "")[:10] >= monday_iso]
     ext_week = [c for c in externals
                 if (c.get("started_at") or "")[:10] >= monday_iso
-                and (c.get("duration_minutes") or 0) >= 45]
+                and database.counts_as_workout_session(c)]
     workout_days = {(w.get("completed_at") or "")[:10] for w in hf_week}
     workout_days |= {(c.get("started_at") or "")[:10] for c in ext_week}
     workout_days.discard("")
@@ -205,11 +207,12 @@ def _build_context(coaching_data):
         f"THIS WEEK so far (Monday {monday_iso} through today) — USE THESE NUMBERS, do not recount by hand:",
         f"- Workout days toward the {goal_days}x/week goal: {sessions} of {goal_days}",
         f"    · HomeFit workouts: {hf_list}",
-        f"    · Long external sessions counted (golf / cardio ≥ 45 min): {ext_list}",
+        f"    · External sessions counted (Apple-recorded workouts like golf, or any session ≥45 min): {ext_list}",
         f"- Cardio/walk days toward the {cardio_goal}x/week cardio goal: {len(cardio_days)} of {cardio_goal} ({cardio_dow})",
-        f"Two separate weekly goals: (1) {goal_days} WORKOUT sessions (HomeFit workouts + long ≥45-min "
-        f"external sessions); (2) {cardio_goal} CARDIO days (any day with a logged walk/cardio counts, one "
-        f"per day). Use these exact counts; never count anything dated before {monday_iso} toward this week.",
+        f"Two separate weekly goals: (1) {goal_days} WORKOUT days (HomeFit workouts + Apple-recorded "
+        f"workouts/long ≥45-min sessions; plain walks don't count); (2) {cardio_goal} CARDIO days (any day "
+        f"with a logged walk/cardio counts, one per day). Use these exact counts; never count anything "
+        f"dated before {monday_iso} toward this week.",
         "",
     ]
 
@@ -594,7 +597,7 @@ def generate_weekly_digest(coaching_data):
     # goal; short daily walks do not.
     ext_week = [c for c in (coaching_data.get("external_workouts") or [])
                 if (c.get("started_at") or "")[:10] >= week_start_str
-                and (c.get("duration_minutes") or 0) >= 45]
+                and database.counts_as_workout_session(c)]
     week_days = {(w.get("completed_at") or "")[:10] for w in this_week}
     week_days |= {(c.get("started_at") or "")[:10] for c in ext_week}
     week_days.discard("")
@@ -638,7 +641,7 @@ def generate_weekly_digest(coaching_data):
     prompt = f"""{context}
 
 WEEKLY REVIEW for {week_start_str} to today:
-- Training: {week_sessions} of {goal_days} workout days done (HomeFit workouts + golf/long cardio ≥45 min); {tl.get('minutes_7d', 0)} active min over 7 days.{nutrition_note}{sleep_note}{cardio_note}{activity_note}
+- Training: {week_sessions} of {goal_days} workout days done (HomeFit workouts + Apple-recorded workouts like golf or long ≥45-min sessions); {tl.get('minutes_7d', 0)} active min over 7 days.{nutrition_note}{sleep_note}{cardio_note}{activity_note}
 
 Write a weekly review as 4-6 short plain-text bullets (each starting with "- ", one sentence each,
 no headers, no greeting, no sign-off). Cover ONLY the areas that have data:

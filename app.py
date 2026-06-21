@@ -119,6 +119,7 @@ def _parse_profile_form(form):
         "target_muscles": [],
         "preferred_equipment": [],
         "days_per_week": int(form.get("days_per_week", 4) or 4),
+        "cardio_days_per_week": int(form.get("cardio_days_per_week", 5) or 5),
         "fitness_goal": form.get("fitness_goal", "general"),
         "workout_duration_target": int(form.get("workout_duration_target", 45) or 45),
     }
@@ -253,10 +254,10 @@ def _progress_stats(user_id):
     externals = database.get_external_workouts(user_id, days=7)
     week_dates = {(item.get("completed_at") or "")[:10] for item in history
                   if (item.get("completed_at") or "")[:10] >= monday_iso}
-    # Long external sessions (golf / cardio >=45 min) also count as a workout day
+    # Apple-recorded workouts (golf, etc.) and long sessions count as a workout day
     week_dates |= {(c.get("started_at") or "")[:10] for c in externals
                    if (c.get("started_at") or "")[:10] >= monday_iso
-                   and (c.get("duration_minutes") or 0) >= 45}
+                   and database.counts_as_workout_session(c)}
     week_dates.discard("")
     trained_today = today.isoformat() in week_dates
     days_left = 7 - today.weekday()  # includes today

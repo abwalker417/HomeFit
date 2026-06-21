@@ -15,10 +15,17 @@
       {% endfor %}
     </select>
   </label>
-  <label>Days per week
+  <label>Workout days per week
     <select name="days_per_week">
-      {% for days in [2,3,4,5] %}
+      {% for days in [2,3,4,5,6] %}
       <option value="{{ days }}" {% if (p.days_per_week or 4) == days %}selected{% endif %}>{{ days }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Cardio days per week
+    <select name="cardio_days_per_week">
+      {% for days in [3,4,5,6,7] %}
+      <option value="{{ days }}" {% if (p.cardio_days_per_week or 5) == days %}selected{% endif %}>{{ days }}</option>
       {% endfor %}
     </select>
   </label>
