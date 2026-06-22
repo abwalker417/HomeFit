@@ -60,10 +60,9 @@ def send_streak_reminders():
     for uid in database.get_push_user_ids():
         profile = database.get_profile(uid) or {}
         target = profile.get("days_per_week") or 4
-        history = database.get_workout_history(uid, limit=30)
-        week_dates = {(w.get("completed_at") or "")[:10] for w in history
-                      if (w.get("completed_at") or "")[:10] >= monday}
-        week_dates.discard("")
+        # Workout days this week = HomeFit sessions + counting Apple workouts
+        # (golf, long sessions) — same source of truth as the dashboard/streak.
+        week_dates = database.workout_day_dates(uid, since_iso=monday)
         if today.isoformat() in week_dates:
             continue  # already trained today
         done = len(week_dates)

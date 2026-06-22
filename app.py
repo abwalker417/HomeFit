@@ -252,13 +252,9 @@ def _progress_stats(user_id):
     monday = today - timedelta(days=today.weekday())
     monday_iso = monday.isoformat()
     externals = database.get_external_workouts(user_id, days=7)
-    week_dates = {(item.get("completed_at") or "")[:10] for item in history
-                  if (item.get("completed_at") or "")[:10] >= monday_iso}
-    # Apple-recorded workouts (golf, etc.) and long sessions count as a workout day
-    week_dates |= {(c.get("started_at") or "")[:10] for c in externals
-                   if (c.get("started_at") or "")[:10] >= monday_iso
-                   and database.counts_as_workout_session(c)}
-    week_dates.discard("")
+    # Workout days = HomeFit sessions + counting Apple workouts (golf, long
+    # sessions); shared with the streak + push reminders.
+    week_dates = database.workout_day_dates(user_id, since_iso=monday_iso)
     trained_today = today.isoformat() in week_dates
     days_left = 7 - today.weekday()  # includes today
     done = len(week_dates)

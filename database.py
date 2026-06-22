@@ -1037,17 +1037,41 @@ def get_stats(user_id):
     }
 
 
+def workout_day_dates(user_id, since_iso=None):
+    """Set of ISO date strings (YYYY-MM-DD) on which the user did a WORKOUT:
+    HomeFit logged sessions PLUS Apple-recorded workouts that count toward the
+    weekly workout goal (golf, long >=45-min sessions). Plain walks don't count.
+
+    Single source of truth so the dashboard, streak and push reminders all
+    agree on what a "workout day" is. Optionally restrict to dates >= since_iso.
+    """
+    days = set()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT date(completed_at) AS d FROM workout_log WHERE user_id = ?",
+            (user_id,),
+        ).fetchall()
+    for row in rows:
+        d = row["d"]
+        if d and (since_iso is None or d >= since_iso):
+            days.add(d)
+    # Apple-recorded workouts (golf etc.); wide window so streak history is right
+    for c in get_external_workouts(user_id, days=400, limit=5000):
+        if not counts_as_workout_session(c):
+            continue
+        d = (c.get("started_at") or "")[:10]
+        if d and (since_iso is None or d >= since_iso):
+            days.add(d)
+    return days
+
+
 def get_streak(user_id):
     """Return the current consecutive-day workout streak (0 if broken)."""
     from datetime import date, timedelta
-    with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT DISTINCT date(completed_at) as d FROM workout_log WHERE user_id = ? ORDER BY d DESC",
-            (user_id,),
-        ).fetchall()
-    if not rows:
+    iso = sorted(workout_day_dates(user_id), reverse=True)
+    if not iso:
         return 0
-    dates = [date.fromisoformat(row["d"]) for row in rows]
+    dates = [date.fromisoformat(s) for s in iso]
     today = date.today()
     if dates[0] < today - timedelta(days=1):
         return 0
@@ -1069,16 +1093,12 @@ def get_week_streak(user_id, target_days):
     """
     from datetime import date, timedelta
     target_days = max(1, int(target_days or 1))
-    with get_connection() as conn:
-        rows = conn.execute(
-            "SELECT DISTINCT date(completed_at) as d FROM workout_log WHERE user_id = ? ORDER BY d DESC",
-            (user_id,),
-        ).fetchall()
-    if not rows:
+    days = workout_day_dates(user_id)
+    if not days:
         return 0
     by_week = {}
-    for row in rows:
-        d = date.fromisoformat(row["d"])
+    for s in days:
+        d = date.fromisoformat(s)
         monday = d - timedelta(days=d.weekday())
         by_week[monday] = by_week.get(monday, 0) + 1
 
