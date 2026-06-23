@@ -67,7 +67,7 @@ PUBLIC_ENDPOINTS = {
     "api_last_workout", "api_last_weight", "api_external_workout", "api_sleep",
     "api_health_metric", "push_register_apns", "api_panel_summary",
     "garage", "garage_pick", "garage_choose", "garage_workout_view", "garage_complete",
-    "garage_media", "garage_media_control", "garage_media_art",
+    "garage_media", "garage_media_control", "garage_media_art", "garage_light",
 }
 
 PIN_FAIL_WINDOW_SEC = 15 * 60
@@ -1040,6 +1040,23 @@ def garage_media():
                         "title": a.get("media_title"), "artist": a.get("media_artist"),
                         "volume": a.get("volume_level"),
                         "art": a.get("entity_picture_local") or a.get("entity_picture")})
+    except Exception as e:
+        return jsonify({"available": False, "error": str(e)})
+
+
+@app.route("/api/garage/light")
+def garage_light():
+    """State of the garage's light (for the panel's dim-when-dark veil).
+    Uses the garage_media.json config (ha_url/ha_token) + a `dim_light` entity."""
+    cfg = _garage_media_cfg()
+    ent = cfg.get("dim_light")
+    if not cfg.get("ha_url") or not ent:
+        return jsonify({"available": False})
+    try:
+        r = requests.get(f"{cfg['ha_url'].rstrip('/')}/api/states/{ent}",
+                         headers={"Authorization": f"Bearer {cfg.get('ha_token', '')}"}, timeout=6)
+        r.raise_for_status()
+        return jsonify({"available": True, "on": r.json().get("state") == "on"})
     except Exception as e:
         return jsonify({"available": False, "error": str(e)})
 
