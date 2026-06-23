@@ -74,9 +74,11 @@ html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-selec
 .g-ex-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
 .g-ex-name { font-size: 30px; font-weight: 800; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-progress { font-size: 16px; font-weight: 700; color: #8b97a7; flex: 0 0 auto; }
-.g-demo-btn { flex: 0 0 auto; border: none; border-radius: 999px; cursor: pointer;
-  background: rgba(var(--accent-rgb),.14); color: var(--accent); font-size: 15px; font-weight: 700;
-  padding: 7px 14px; }
+.g-demo-btn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px;
+  border: none; border-radius: 999px; cursor: pointer;
+  background: rgba(var(--accent-rgb),.16); color: var(--accent); font-size: 19px; font-weight: 700;
+  padding: 11px 22px; }
+.g-demo-btn svg { width: 22px; height: 22px; fill: currentColor; }
 .g-demo-btn:active { transform: scale(.96); }
 
 /* exercise how-to overlay */
