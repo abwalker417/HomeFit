@@ -5,9 +5,14 @@
   <meta name="viewport" content="width=1920, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>{{ user.name }} · Garage</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/garage.css') }}?v={{ static_version }}">
+  <style id="accent-vars">:root { --accent: {{ accent }}; --accent-rgb: {{ accent_rgb }}; }</style>
 </head>
 <body class="g-body">
   <div class="g-stage">
+  <div class="room-bg" aria-hidden="true">
+    <div class="scene" style="background-image:url('{{ url_for('static', filename='icons/redesign/scene/' + accent_name + '.png') }}?v={{ static_version }}');"></div>
+    <div class="scene-dim"></div>
+  </div>
   <div class="g-choose">
     <div class="g-choose-head">
       <div class="g-pick-title">What are we training, {{ user.name }}?</div>

@@ -892,6 +892,8 @@ def _garage_workout(uid):
         return None
 
     anims = _load_exercise_animations()
+    from workout_logic import load_exercises
+    raw = {x["id"]: x for x in load_exercises()}
     exercises = []
     for e in day.get("exercises", []):
         exercises.append({
@@ -900,6 +902,7 @@ def _garage_workout(uid):
             "unit": e.get("unit", "reps"), "rest": int(e.get("rest") or 60),
             "last_weight": last_weight(e.get("id")),
             "anim": anims.get(e.get("id")),
+            "instructions": raw.get(e.get("id"), {}).get("instructions"),
         })
     return {"rest": False, "name": day.get("name", "Workout"), "exercises": exercises}
 
@@ -959,13 +962,22 @@ def _garage_workout_for_type(uid, wtype):
             "unit": e.get("unit", "reps"), "rest": int(e.get("rest_seconds") or 45),
             "last_weight": last_weight(s["id"]),
             "anim": anims.get(s["id"]),
+            "instructions": e.get("instructions"),
         })
     return {"rest": False, "name": GARAGE_TYPES[wtype], "exercises": exercises}
 
 
+def _accent_ctx(uid):
+    """Accent hex/rgb/name for a garage user (the panel has no logged-in session,
+    so we resolve it from the picked garage_user, mirroring inject_globals)."""
+    accent = (database.get_accent_color(uid) if uid else None) or DEFAULT_ACCENT
+    accent_name = next((n for n, (hex_, _) in ACCENT_PALETTE.items() if hex_ == accent), "ice")
+    return {"accent": accent, "accent_rgb": _accent_rgb(accent), "accent_name": accent_name}
+
+
 @app.route("/garage")
 def garage():
-    return render_template("garage.html", users=database.list_users())
+    return render_template("garage.html", users=database.list_users(), **_accent_ctx(None))
 
 
 @app.route("/garage/pick", methods=["POST"])
@@ -985,7 +997,7 @@ def garage_choose():
     uid = session.get("garage_user")
     if not uid or not database.get_user(uid):
         return redirect(url_for("garage"))
-    return render_template("garage_choose.html", user=database.get_user(uid))
+    return render_template("garage_choose.html", user=database.get_user(uid), **_accent_ctx(uid))
 
 
 @app.route("/garage/workout")
@@ -997,7 +1009,8 @@ def garage_workout_view():
     return render_template("garage_workout.html",
                            workout=_garage_workout_for_type(uid, wtype),
                            user=database.get_user(uid), uid=uid, wtype=wtype,
-                           has_media=bool(_garage_media_cfg().get("player")))
+                           has_media=bool(_garage_media_cfg().get("player")),
+                           **_accent_ctx(uid))
 
 
 _GARAGE_MEDIA_FILE = os.path.join(os.path.dirname(__file__), "data", "garage_media.json")

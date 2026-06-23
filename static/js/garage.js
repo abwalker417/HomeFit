@@ -78,9 +78,11 @@
     const m = $("g-demo-media");
     if (e.anim && e.anim.length >= 2) {
       m.innerHTML = `<div class="g-demo-anim"><img src="${e.anim[0]}"><img class="g-demo-f2" src="${e.anim[1]}"></div>`;
+      m.style.display = "";
     } else {
-      m.innerHTML = `<div class="g-demo-none">No demo for this move yet.</div>`;
+      m.style.display = "none";
     }
+    $("g-demo-text").textContent = e.instructions || "No instructions for this move yet.";
     $("g-demo").classList.remove("hidden");
   });
   $("g-demo").addEventListener("click", () => $("g-demo").classList.add("hidden"));
