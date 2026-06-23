@@ -518,7 +518,7 @@ def log_food_page():
     past = [d for d in database.get_food_log_days(uid, days=14) if d["meal_date"] != _today]
     return render_template("log_food.html",
                            today_foods=database.get_food_log_today(uid), goal=goal,
-                           past_days=past)
+                           past_days=past, favorites=database.get_food_favorites(uid))
 
 
 @app.route("/api/food/goals", methods=["POST"])
@@ -603,6 +603,30 @@ def api_food_delete():
     if log_id:
         database.delete_food_log(uid, int(log_id))
     return jsonify({"ok": True, "today": database.get_food_log_today(uid)})
+
+
+@app.route("/api/food/favorite", methods=["POST"])
+def api_food_favorite():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    items = d.get("items") or []
+    if not items:
+        return jsonify({"error": "no items"}), 400
+    database.add_food_favorite(uid, d.get("name", ""), items, d.get("totals") or {})
+    return jsonify({"ok": True, "favorites": database.get_food_favorites(uid)})
+
+
+@app.route("/api/food/favorite/delete", methods=["POST"])
+def api_food_favorite_delete():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    fav_id = (request.get_json(silent=True) or {}).get("id")
+    if fav_id:
+        database.delete_food_favorite(uid, int(fav_id))
+    return jsonify({"ok": True, "favorites": database.get_food_favorites(uid)})
 
 
 @app.route("/profiles/switch", methods=["POST", "GET"])

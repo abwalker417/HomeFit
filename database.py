@@ -208,6 +208,19 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS food_favorite (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                name        TEXT NOT NULL,
+                items_json  TEXT NOT NULL,
+                calories    INTEGER NOT NULL DEFAULT 0,
+                protein_g   REAL NOT NULL DEFAULT 0,
+                carbs_g     REAL NOT NULL DEFAULT 0,
+                fat_g       REAL NOT NULL DEFAULT 0,
+                created_at  TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS readiness_cache (
                 user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 cache_date TEXT NOT NULL,
@@ -1371,6 +1384,39 @@ def get_food_log_today(user_id):
 def delete_food_log(user_id, log_id):
     with get_connection() as conn:
         conn.execute("DELETE FROM food_log WHERE id = ? AND user_id = ?", (log_id, user_id))
+
+
+def add_food_favorite(user_id, name, items, totals):
+    """Save a meal as a one-tap favorite (stores macros so re-logging needs no parse)."""
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO food_favorite (user_id, name, items_json,
+                   calories, protein_g, carbs_g, fat_g, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, (name or "Saved meal")[:80], json.dumps(items or []),
+             int(totals.get("calories", 0)), totals.get("protein_g", 0),
+             totals.get("carbs_g", 0), totals.get("fat_g", 0), datetime.now().isoformat()),
+        )
+
+
+def get_food_favorites(user_id):
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT id, name, items_json, calories, protein_g, carbs_g, fat_g "
+            "FROM food_favorite WHERE user_id = ? ORDER BY name", (user_id,),
+        ).fetchall()
+    out = [dict(r) for r in rows]
+    for r in out:
+        try:
+            r["items"] = json.loads(r.pop("items_json"))
+        except Exception:
+            r["items"] = []
+    return out
+
+
+def delete_food_favorite(user_id, fav_id):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM food_favorite WHERE id = ? AND user_id = ?", (fav_id, user_id))
 
 
 def get_nutrition_goal(user_id):

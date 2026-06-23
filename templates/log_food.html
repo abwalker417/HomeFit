@@ -20,6 +20,11 @@
     <p id="parse-status" class="subtle" style="font-size:12px; margin:8px 4px 0;"></p>
   </div>
 
+  <div id="fav-section" class="hidden" style="margin-top:14px;">
+    <div class="subtle" style="font-size:12px; margin:0 4px 6px;">Favorites — tap to log</div>
+    <div id="fav-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+  </div>
+
   <div id="result-card" class="card hidden" style="padding:16px; margin-top:12px;">
     <div id="result-items"></div>
     <div id="result-total" style="font-weight:700; margin-top:10px; padding-top:10px; border-top:1px solid var(--border);"></div>
@@ -73,6 +78,7 @@
 
 <script id="today-data" type="application/json">{{ today_foods|tojson }}</script>
 <script id="goal-data" type="application/json">{{ goal|tojson }}</script>
+<script id="fav-data" type="application/json">{{ favorites|tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
@@ -112,8 +118,22 @@
   try { today = JSON.parse(document.getElementById('today-data').textContent) || []; } catch (_) {}
   let goal = { calories: 2000, protein_g: 120, carbs_g: 200, fat_g: 65 };
   try { goal = JSON.parse(document.getElementById('goal-data').textContent) || goal; } catch (_) {}
+  let favorites = [];
+  try { favorites = JSON.parse(document.getElementById('fav-data').textContent) || []; } catch (_) {}
 
   const macro = (i) => `${i.calories} cal · ${i.protein_g}p ${i.carbs_g}c ${i.fat_g}f`;
+
+  // Write macros to Apple Health (native app only — no-op in Safari)
+  function writeHealth(totals) {
+    try {
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.healthKit) {
+        window.webkit.messageHandlers.healthKit.postMessage({
+          type: 'logFood', calories: totals.calories, protein_g: totals.protein_g,
+          carbs_g: totals.carbs_g, fat_g: totals.fat_g, date: new Date().toISOString(),
+        });
+      }
+    } catch (_) {}
+  }
 
   function bar(label, val, target, unit) {
     const pct = target > 0 ? Math.min(100, Math.round(val / target * 100)) : 0;
@@ -148,9 +168,17 @@
       li.innerHTML = `<div style="display:flex; justify-content:space-between; gap:10px;">
         <div><strong>${m.calories} cal</strong> <span class="subtle" style="font-size:12px;">${Math.round(m.protein_g)}p ${Math.round(m.carbs_g)}c ${Math.round(m.fat_g)}f</span>
         <div class="subtle" style="font-size:12px;">${names}</div></div>
-        <button class="del-btn pill" data-id="${m.id}" style="cursor:pointer;border:none;align-self:start;">✕</button></div>`;
+        <div style="display:flex; gap:6px; align-self:start;">
+          <button class="fav-btn pill" data-id="${m.id}" title="Save as favorite" style="cursor:pointer;border:none;">★</button>
+          <button class="del-btn pill" data-id="${m.id}" style="cursor:pointer;border:none;">✕</button>
+        </div></div>`;
       list.appendChild(li);
     });
+    list.querySelectorAll('.fav-btn').forEach((b) => b.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const m = today.find((x) => String(x.id) === b.dataset.id);
+      if (m) saveFavorite(m);
+    }));
     list.querySelectorAll('.del-btn').forEach((b) => {
       let armed = false, t = null;
       b.addEventListener('click', async (ev) => {
@@ -165,6 +193,49 @@
         const d = await r.json(); today = d.today || []; renderToday();
       });
     });
+  }
+
+  function renderFavorites() {
+    const sec = document.getElementById('fav-section');
+    const list = document.getElementById('fav-list');
+    if (!favorites.length) { sec.classList.add('hidden'); list.innerHTML = ''; return; }
+    sec.classList.remove('hidden');
+    list.innerHTML = '';
+    favorites.forEach((f) => {
+      const chip = document.createElement('div');
+      chip.style.cssText = 'display:flex; align-items:center; gap:6px; background:rgba(var(--accent-rgb),.12); border:1px solid var(--accent); border-radius:999px; padding:6px 6px 6px 13px;';
+      chip.innerHTML = `<button class="favlog" style="cursor:pointer;border:none;background:none;color:var(--accent);font-weight:700;padding:0;font-size:13px;">${f.name} · ${f.calories} cal</button>
+        <button class="favdel" title="Remove favorite" style="cursor:pointer;border:none;background:none;color:var(--subtle);font-size:12px;">✕</button>`;
+      chip.querySelector('.favlog').addEventListener('click', () => logFavorite(f));
+      let armed = false, t = null;
+      const del = chip.querySelector('.favdel');
+      del.addEventListener('click', async () => {
+        if (!armed) { armed = true; del.textContent = 'remove?'; t = setTimeout(() => { armed = false; del.textContent = '✕'; }, 3000); return; }
+        clearTimeout(t);
+        const r = await fetch('/api/food/favorite/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: f.id }) });
+        const d = await r.json(); favorites = d.favorites || []; renderFavorites();
+      });
+      list.appendChild(chip);
+    });
+  }
+
+  async function logFavorite(f) {
+    const totals = { calories: f.calories, protein_g: f.protein_g, carbs_g: f.carbs_g, fat_g: f.fat_g };
+    const r = await fetch('/api/food/log', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: f.name, items: f.items || [], totals, cost_usd: 0 }) });
+    const d = await r.json(); today = d.today || []; renderToday();
+    writeHealth(totals);
+    toast(`✓ Logged ${f.name} · ${totals.calories} cal`);
+  }
+
+  async function saveFavorite(m) {
+    const items = m.items || [];
+    const name = ((m.description && m.description.trim()) || items.map((i) => i.name).join(', ') || 'Saved meal').slice(0, 40);
+    const totals = { calories: m.calories, protein_g: m.protein_g, carbs_g: m.carbs_g, fat_g: m.fat_g };
+    const r = await fetch('/api/food/favorite', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, items, totals }) });
+    const d = await r.json(); favorites = d.favorites || []; renderFavorites();
+    toast('★ Saved to favorites');
   }
 
   function readItems() {
@@ -299,17 +370,7 @@
       body: JSON.stringify({ description: input.value.trim(), items, totals, cost_usd: parsed ? parsed.cost_usd : 0 }) });
     const d = await r.json();
     today = d.today || []; renderToday();
-    // Also write the macros to Apple Health (native app only — no-op in Safari)
-    try {
-      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.healthKit) {
-        window.webkit.messageHandlers.healthKit.postMessage({
-          type: 'logFood',
-          calories: totals.calories, protein_g: totals.protein_g,
-          carbs_g: totals.carbs_g, fat_g: totals.fat_g,
-          date: new Date().toISOString(),
-        });
-      }
-    } catch (_) {}
+    writeHealth(totals);  // also write macros to Apple Health (native app only)
     const note = parsed && parsed.note ? parsed.note.trim() : '';
     toast(note ? `✓ Logged · ${totals.calories} cal — ${note}` : `✓ Logged · ${totals.calories} cal`);
     input.value = ''; input.style.height = 'auto';
@@ -346,6 +407,7 @@
   });
 
   renderToday();
+  renderFavorites();
 })();
 </script>
 {% endblock %}
