@@ -24,6 +24,7 @@
         {% endif %}
         <div class="g-who-name">{{ user.name }}</div>
         <div class="g-who-plan">{{ workout.name }}</div>
+        <div class="g-elapsed"><span class="g-elapsed-k">TIME</span><span id="g-elapsed" class="g-elapsed-v">0:00</span></div>
         <a class="g-switch" href="{{ url_for('garage_choose') }}">⇄ Switch</a>
       </div>
 

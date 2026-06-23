@@ -14,6 +14,15 @@
   let restTimer = null;
   const $ = (id) => document.getElementById(id);
   const ex = () => exs[cur];
+  const fmtT = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  // Total workout time — ticks up from the moment the logger opened.
+  function tickElapsed() {
+    const el = $("g-elapsed");
+    if (el) el.textContent = fmtT(Math.round((Date.now() - started) / 1000));
+  }
+  tickElapsed();
+  setInterval(tickElapsed, 1000);
 
   function render() {
     const e = ex();
@@ -97,7 +106,8 @@
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     } catch (_) {}
     const n = exs.filter((e) => e.logged.length > 0).length;
-    $("g-done-msg").textContent = `${W.name} logged — ${n} exercise${n === 1 ? "" : "s"}`;
+    const total = fmtT(Math.round((Date.now() - started) / 1000));
+    $("g-done-msg").textContent = `${W.name} logged — ${n} exercise${n === 1 ? "" : "s"} · ${total}`;
     $("g-done").classList.remove("hidden");
     setTimeout(() => { location.href = "/garage"; }, 3500);
   });

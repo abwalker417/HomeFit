@@ -48,6 +48,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-selec
   border-radius: 18px; background: linear-gradient(180deg,#141a25,#0f141d); }
 .g-who-name { font-size: 26px; font-weight: 800; }
 .g-who-plan { font-size: 15px; color: #8b97a7; text-align: center; padding: 0 12px; }
+.g-elapsed { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 4px; }
+.g-elapsed-k { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; color: #6f7d8e; }
+.g-elapsed-v { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
 .g-switch { margin-top: 8px; font-size: 16px; font-weight: 700; color: var(--accent); text-decoration: none;
   padding: 9px 18px; border-radius: 999px; background: rgba(34,211,238,.12); }
 .g-switch:active { transform: scale(.96); }
