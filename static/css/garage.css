@@ -61,6 +61,22 @@ html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-selec
 .g-ex-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
 .g-ex-name { font-size: 30px; font-weight: 800; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-progress { font-size: 16px; font-weight: 700; color: #8b97a7; flex: 0 0 auto; }
+.g-demo-btn { flex: 0 0 auto; border: none; border-radius: 999px; cursor: pointer;
+  background: rgba(34,211,238,.14); color: var(--accent); font-size: 15px; font-weight: 700;
+  padding: 7px 14px; }
+.g-demo-btn:active { transform: scale(.96); }
+
+/* exercise how-to overlay */
+.g-demo-ov { position: fixed; inset: 0; z-index: 20; background: rgba(7,9,12,.96);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.g-demo-name { font-size: 30px; font-weight: 800; }
+.g-demo-anim { position: relative; width: 300px; height: 300px; }
+.g-demo-anim img { position: absolute; inset: 0; width: 300px; height: 300px; object-fit: contain;
+  border-radius: 14px; }
+.g-demo-f2 { animation: g-demo-flip 1.4s steps(1, end) infinite; }
+@keyframes g-demo-flip { 0%,50% { opacity: 1; } 50.01%,100% { opacity: 0; } }
+.g-demo-none { font-size: 20px; color: #8b97a7; padding: 40px; }
+.g-demo-hint { font-size: 15px; color: #6f7d8e; }
 .g-set-line { font-size: 17px; color: var(--accent); font-weight: 700; }
 .g-steppers { display: flex; gap: 18px; }
 .g-stepper { flex: 1; display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.04);

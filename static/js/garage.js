@@ -71,6 +71,20 @@
   $("g-prev").addEventListener("click", () => { if (cur > 0) { cur--; render(); } });
   $("g-next").addEventListener("click", () => { if (cur < exs.length - 1) { cur++; render(); } });
 
+  // ---- exercise how-to demo (no phone needed) ----
+  $("g-demo-btn").addEventListener("click", () => {
+    const e = ex();
+    $("g-demo-name").textContent = e.name;
+    const m = $("g-demo-media");
+    if (e.anim && e.anim.length >= 2) {
+      m.innerHTML = `<div class="g-demo-anim"><img src="${e.anim[0]}"><img class="g-demo-f2" src="${e.anim[1]}"></div>`;
+    } else {
+      m.innerHTML = `<div class="g-demo-none">No demo for this move yet.</div>`;
+    }
+    $("g-demo").classList.remove("hidden");
+  });
+  $("g-demo").addEventListener("click", () => $("g-demo").classList.add("hidden"));
+
   function startRest(sec) {
     clearInterval(restTimer);
     const r = $("g-rest");

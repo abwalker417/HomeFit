@@ -891,6 +891,7 @@ def _garage_workout(uid):
                 return max(ws)
         return None
 
+    anims = _load_exercise_animations()
     exercises = []
     for e in day.get("exercises", []):
         exercises.append({
@@ -898,6 +899,7 @@ def _garage_workout(uid):
             "sets": int(e.get("sets") or 3), "reps": int(e.get("reps") or 10),
             "unit": e.get("unit", "reps"), "rest": int(e.get("rest") or 60),
             "last_weight": last_weight(e.get("id")),
+            "anim": anims.get(e.get("id")),
         })
     return {"rest": False, "name": day.get("name", "Workout"), "exercises": exercises}
 
@@ -947,6 +949,7 @@ def _garage_workout_for_type(uid, wtype):
     if not chosen:
         return None
 
+    anims = _load_exercise_animations()
     exercises = []
     for s in chosen:
         e = raw.get(s["id"], {})
@@ -955,6 +958,7 @@ def _garage_workout_for_type(uid, wtype):
             "sets": int(e.get("default_sets") or 3), "reps": int(e.get("default_reps") or 10),
             "unit": e.get("unit", "reps"), "rest": int(e.get("rest_seconds") or 45),
             "last_weight": last_weight(s["id"]),
+            "anim": anims.get(s["id"]),
         })
     return {"rest": False, "name": GARAGE_TYPES[wtype], "exercises": exercises}
 
