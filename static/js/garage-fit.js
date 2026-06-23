@@ -13,7 +13,7 @@
 /* Dim-when-dark: deep-dim the panel when the garage light is off; tap to wake
    briefly, then it re-dims. Driven by /api/garage/light (HA via HomeFit). */
 (function () {
-  var DIM = 0.93, WAKE_MS = 30000, POLL_MS = 12000;
+  var DIM = 0.93, WAKE_MS = 10000, POLL_MS = 12000;
   var veil = document.createElement("div");
   veil.style.cssText =
     "position:fixed;inset:0;z-index:9999;background:#000;opacity:0;" +
