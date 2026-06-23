@@ -20,9 +20,13 @@
     <p id="parse-status" class="subtle" style="font-size:12px; margin:8px 4px 0;"></p>
   </div>
 
-  <div id="fav-section" class="hidden" style="margin-top:14px;">
-    <div class="subtle" style="font-size:12px; margin:0 4px 6px;">Favorites — tap to log</div>
-    <div id="fav-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+  <div id="fav-section" class="hidden" style="margin-top:12px;">
+    <button id="fav-toggle" class="btn btn-secondary" style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+      <span>★ Favorites</span><span id="fav-count" class="subtle" style="font-size:12px;"></span>
+    </button>
+    <div id="fav-panel" class="card hidden" style="padding:6px 8px; margin-top:6px;">
+      <ul id="fav-list" class="exercise-list" style="margin:0;"></ul>
+    </div>
   </div>
 
   <div id="result-card" class="card hidden" style="padding:16px; margin-top:12px;">
@@ -33,6 +37,10 @@
     <div style="display:flex; gap:8px; margin-top:12px;">
       <button id="log-btn" class="btn btn-primary" style="flex:1;">Log it</button>
       <button id="discard-btn" class="btn btn-secondary">Discard</button>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <input id="fav-name" placeholder="Name to save as a favorite…" style="flex:1;">
+      <button id="fav-save-btn" class="btn btn-secondary" title="Save as favorite">★ Save</button>
     </div>
   </div>
 
@@ -198,24 +206,32 @@
   function renderFavorites() {
     const sec = document.getElementById('fav-section');
     const list = document.getElementById('fav-list');
-    if (!favorites.length) { sec.classList.add('hidden'); list.innerHTML = ''; return; }
+    if (!favorites.length) {
+      sec.classList.add('hidden'); list.innerHTML = '';
+      document.getElementById('fav-panel').classList.add('hidden');
+      return;
+    }
     sec.classList.remove('hidden');
+    document.getElementById('fav-count').textContent = favorites.length + ' saved';
     list.innerHTML = '';
     favorites.forEach((f) => {
-      const chip = document.createElement('div');
-      chip.style.cssText = 'display:flex; align-items:center; gap:6px; background:rgba(var(--accent-rgb),.12); border:1px solid var(--accent); border-radius:999px; padding:6px 6px 6px 13px;';
-      chip.innerHTML = `<button class="favlog" style="cursor:pointer;border:none;background:none;color:var(--accent);font-weight:700;padding:0;font-size:13px;">${f.name} · ${f.calories} cal</button>
-        <button class="favdel" title="Remove favorite" style="cursor:pointer;border:none;background:none;color:var(--subtle);font-size:12px;">✕</button>`;
-      chip.querySelector('.favlog').addEventListener('click', () => logFavorite(f));
+      const li = document.createElement('li');
+      li.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 4px; border-bottom:1px solid var(--border);';
+      li.innerHTML = `<button class="favlog" style="flex:1; text-align:left; cursor:pointer; border:none; background:none; color:inherit; padding:0;">
+          <strong>${f.name}</strong> <span class="subtle" style="font-size:12px;">${f.calories} cal · ${Math.round(f.protein_g)}p ${Math.round(f.carbs_g)}c ${Math.round(f.fat_g)}f</span>
+        </button>
+        <button class="favdel pill" title="Remove favorite" style="cursor:pointer; border:none; font-size:11px;">✕</button>`;
+      li.querySelector('.favlog').addEventListener('click', () => logFavorite(f));
       let armed = false, t = null;
-      const del = chip.querySelector('.favdel');
-      del.addEventListener('click', async () => {
-        if (!armed) { armed = true; del.textContent = 'remove?'; t = setTimeout(() => { armed = false; del.textContent = '✕'; }, 3000); return; }
+      const del = li.querySelector('.favdel');
+      del.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        if (!armed) { armed = true; del.textContent = 'Remove?'; del.style.color = 'var(--danger, #ef4444)'; t = setTimeout(() => { armed = false; del.textContent = '✕'; del.style.color = ''; }, 3000); return; }
         clearTimeout(t);
         const r = await fetch('/api/food/favorite/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: f.id }) });
         const d = await r.json(); favorites = d.favorites || []; renderFavorites();
       });
-      list.appendChild(chip);
+      list.appendChild(li);
     });
   }
 
@@ -285,6 +301,7 @@
       noteEl.classList.add('hidden');
     }
     resultCost.textContent = `Estimate cost: $${d.cost_usd.toFixed(5)} — tweak any number before logging.`;
+    document.getElementById('fav-name').value = (input.value.trim() || (d.items[0] && d.items[0].name) || '');
     resultCard.classList.remove('hidden');
     status.textContent = '';
   }
@@ -380,6 +397,20 @@
   });
 
   discardBtn.addEventListener('click', () => { resultCard.classList.add('hidden'); parsed = null; });
+
+  document.getElementById('fav-toggle').addEventListener('click', () =>
+    document.getElementById('fav-panel').classList.toggle('hidden'));
+
+  // Save the (possibly edited) scan result as a named favorite
+  document.getElementById('fav-save-btn').addEventListener('click', async () => {
+    const items = readItems();
+    if (!items.length) return;
+    const totals = recompute();
+    const name = (document.getElementById('fav-name').value.trim() || items.map((i) => i.name).join(', ') || 'Saved meal').slice(0, 40);
+    const r = await fetch('/api/food/favorite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, items, totals }) });
+    const d = await r.json(); favorites = d.favorites || []; renderFavorites();
+    toast('★ Saved "' + name + '"');
+  });
 
   // Goal editor
   const goalEditor = document.getElementById('goal-editor');
