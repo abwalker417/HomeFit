@@ -42,7 +42,9 @@ def send_daily_briefs():
     import daily_service
     for uid in database.get_push_user_ids():
         try:
-            brief = daily_service.get_or_generate(uid)
+            # force a fresh pull at send time so the brief uses last night's sleep,
+            # not a brief cached earlier (e.g. by an early dashboard open)
+            brief = daily_service.get_or_generate(uid, force=True)
         except Exception as e:
             print(f"daily brief failed for user {uid}: {e}")
             continue
