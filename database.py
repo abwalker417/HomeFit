@@ -895,12 +895,21 @@ def get_readiness(user_id):
             pass
     r = compute_readiness(user_id)
     if r:
-        with get_connection() as conn:
-            conn.execute(
-                """INSERT INTO readiness_cache (user_id, cache_date, data, created_at)
-                   VALUES (?, ?, ?, ?)
-                   ON CONFLICT(user_id, cache_date) DO NOTHING""",
-                (user_id, today, json.dumps(r), datetime.now().isoformat()))
+        # Only lock in the cache once readiness is based on LAST NIGHT's sleep.
+        # compute_readiness uses the most recent night within 2 days, so an early
+        # call (before last night syncs) would otherwise cache a score from the
+        # night-before-last and freeze it all day. If only older sleep exists,
+        # return the score but don't cache — it self-corrects when last night lands.
+        yesterday = (datetime.now().date() - timedelta(days=1)).isoformat()
+        sleep = get_recent_sleep(user_id, days=2)
+        fresh = sleep and (sleep[0].get("entry_date") or "") >= yesterday
+        if fresh:
+            with get_connection() as conn:
+                conn.execute(
+                    """INSERT INTO readiness_cache (user_id, cache_date, data, created_at)
+                       VALUES (?, ?, ?, ?)
+                       ON CONFLICT(user_id, cache_date) DO NOTHING""",
+                    (user_id, today, json.dumps(r), datetime.now().isoformat()))
     return r
 
 
