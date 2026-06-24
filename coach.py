@@ -7,7 +7,7 @@ import database
 
 PEAKAI_URL = "http://192.168.68.33:4000"
 PEAKAI_API_KEY = "peak-homelab-key"
-PEAKAI_MODEL = "claude-haiku"
+PEAKAI_MODEL = "claude-sonnet"  # Sonnet 4.6 — Haiku was unreliable at relative-date / plan-edit commands
 
 SYSTEM_PROMPT = """You are APEX, a personal AI fitness coach embedded in HomeFit.
 You have access to the user's complete fitness profile and workout history.
