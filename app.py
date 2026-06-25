@@ -64,7 +64,7 @@ def no_cache(response):
 PUBLIC_ENDPOINTS = {
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
-    "api_last_workout", "api_last_weight", "api_external_workout", "api_sleep",
+    "api_last_workout", "api_recent_workouts", "api_last_weight", "api_external_workout", "api_sleep",
     "api_health_metric", "push_register_apns", "api_panel_summary",
     "garage", "garage_pick", "garage_choose", "garage_workout_view", "garage_complete",
     "garage_media", "garage_media_control", "garage_media_art", "garage_light",
@@ -1665,6 +1665,52 @@ def api_last_workout():
         "duration_minutes": round(duration_s / 60),
         "kcal": kcal,
     })
+
+
+@app.route("/api/recent-workouts")
+def api_recent_workouts():
+    """Recent HomeFit gym sessions for the native app to backfill into Apple Health.
+
+    A workout logged outside the iOS app (garage panel, desktop browser, the other
+    user's phone) never hits the logWorkout JS bridge, so it never reaches Apple
+    Health or the rings. The app pulls this list on foreground and writes any
+    session not already in Health (deduped client-side by time overlap).
+    Auth: ?token= (same api_token as the other relays).
+    """
+    from datetime import datetime, timedelta
+    token = request.args.get("token", "")
+    uid = database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "invalid token"}), 401
+    try:
+        days = max(1, min(30, int(request.args.get("days", 3))))
+    except (TypeError, ValueError):
+        days = 3
+    cutoff = datetime.now() - timedelta(days=days)
+    profile = database.get_profile(uid)
+    weight = (profile or {}).get("current_weight") or 0
+    out = []
+    for w in database.get_workout_history(uid, limit=50):
+        try:
+            completed_at = datetime.fromisoformat(w["completed_at"])
+        except (TypeError, ValueError, KeyError):
+            continue
+        if completed_at < cutoff:
+            break  # history is newest-first; everything older follows
+        duration_s = w.get("duration_seconds") or 0
+        start_time = completed_at - timedelta(seconds=duration_s)
+        enriched = [get_exercise_by_id(e["id"]) for e in w.get("exercises", [])
+                    if e.get("id") and e.get("completed")]
+        enriched = [e for e in enriched if e]
+        out.append({
+            "id": w.get("id"),
+            "name": w.get("day_name", "Workout"),
+            "start": start_time.astimezone().isoformat(),
+            "end": completed_at.astimezone().isoformat(),
+            "duration_seconds": duration_s,
+            "kcal": _calc_kcal(enriched, weight, duration_s),
+        })
+    return jsonify({"workouts": out})
 
 
 @app.route("/api/last_weight")
