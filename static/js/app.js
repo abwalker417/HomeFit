@@ -760,12 +760,18 @@ function startWorkout() {
     }
     li.querySelectorAll('.rest-btn').forEach(wireRest);
     li.querySelectorAll('.weight-log').forEach(wireWeightLog);
-    // Free decoded demo images when an exercise is collapsed — opening many demos
-    // in one session is what OOM-crashes the native WKWebView. Restore on reopen.
-    const det = li.querySelector('details');
-    if (det) det.addEventListener('toggle', () => {
-      det.querySelectorAll('.ex-demo-img').forEach((img) => {
-        if (det.open) {
+    // Keep WKWebView memory bounded: free decoded demo images once their exercise
+    // scrolls off-screen, restore as it nears view. Opening many demos in a session
+    // is what OOM-crashed the native app; this caps memory to what's actually visible.
+    const wrap = li.querySelector('.ex-demo-wrap');
+    if (wrap && demoObserver) demoObserver.observe(wrap);
+  }
+
+  // One observer for all demo wraps (rootMargin preloads just before they enter view)
+  const demoObserver = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      e.target.querySelectorAll('.ex-demo-img').forEach((img) => {
+        if (e.isIntersecting) {
           if (img.dataset.src && !img.getAttribute('src')) img.src = img.dataset.src;
         } else if (img.getAttribute('src')) {
           img.dataset.src = img.getAttribute('src');
@@ -773,7 +779,8 @@ function startWorkout() {
         }
       });
     });
-  }
+  }, { rootMargin: '400px 0px' }) : null;
+
   root.querySelectorAll('.exercise-item').forEach(wireExercise);
 
   // In-page "Add exercise" (no page navigation — works on flaky connections)
