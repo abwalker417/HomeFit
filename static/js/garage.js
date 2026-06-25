@@ -150,22 +150,46 @@
     $("g-rest-time").textContent = "0:00";
   });
 
+  const goHome = () => { location.href = "/garage"; };
+  const doneBtn = $("g-done-btn");
+  if (doneBtn) doneBtn.addEventListener("click", goHome);
+
   $("g-finish").addEventListener("click", async () => {
+    const dur = Math.round((Date.now() - started) / 1000) + offset;
+    const n = exs.filter((e) => e.logged.length > 0).length;
     const payload = {
       day_name: W.name,
-      duration_seconds: Math.round((Date.now() - started) / 1000) + offset,
+      duration_seconds: dur,
       exercises: exs.map((e) => ({ id: e.id, name: e.name,
         completed: e.logged.length > 0, sets: e.logged })),
     };
-    try {
-      await fetch("/api/garage/complete", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    } catch (_) {}
-    const n = exs.filter((e) => e.logged.length > 0).length;
-    const total = fmtT(Math.round((Date.now() - started) / 1000) + offset);
-    $("g-done-msg").textContent = `${W.name} logged — ${n} exercise${n === 1 ? "" : "s"} · ${total}`;
+    // Show the completion card immediately with what we know; fill kcal + APEX
+    // feedback once the server responds.
+    $("g-done-title").textContent = W.name;
+    $("g-done-time").textContent = fmtT(dur);
+    $("g-done-ex").textContent = n;
+    $("g-done-kcal").textContent = "--";
+    $("g-done-insight").textContent = "Analyzing your session…";
+    $("g-done-overload").innerHTML = "";
     $("g-done").classList.remove("hidden");
-    setTimeout(() => { location.href = "/garage"; }, 3500);
+
+    let data = {};
+    try {
+      const r = await fetch("/api/garage/complete", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      data = await r.json();
+    } catch (_) {}
+
+    if (data.kcal != null) $("g-done-kcal").textContent = Math.round(data.kcal);
+    $("g-done-insight").textContent = data.insight
+      || `Nice work — ${W.name} logged. ${n} exercise${n === 1 ? "" : "s"} in ${fmtT(dur)}.`;
+    if (Array.isArray(data.overload) && data.overload.length) {
+      $("g-done-overload").innerHTML = data.overload.slice(0, 4).map((s) =>
+        `<div class="g-done-ov-row"><span>${s.exercise_name}</span>` +
+        `<span>${s.current_weight} → ${s.suggested_weight} lb</span></div>`).join("");
+    }
+    // Kiosk reset so it's ready for the next person, but leave time to read.
+    setTimeout(goHome, 60000);
   });
 
   // ---- now playing (garage media player) ----

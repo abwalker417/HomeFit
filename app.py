@@ -1146,8 +1146,21 @@ def garage_complete():
         e["sets_logged"] = sets_by_id.get(e["id"], [])
     profile = database.get_profile(uid)
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
+
+    # APEX post-workout feedback for the panel's completion card. Best-effort:
+    # never let a coach hiccup block logging the workout.
+    insight, overload = None, []
+    if coach.is_available():
+        try:
+            coaching_data = database.get_coaching_context(uid)
+            overload = get_progressive_overload_suggestions(coaching_data.get("exercise_history", {}))
+            insight = coach.generate_post_workout_insight(coaching_data, overload, enriched)
+        except Exception:
+            insight, overload = None, []
+
     session.pop("garage_user", None)
-    return jsonify({"ok": True, "kcal": kcal, "exercises_completed": len(enriched)})
+    return jsonify({"ok": True, "kcal": kcal, "exercises_completed": len(enriched),
+                    "day_name": day_name, "insight": insight, "overload": overload})
 
 
 @app.route("/api/garage/autosave", methods=["POST"])

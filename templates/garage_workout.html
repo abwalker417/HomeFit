@@ -6,6 +6,24 @@
   <title>{{ user.name }} · Garage</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/garage.css') }}?v={{ static_version }}">
   <style id="accent-vars">:root { --accent: {{ accent }}; --accent-rgb: {{ accent_rgb }}; }</style>
+  <style>
+    /* Sized in px against the 1920x440 .g-stage (which is transform-scaled). */
+    #g-done .g-done-card { display:flex; gap:28px; width:1520px; height:392px; box-sizing:border-box;
+      background:rgba(12,18,30,.97); border:1px solid rgba(255,255,255,.10); border-radius:24px; padding:24px 32px; }
+    .g-done-left { flex:0 0 36%; display:flex; flex-direction:column; }
+    .g-done-right { flex:1; border-left:1px solid rgba(255,255,255,.10); padding-left:28px; overflow:auto; }
+    .g-done-eyebrow, .g-done-apex-k { font-size:13px; letter-spacing:.12em; color:var(--accent); font-weight:700; }
+    .g-done-title { font-size:28px; font-weight:800; margin:4px 0 18px; }
+    .g-done-stats { display:flex; gap:26px; margin-bottom:auto; }
+    .g-done-stat strong { display:block; font-size:34px; font-weight:800; font-variant-numeric:tabular-nums; }
+    .g-done-stat span { font-size:13px; color:#9fb0c8; }
+    .g-done-apex-k { margin-bottom:10px; }
+    .g-done-insight { font-size:18px; line-height:1.5; color:#e7eefc; white-space:pre-wrap; }
+    .g-done-overload { margin-top:14px; }
+    .g-done-ov-row { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.08); font-size:16px; }
+    .g-done-ov-row span:last-child { color:var(--accent); font-weight:700; }
+    #g-done .g-finish-btn { margin-top:18px; align-self:flex-start; padding:12px 28px; }
+  </style>
 </head>
 <body class="g-body">
   <div class="g-stage">
@@ -103,8 +121,23 @@
   </div>
 
   <div id="g-done" class="g-done hidden">
-    <div class="g-done-check">✓</div>
-    <div id="g-done-msg" class="g-done-msg">Workout logged</div>
+    <div class="g-done-card">
+      <div class="g-done-left">
+        <div class="g-done-eyebrow">WORKOUT COMPLETE</div>
+        <div id="g-done-title" class="g-done-title"></div>
+        <div class="g-done-stats">
+          <div class="g-done-stat"><strong id="g-done-time">--:--</strong><span>Time</span></div>
+          <div class="g-done-stat"><strong id="g-done-kcal">--</strong><span>kcal</span></div>
+          <div class="g-done-stat"><strong id="g-done-ex">--</strong><span>Exercises</span></div>
+        </div>
+        <button id="g-done-btn" class="g-finish-btn">Done</button>
+      </div>
+      <div class="g-done-right">
+        <div class="g-done-apex-k">APEX ANALYSIS</div>
+        <div id="g-done-insight" class="g-done-insight">Analyzing your session…</div>
+        <div id="g-done-overload" class="g-done-overload"></div>
+      </div>
+    </div>
   </div>
 
   <script>window.GARAGE = {{ workout|tojson }}; window.G_MEDIA = {{ 'true' if has_media else 'false' }}; window.GARAGE_DRAFT = {{ (draft_state if draft_state else None)|tojson }};</script>
