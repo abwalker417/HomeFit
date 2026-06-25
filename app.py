@@ -67,6 +67,7 @@ PUBLIC_ENDPOINTS = {
     "api_last_workout", "api_recent_workouts", "api_last_weight", "api_external_workout", "api_sleep",
     "api_health_metric", "push_register_apns", "api_panel_summary",
     "garage", "garage_pick", "garage_choose", "garage_workout_view", "garage_complete",
+    "garage_autosave",
     "garage_media", "garage_media_control", "garage_media_art", "garage_light",
 }
 
@@ -1033,10 +1034,16 @@ def garage_workout_view():
     if not uid or not database.get_user(uid):
         return redirect(url_for("garage"))
     wtype = request.args.get("type", "apex")
+    workout = _garage_workout_for_type(uid, wtype)
+    # Shared in-progress draft: resume a session started on the phone (or recover a
+    # panel session). The client gates on recency + exercise-id overlap.
+    draft = database.get_workout_draft(uid)
+    draft_state = draft["state"] if draft else None
     return render_template("garage_workout.html",
-                           workout=_garage_workout_for_type(uid, wtype),
+                           workout=workout,
                            user=database.get_user(uid), uid=uid, wtype=wtype,
                            has_media=bool(_garage_media_cfg().get("player")),
+                           draft_state=draft_state,
                            **_accent_ctx(uid))
 
 
@@ -1130,6 +1137,7 @@ def garage_complete():
     duration = data.get("duration_seconds")
     day_name = data.get("day_name", "Garage Workout")
     database.log_workout(uid, day_name, 1, exercises, duration)
+    database.clear_workout_draft(uid)
     completed = [e for e in exercises if e.get("completed") and e.get("id")]
     enriched = [get_exercise_by_id(e["id"]) for e in completed]
     enriched = [e for e in enriched if e]
@@ -1140,6 +1148,21 @@ def garage_complete():
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
     session.pop("garage_user", None)
     return jsonify({"ok": True, "kcal": kcal, "exercises_completed": len(enriched)})
+
+
+@app.route("/api/garage/autosave", methods=["POST"])
+def garage_autosave():
+    """Mirror an in-progress panel workout to the shared server draft so the phone
+    can resume it (and a panel crash loses nothing). Uses the garage session."""
+    uid = session.get("garage_user")
+    if not uid:
+        return jsonify({"error": "no garage user"}), 400
+    d = request.get_json(silent=True) or {}
+    state = d.get("state")
+    if state is None:
+        return jsonify({"error": "no state"}), 400
+    database.save_workout_draft(uid, d.get("day_name", ""), json.dumps(state))
+    return jsonify({"ok": True})
 
 
 @app.route("/today-workout")
@@ -1213,9 +1236,11 @@ def today_workout():
         "ai_generated": workout.get("ai_generated", False),
         "exercises": exercises,
     }
-    # server-side draft to recover an in-progress session even if localStorage was wiped
+    # Shared in-progress draft. The client decides whether to resume it (recency +
+    # exercise-id overlap), so it works for crash recovery AND phone<->panel handoff
+    # even though the two surfaces label the day differently.
     draft = database.get_workout_draft(uid)
-    draft_state = draft["state"] if draft and draft.get("day_name") == day["name"] else None
+    draft_state = draft["state"] if draft else None
     return render_template("workout.html", day=day, profile=profile,
                            user_id=uid, exercise_library=library, draft_state=draft_state)
 

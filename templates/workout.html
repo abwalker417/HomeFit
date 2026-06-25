@@ -2,6 +2,64 @@
 {% block title %}{{ day.name }} — HomeFit{% endblock %}
 
 {% block content %}
+<style>
+  .wk-statusbar { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+  .wk-progress { font-weight:700; color:var(--accent); font-size:15px; }
+  .wk-timer-box { display:flex; flex-direction:column; align-items:flex-end; }
+  .wk-timer-label { font-size:11px; color:var(--subtle); }
+  .wk-timer-label small { opacity:.7; }
+  .wk-timer { font-variant-numeric:tabular-nums; font-weight:700; font-size:20px; cursor:pointer; }
+
+  .wk-card { background:var(--surface); border:1px solid var(--border); border-radius:18px;
+             padding:20px 18px; margin:14px 0; max-width:520px; margin-left:auto; margin-right:auto; }
+  .wk-ex-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .wk-ex-name { font-size:22px; line-height:1.2; }
+  .wk-howto { flex:none; cursor:pointer; }
+  .wk-setline { color:var(--subtle); margin:8px 0 12px; font-size:14px; }
+
+  .wk-dots { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .wk-dot { width:14px; height:14px; border-radius:50%; background:var(--border); }
+  .wk-dot.current { background:transparent; border:2px solid var(--accent); }
+  .wk-dot.done { background:var(--accent); }
+
+  .wk-steppers { display:flex; gap:12px; margin-bottom:16px; }
+  .wk-stepper { flex:1; background:var(--bg, #0e1626); border:1px solid var(--border);
+                border-radius:14px; padding:12px 8px; text-align:center; }
+  .wk-step-k { display:block; font-size:12px; color:var(--subtle); margin-bottom:8px; text-transform:uppercase; letter-spacing:.04em; }
+  .wk-step-row { display:flex; align-items:center; justify-content:center; gap:10px; }
+  .wk-step-btn { width:46px; height:46px; border-radius:12px; border:1px solid var(--border);
+                 background:var(--surface); color:var(--text); font-size:24px; line-height:1; cursor:pointer; }
+  .wk-step-btn:active { background:var(--accent); color:#fff; }
+  .wk-step-v { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .wk-step-u { font-size:13px; color:var(--subtle); margin-left:2px; }
+
+  .wk-rest { display:flex; align-items:center; gap:12px; justify-content:center; margin-bottom:14px;
+             padding:10px; border-radius:12px; background:rgba(var(--accent-rgb,56,189,248),.10); }
+  .wk-rest.hidden { display:none; }
+  .wk-rest.done { background:rgba(52,211,153,.15); }
+  .wk-rest-k { font-size:12px; color:var(--subtle); letter-spacing:.06em; }
+  .wk-rest-time { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .wk-rest-skip { margin-left:auto; background:none; border:1px solid var(--border); color:var(--text);
+                  border-radius:10px; padding:6px 12px; cursor:pointer; }
+
+  .wk-log { width:100%; font-size:18px; padding:16px; margin-bottom:12px; }
+  .wk-nav { display:flex; gap:8px; }
+  .wk-nav-btn { flex:1; }
+  .wk-finish { display:block; width:100%; max-width:520px; margin:0 auto; }
+
+  .wk-howto-ov { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.7);
+                 display:flex; align-items:center; justify-content:center; padding:18px; }
+  .wk-howto-ov.hidden { display:none; }
+  .wk-howto-card { background:var(--surface); border:1px solid var(--border); border-radius:18px;
+                   padding:20px; max-width:440px; width:100%; max-height:88vh; overflow:auto; }
+  .wk-howto-name { font-size:18px; font-weight:700; margin-bottom:12px; }
+  .wk-howto-media { margin-bottom:12px; border-radius:12px; overflow:hidden; }
+  .wk-howto-media img { width:100%; display:block; border-radius:12px; }
+  .wk-howto-anim { position:relative; }
+  .wk-howto-anim .wk-howto-f2 { position:absolute; inset:0; animation:wkFlip 1.4s steps(1) infinite; }
+  @keyframes wkFlip { 0%,50%{opacity:0;} 50.01%,100%{opacity:1;} }
+  .wk-howto-text { font-size:14px; line-height:1.6; color:var(--text); margin:0 0 14px; white-space:pre-wrap; }
+</style>
 <section class="workout-header">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
     <a href="{{ url_for('index') }}" class="back-link" style="margin:0;">← Home</a>
@@ -17,103 +75,80 @@
     {% if day.focus %}{{ day.focus }}{% endif %}
   </p>
   <h1>{{ day.name }}</h1>
-  <p class="subtle">{{ day.exercises|length }} exercise{{ 's' if day.exercises|length != 1 else '' }} · tap any to expand</p>
+  <div class="wk-statusbar">
+    <span id="wk-progress" class="wk-progress">1 / {{ day.exercises|length }}</span>
+    <span class="wk-timer-box">
+      <span class="wk-timer-label">Time <small>(tap to edit)</small></span>
+      <span id="workout-timer" class="wk-timer" title="Tap to correct time">00:00</span>
+    </span>
+  </div>
 </section>
 
 <section id="workout-body"
          data-day-number="{{ day.day_number }}"
          data-day-name="{{ day.name }}"
          data-user-id="{{ user_id }}">
-  <ol class="exercise-list">
-    {% for ex in day.exercises %}
-    <li class="exercise-item" data-exercise-id="{{ ex.id }}">
-      <details>
-        <summary>
-          <div class="ex-head">
-            <span class="ex-num">{{ loop.index }}</span>
-            <div class="ex-title">
-              <strong>{{ ex.name }}</strong>
-              <span class="ex-meta">
-                {{ ex.sets }} sets ×
-                {% if ex.unit == 'seconds' %}{{ ex.reps }}s{% else %}{{ ex.reps }} reps{% endif %}
-                · {{ ex.rest }}s rest
-              </span>
-            </div>
-            <label class="ex-done-wrap"><input type="checkbox" class="ex-done" aria-label="Mark complete"></label>
-          </div>
-        </summary>
-        <div class="ex-body"
-             data-ex-id="{{ ex.id }}"
-             data-ex-name="{{ ex.name }}">
-          {% if ex.anim %}
-          <div class="ex-demo-wrap ex-anim">
-            <img class="ex-demo-img" src="{{ ex.anim[0] }}" alt="{{ ex.name }} start" loading="lazy">
-            <img class="ex-demo-img ex-anim-frame2" src="{{ ex.anim[1] }}" alt="{{ ex.name }} end" loading="lazy">
-          </div>
-          {% elif ex.demo_image %}
-          <div class="ex-demo-wrap">
-            <img class="ex-demo-img" src="{{ ex.demo_image }}" alt="{{ ex.name }} demo" loading="lazy">
-          </div>
-          {% endif %}
-          <p>{{ ex.instructions }}</p>
-          <div class="ex-cue-wrap" style="display:none;">
-            <div class="ex-cue-body subtle" style="font-size:13px; line-height:1.6; white-space:pre-wrap;"></div>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <a class="btn btn-secondary demo-link" target="_blank" rel="noopener"
-               href="https://www.youtube.com/results?search_query={{ ex.name|replace(' ', '+') }}+proper+form"
-               style="flex:1; text-align:center;">
-              YouTube
-            </a>
-            <button type="button" class="btn btn-secondary apex-cue-btn" style="flex:1;">
-              Form tips
-            </button>
-          </div>
-          <button type="button" class="btn btn-secondary rest-btn"
-                  data-rest="{{ ex.rest }}">
-            Start {{ ex.rest }}s rest timer
-          </button>
-          {% if ex.weight_hint %}
-          <div class="weight-hint-bar {% if ex.weight_hint.ready %}weight-hint-ready{% endif %}">
-            {% if ex.weight_hint.ready %}
-              <strong>Time to increase!</strong> Last: {{ ex.weight_hint.last_weight }} lbs × {{ ex.weight_hint.last_reps }} reps · Try <strong>{{ ex.weight_hint.suggested_weight }} lbs</strong> today
-            {% else %}
-              Last session: {{ ex.weight_hint.last_weight }} lbs × {{ ex.weight_hint.last_reps }} reps
-            {% endif %}
-          </div>
-          {% endif %}
-          {% set _eq = ex.equipment %}
-          {% if _eq is iterable and _eq is not string %}{% set _eq = (_eq|first) if _eq else '' %}{% endif %}
-          {% set _bodyweight = ['bodyweight', 'none', '', 'pull_up_bar', 'bench_or_chair', 'resistance_bands'] %}
-          <div class="weight-log"
-               data-sets="{{ ex.sets }}"
-               data-reps="{{ ex.reps }}"
-               data-weighted="{{ 'false' if (ex.unit == 'seconds' or not _eq or _eq in _bodyweight) else 'true' }}"
-               data-hint-ready="{{ 'true' if ex.weight_hint and ex.weight_hint.ready else 'false' }}"
-               data-suggested-weight="{{ ex.weight_hint.suggested_weight if ex.weight_hint else '' }}">
-            <button type="button" class="btn btn-secondary weight-log-toggle">Log weights</button>
-            <div class="weight-log-body" style="display:none; margin-top:10px;">
-              <p class="hint" style="margin-bottom:8px;">Recommended: {{ ex.sets }} sets × {% if ex.unit == 'seconds' %}{{ ex.reps }}s{% else %}{{ ex.reps }} reps{% endif %}</p>
-              <div class="weight-sets"></div>
-              <button type="button" class="btn btn-secondary add-set-btn" style="margin-top:6px; font-size:13px;">+ Add set</button>
-            </div>
-          </div>
-        </div>
-      </details>
-    </li>
-    {% endfor %}
-  </ol>
 
-  <button type="button" id="add-ex-btn" class="btn btn-secondary add-ex-link">+ Add exercise</button>
-
-  <div class="workout-footer">
-    <div class="timer-box">
-      <span class="timer-label">Workout time <small style="font-weight:normal;opacity:.6;">(tap to edit)</small></span>
-      <span id="workout-timer" class="timer-display" style="cursor:pointer;" title="Tap to correct time">00:00</span>
+  <!-- One exercise at a time (panel-style). The logger drives all of this from JS. -->
+  <div class="wk-card">
+    <div class="wk-ex-head">
+      <strong id="wk-ex-name" class="wk-ex-name">—</strong>
+      <button type="button" id="wk-howto" class="pill wk-howto">How-to</button>
     </div>
-    <button id="finish-btn" class="btn btn-primary">Finish workout</button>
+    <p id="wk-setline" class="wk-setline">—</p>
+    <div id="wk-dots" class="wk-dots"></div>
+
+    <div class="wk-steppers">
+      <div class="wk-stepper" id="wk-weight-stepper">
+        <span class="wk-step-k">Weight</span>
+        <div class="wk-step-row">
+          <button type="button" class="wk-step-btn" data-act="w-">−</button>
+          <span><span id="wk-weight" class="wk-step-v">—</span><span class="wk-step-u">lb</span></span>
+          <button type="button" class="wk-step-btn" data-act="w+">+</button>
+        </div>
+      </div>
+      <div class="wk-stepper">
+        <span class="wk-step-k" id="wk-reps-k">Reps</span>
+        <div class="wk-step-row">
+          <button type="button" class="wk-step-btn" data-act="r-">−</button>
+          <span id="wk-reps" class="wk-step-v">—</span>
+          <button type="button" class="wk-step-btn" data-act="r+">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="wk-rest" class="wk-rest hidden">
+      <span class="wk-rest-k">REST</span>
+      <span id="wk-rest-time" class="wk-rest-time">0:00</span>
+      <button type="button" id="wk-rest-skip" class="wk-rest-skip">Skip</button>
+    </div>
+
+    <button type="button" id="wk-log" class="btn btn-primary wk-log">✓ Log Set</button>
+
+    <div class="wk-nav">
+      <button type="button" id="wk-prev" class="btn btn-secondary wk-nav-btn">‹ Prev</button>
+      <button type="button" id="wk-add" class="btn btn-secondary wk-nav-btn">+ Add</button>
+      <button type="button" id="wk-next" class="btn btn-secondary wk-nav-btn">Next ›</button>
+    </div>
   </div>
+
+  <button id="finish-btn" class="btn btn-primary wk-finish">Finish workout</button>
 </section>
+
+<!-- How-to overlay: holds at most ONE exercise's demo in the DOM at a time, and
+     frees the images on close — so opening demos all session can't pile up
+     decoded image memory (that was the native-app OOM-crash cause). -->
+<div id="wk-howto-ov" class="wk-howto-ov hidden">
+  <div class="wk-howto-card">
+    <div id="wk-howto-name" class="wk-howto-name"></div>
+    <div id="wk-howto-media" class="wk-howto-media"></div>
+    <p id="wk-howto-text" class="wk-howto-text"></p>
+    <div style="display:flex; gap:8px;">
+      <a id="wk-howto-yt" class="btn btn-secondary" target="_blank" rel="noopener" style="flex:1; text-align:center;">YouTube</a>
+      <button type="button" id="wk-howto-close" class="btn btn-secondary" style="flex:1;">Close</button>
+    </div>
+  </div>
+</div>
 
 <div id="workout-complete" class="hidden" style="padding:16px 16px 32px;">
 
@@ -155,25 +190,18 @@
 
 </div>
 
-<div id="rest-overlay" class="rest-overlay hidden">
-  <div class="rest-inner">
-    <p class="rest-label">Rest</p>
-    <p id="rest-count" class="rest-count">00</p>
-    <button id="rest-skip" class="btn btn-secondary">Skip</button>
-  </div>
-</div>
-
 <div id="skip-confirm" class="confirm-overlay hidden">
   <div class="confirm-card">
     <h3 class="confirm-title">Finish without these?</h3>
-    <p class="confirm-sub">These exercises aren't checked off. If you did them, go back and check them so they sync.</p>
+    <p class="confirm-sub">You haven't logged any sets for these. If you did them, go back and log a set so they sync.</p>
     <ul id="skip-list" class="confirm-list"></ul>
     <div class="confirm-actions">
-      <button id="skip-back" class="btn btn-primary">Go back &amp; check</button>
-      <button id="skip-finish" class="btn btn-secondary">They were skipped — finish</button>
+      <button id="skip-back" class="btn btn-primary">Go back</button>
+      <button id="skip-finish" class="btn btn-secondary">Skip them — finish</button>
     </div>
   </div>
 </div>
+
 <div id="add-ex-modal" class="add-ex-modal hidden">
   <div class="add-ex-sheet">
     <div class="add-ex-head">
@@ -190,18 +218,17 @@
         <option value="cardio">Cardio</option>
       </select>
     </div>
-    <button type="button" id="identify-btn" class="btn btn-secondary" style="width:100%; margin-bottom:10px;">📹 Identify a move from video</button>
-    <input id="add-ex-video" type="file" accept="video/*" capture="environment" style="display:none;">
-    <div id="identify-result" class="identify-result hidden"></div>
     <ul id="add-ex-list" class="exercise-list library-list"></ul>
   </div>
 </div>
 
 <script id="exercise-library" type="application/json">{{ exercise_library|tojson }}</script>
+<script id="wk-data" type="application/json">{{ {"name": day.name, "day_number": day.day_number, "exercises": day.exercises}|tojson }}</script>
 <script id="draft-state" type="application/json">{{ (draft_state if draft_state else None)|tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/workout-flow.js') }}?v={{ static_version }}"></script>
 <script>
   startWorkout();
 </script>

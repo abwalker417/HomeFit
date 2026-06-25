@@ -107,7 +107,7 @@
     <div id="g-done-msg" class="g-done-msg">Workout logged</div>
   </div>
 
-  <script>window.GARAGE = {{ workout|tojson }}; window.G_MEDIA = {{ 'true' if has_media else 'false' }};</script>
+  <script>window.GARAGE = {{ workout|tojson }}; window.G_MEDIA = {{ 'true' if has_media else 'false' }}; window.GARAGE_DRAFT = {{ (draft_state if draft_state else None)|tojson }};</script>
   <script src="{{ url_for('static', filename='js/garage.js') }}?v={{ static_version }}"></script>
   {% endif %}
   </div>

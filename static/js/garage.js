@@ -10,8 +10,48 @@
     e.workR = e.reps;
   });
   let cur = 0;
-  const started = Date.now();
+  let started = Date.now();
+  let offset = 0;
   let restTimer = null;
+
+  // Resume a session in progress (shared v2 draft — may have been started on the
+  // phone and handed off to the panel, or vice-versa). Gate on recency + exercise
+  // overlap rather than the day label, which differs between phone and panel.
+  const draft = window.GARAGE_DRAFT;
+  (function resume() {
+    if (!draft || draft.v !== 2 || !draft.ex) return;
+    if (!draft.t || (Date.now() - draft.t) > 8 * 3600 * 1000) return;
+    const ids = exs.map((e) => String(e.id));
+    const overlap = Object.keys(draft.ex).filter((k) => ids.includes(String(k))).length;
+    if (overlap < Math.max(1, Math.ceil(exs.length / 2))) return;
+    if (draft.started) started = draft.started;
+    offset = draft.offset || 0;
+    cur = Math.min(Math.max(0, draft.cur || 0), exs.length - 1);
+    exs.forEach((e) => {
+      const s = draft.ex[e.id];
+      if (s) {
+        e.logged = Array.isArray(s.logged) ? s.logged : [];
+        if (s.workW != null) e.workW = s.workW;
+        if (s.workR != null) e.workR = s.workR;
+      }
+    });
+  })();
+
+  // Mirror progress to the shared server draft (debounced) so the phone can pick
+  // up where the panel left off — and a crash loses nothing.
+  let draftTimer = null;
+  function saveDraft() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+      const ex = {};
+      exs.forEach((e) => { ex[e.id] = { logged: e.logged, workW: e.workW, workR: e.workR }; });
+      const state = { v: 2, dayName: W.name, started, offset, cur, ex, t: Date.now() };
+      fetch("/api/garage/autosave", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day_name: W.name, state }),
+      }).catch(() => {});
+    }, 1000);
+  }
   const $ = (id) => document.getElementById(id);
   const ex = () => exs[cur];
   const fmtT = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -19,7 +59,7 @@
   // Total workout time — ticks up from the moment the logger opened.
   function tickElapsed() {
     const el = $("g-elapsed");
-    if (el) el.textContent = fmtT(Math.round((Date.now() - started) / 1000));
+    if (el) el.textContent = fmtT(Math.round((Date.now() - started) / 1000) + offset);
   }
   tickElapsed();
   setInterval(tickElapsed, 1000);
@@ -53,7 +93,7 @@
     else if (a === "w-") e.workW = Math.max(0, e.workW - 5);
     else if (a === "r+") e.workR += 1;
     else if (a === "r-") e.workR = Math.max(0, e.workR - 1);
-    render();
+    render(); saveDraft();
   }));
 
   $("g-log").addEventListener("click", () => {
@@ -65,11 +105,11 @@
       const next = exs.findIndex((x, i) => i > cur && x.logged.length < x.sets);
       if (next !== -1) cur = next;
     }
-    render();
+    render(); saveDraft();
   });
 
-  $("g-prev").addEventListener("click", () => { if (cur > 0) { cur--; render(); } });
-  $("g-next").addEventListener("click", () => { if (cur < exs.length - 1) { cur++; render(); } });
+  $("g-prev").addEventListener("click", () => { if (cur > 0) { cur--; render(); saveDraft(); } });
+  $("g-next").addEventListener("click", () => { if (cur < exs.length - 1) { cur++; render(); saveDraft(); } });
 
   // ---- exercise how-to demo (no phone needed) ----
   $("g-demo-btn").addEventListener("click", () => {
@@ -113,7 +153,7 @@
   $("g-finish").addEventListener("click", async () => {
     const payload = {
       day_name: W.name,
-      duration_seconds: Math.round((Date.now() - started) / 1000),
+      duration_seconds: Math.round((Date.now() - started) / 1000) + offset,
       exercises: exs.map((e) => ({ id: e.id, name: e.name,
         completed: e.logged.length > 0, sets: e.logged })),
     };
@@ -122,7 +162,7 @@
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     } catch (_) {}
     const n = exs.filter((e) => e.logged.length > 0).length;
-    const total = fmtT(Math.round((Date.now() - started) / 1000));
+    const total = fmtT(Math.round((Date.now() - started) / 1000) + offset);
     $("g-done-msg").textContent = `${W.name} logged — ${n} exercise${n === 1 ? "" : "s"} · ${total}`;
     $("g-done").classList.remove("hidden");
     setTimeout(() => { location.href = "/garage"; }, 3500);
