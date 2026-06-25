@@ -1705,8 +1705,11 @@ def api_recent_workouts():
         out.append({
             "id": w.get("id"),
             "name": w.get("day_name", "Workout"),
-            "start": start_time.astimezone().isoformat(),
-            "end": completed_at.astimezone().isoformat(),
+            # Whole-second ISO (no microseconds): iOS ISO8601DateFormatter can't
+            # reliably parse 6-digit fractional seconds, and the app skips any
+            # workout whose timestamps fail to parse.
+            "start": start_time.astimezone().replace(microsecond=0).isoformat(),
+            "end": completed_at.astimezone().replace(microsecond=0).isoformat(),
             "duration_seconds": duration_s,
             "kcal": _calc_kcal(enriched, weight, duration_s),
         })
