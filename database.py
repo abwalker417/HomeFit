@@ -221,6 +221,14 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS workout_draft (
+                user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                day_name   TEXT,
+                data       TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS readiness_cache (
                 user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 cache_date TEXT NOT NULL,
@@ -580,6 +588,38 @@ def update_workout_exercises(user_id, log_id, exercises):
             (json.dumps(exercises), log_id, user_id),
         )
         return cur.rowcount > 0
+
+
+def save_workout_draft(user_id, day_name, data_json):
+    """Autosave an in-progress workout server-side so a client crash can't lose it.
+    data_json is the client's full state blob (done + per-set weights/reps + timer)."""
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO workout_draft (user_id, day_name, data, updated_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(user_id) DO UPDATE SET
+                 day_name=excluded.day_name, data=excluded.data, updated_at=excluded.updated_at""",
+            (user_id, day_name, data_json, datetime.now().isoformat()),
+        )
+
+
+def get_workout_draft(user_id):
+    """Return the saved in-progress draft {day_name, state} or None."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT day_name, data FROM workout_draft WHERE user_id = ?", (user_id,),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        return {"day_name": row["day_name"], "state": json.loads(row["data"])}
+    except Exception:
+        return None
+
+
+def clear_workout_draft(user_id):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM workout_draft WHERE user_id = ?", (user_id,))
 
 
 def get_exercise_history(user_id, limit=10):

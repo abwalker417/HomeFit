@@ -198,6 +198,7 @@
 </div>
 
 <script id="exercise-library" type="application/json">{{ exercise_library|tojson }}</script>
+<script id="draft-state" type="application/json">{{ (draft_state if draft_state else None)|tojson }}</script>
 {% endblock %}
 
 {% block scripts %}

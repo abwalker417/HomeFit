@@ -580,10 +580,28 @@ function startWorkout() {
   // Restore state — localStorage survives app restarts
   let state = null;
   try { state = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (_) {}
+  // Fall back to the server-side draft (survives a native-app crash that wiped localStorage)
+  if (!state || state.dayName !== dayName) {
+    let draft = null;
+    try { draft = JSON.parse(document.getElementById('draft-state').textContent); } catch (_) {}
+    if (draft && draft.dayName === dayName) state = draft;
+  }
   if (!state || state.dayName !== dayName) {
     state = { dayName, started: Date.now(), offset: 0, done: [] };
   }
   localStorage.setItem(STORE_KEY, JSON.stringify(state));
+
+  // Mirror state to the server after each change (debounced) so a crash loses nothing
+  let autosaveTimer = null;
+  function autosave() {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => {
+      fetch('/api/workout/autosave', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ day_name: dayName, state }),
+      }).catch(() => {});
+    }, 1500);
+  }
 
   // Persist checkbox changes
   const persistDone = () => {
@@ -591,6 +609,7 @@ function startWorkout() {
       .filter((li) => li.querySelector('.ex-done').checked)
       .map((li) => li.dataset.exerciseId);
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    autosave();
   };
 
   // Elapsed seconds = time since started + any manually added offset
@@ -616,6 +635,7 @@ function startWorkout() {
         state.started = Date.now();
         state.offset = mins * 60;
         localStorage.setItem(STORE_KEY, JSON.stringify(state));
+        autosave();
       }
     }
     tickTimer();
@@ -683,6 +703,7 @@ function startWorkout() {
     });
     state.sets = all;
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    autosave();
   }
 
   function wireWeightLog(wl) {
@@ -739,6 +760,19 @@ function startWorkout() {
     }
     li.querySelectorAll('.rest-btn').forEach(wireRest);
     li.querySelectorAll('.weight-log').forEach(wireWeightLog);
+    // Free decoded demo images when an exercise is collapsed — opening many demos
+    // in one session is what OOM-crashes the native WKWebView. Restore on reopen.
+    const det = li.querySelector('details');
+    if (det) det.addEventListener('toggle', () => {
+      det.querySelectorAll('.ex-demo-img').forEach((img) => {
+        if (det.open) {
+          if (img.dataset.src && !img.getAttribute('src')) img.src = img.dataset.src;
+        } else if (img.getAttribute('src')) {
+          img.dataset.src = img.getAttribute('src');
+          img.removeAttribute('src');
+        }
+      });
+    });
   }
   root.querySelectorAll('.exercise-item').forEach(wireExercise);
 
@@ -1088,6 +1122,7 @@ function setupAddExercise(root, state, STORE_KEY, wireExercise) {
     if (persist) {
       if (!state.added.includes(e.id)) state.added.push(e.id);
       localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      autosave();
     }
   }
 

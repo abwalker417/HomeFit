@@ -638,6 +638,9 @@ def profile_switch_out():
 @app.route("/cancel-workout", methods=["POST"])
 def cancel_workout():
     session.pop("today_workout", None)
+    uid = session.get("user_id")
+    if uid:
+        database.clear_workout_draft(uid)
     return redirect(url_for("index"))
 
 
@@ -1210,8 +1213,11 @@ def today_workout():
         "ai_generated": workout.get("ai_generated", False),
         "exercises": exercises,
     }
+    # server-side draft to recover an in-progress session even if localStorage was wiped
+    draft = database.get_workout_draft(uid)
+    draft_state = draft["state"] if draft and draft.get("day_name") == day["name"] else None
     return render_template("workout.html", day=day, profile=profile,
-                           user_id=uid, exercise_library=library)
+                           user_id=uid, exercise_library=library, draft_state=draft_state)
 
 
 @app.route("/today-workout/add", methods=["GET", "POST"])
@@ -1265,6 +1271,7 @@ def complete_workout():
             kcal = _calc_kcal([e for e in enriched if e],
                               (profile or {}).get("current_weight") or 0,
                               last.get("duration_seconds"))
+            database.clear_workout_draft(uid)
             return jsonify({"ok": True, "kcal": kcal,
                             "exercises_completed": completed_n, "duplicate": True})
 
@@ -1275,6 +1282,7 @@ def complete_workout():
         exercises,
         duration,
     )
+    database.clear_workout_draft(uid)
     completed = [e for e in exercises if e.get("completed") and e.get("id")]
     sets_by_id = {e["id"]: e.get("sets", []) for e in completed}
     enriched = [get_exercise_by_id(e["id"]) for e in completed]
@@ -1317,6 +1325,21 @@ def api_workout_update():
         return jsonify({"error": "bad request"}), 400
     ok = database.update_workout_exercises(uid, int(log_id), exercises)
     return jsonify({"ok": ok})
+
+
+@app.route("/api/workout/autosave", methods=["POST"])
+def api_workout_autosave():
+    """Mirror the in-progress workout to the server after each set, so a native-app
+    crash that wipes localStorage doesn't lose the session."""
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    state = d.get("state")
+    if state is None:
+        return jsonify({"error": "no state"}), 400
+    database.save_workout_draft(uid, d.get("day_name", ""), json.dumps(state))
+    return jsonify({"ok": True})
 
 
 @app.route("/api/post-workout-insight", methods=["POST"])
