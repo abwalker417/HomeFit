@@ -559,6 +559,29 @@ def get_last_workout(user_id):
         return d
 
 
+def get_workout_by_id(user_id, log_id):
+    """One logged workout (owner-scoped), exercises decoded. None if not found."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM workout_log WHERE id = ? AND user_id = ?", (log_id, user_id),
+        ).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d["exercises"] = _decode_json_list(d.pop("exercises_json", "[]"))
+    return d
+
+
+def update_workout_exercises(user_id, log_id, exercises):
+    """Replace a logged workout's exercises (e.g. fix a forgotten weight). Owner-scoped."""
+    with get_connection() as conn:
+        cur = conn.execute(
+            "UPDATE workout_log SET exercises_json = ? WHERE id = ? AND user_id = ?",
+            (json.dumps(exercises), log_id, user_id),
+        )
+        return cur.rowcount > 0
+
+
 def get_exercise_history(user_id, limit=10):
     """Return per-exercise set/rep/weight history across recent workouts."""
     with get_connection() as conn:

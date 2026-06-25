@@ -1288,6 +1288,37 @@ def complete_workout():
     return jsonify({"ok": True, "kcal": kcal, "exercises_completed": len(enriched)})
 
 
+@app.route("/edit-workout/<int:log_id>")
+def edit_workout_page(log_id):
+    uid = session.get("user_id")
+    if not uid:
+        return redirect(url_for("profiles"))
+    w = database.get_workout_by_id(uid, log_id)
+    if not w:
+        return redirect(url_for("progress"))
+    # enrich each exercise with a display name (stored name, else from the library)
+    for ex in w.get("exercises", []):
+        if not ex.get("name") and ex.get("id"):
+            lib = get_exercise_by_id(ex["id"])
+            ex["name"] = (lib or {}).get("name", ex["id"])
+        ex["sets"] = ex.get("sets") or []
+    return render_template("edit_workout.html", workout=w)
+
+
+@app.route("/api/workout/update", methods=["POST"])
+def api_workout_update():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    log_id = d.get("id")
+    exercises = d.get("exercises")
+    if not log_id or exercises is None:
+        return jsonify({"error": "bad request"}), 400
+    ok = database.update_workout_exercises(uid, int(log_id), exercises)
+    return jsonify({"ok": ok})
+
+
 @app.route("/api/post-workout-insight", methods=["POST"])
 def post_workout_insight():
     uid = session.get("user_id")
