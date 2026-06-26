@@ -959,13 +959,13 @@ def get_readiness(user_id):
     r = compute_readiness(user_id)
     if r:
         # Only lock in the cache once readiness is based on LAST NIGHT's sleep.
-        # compute_readiness uses the most recent night within 2 days, so an early
-        # call (before last night syncs) would otherwise cache a score from the
-        # night-before-last and freeze it all day. If only older sleep exists,
-        # return the score but don't cache — it self-corrects when last night lands.
-        yesterday = (datetime.now().date() - timedelta(days=1)).isoformat()
+        # entry_date is the WAKE date, so last night's sleep is dated TODAY. A
+        # call before last night syncs (e.g. the post-midnight job) sees only
+        # yesterday's entry; caching that would freeze a stale score all day. So
+        # require today's entry — otherwise return the score uncached and let it
+        # self-correct once last night lands.
         sleep = get_recent_sleep(user_id, days=2)
-        fresh = sleep and (sleep[0].get("entry_date") or "") >= yesterday
+        fresh = sleep and (sleep[0].get("entry_date") or "") >= today
         if fresh:
             with get_connection() as conn:
                 conn.execute(
