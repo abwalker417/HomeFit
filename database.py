@@ -254,6 +254,16 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                token      TEXT PRIMARY KEY,
+                user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                scope      TEXT NOT NULL DEFAULT 'summary',
+                label      TEXT,
+                created_at TEXT NOT NULL,
+                revoked    INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS nudge_log (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -756,6 +766,58 @@ def get_user_id_by_token(token):
     with get_connection() as conn:
         row = conn.execute("SELECT id FROM users WHERE api_token = ?", (token,)).fetchone()
         return row["id"] if row else None
+
+
+# --- Scoped API keys (read-only, revocable; for external agents like NyX) ---
+# Distinct from the per-user `api_token`, which is full-access (it works on write
+# relays too). A scoped key only authenticates on endpoints that opt in via
+# resolve_scoped_uid(token, scope), so it can't reach write endpoints.
+
+def create_api_key(user_id, scope="summary", label=""):
+    token = secrets.token_urlsafe(32)
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO api_keys (token, user_id, scope, label, created_at, revoked) "
+            "VALUES (?, ?, ?, ?, ?, 0)",
+            (token, user_id, scope, label, datetime.now().isoformat()))
+    return token
+
+
+def get_api_key(token):
+    if not token:
+        return None
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT user_id, scope FROM api_keys WHERE token = ? AND revoked = 0",
+            (token,)).fetchone()
+    return {"user_id": row["user_id"], "scope": row["scope"] or ""} if row else None
+
+
+def revoke_api_key(token):
+    with get_connection() as conn:
+        conn.execute("UPDATE api_keys SET revoked = 1 WHERE token = ?", (token,))
+
+
+def list_api_keys(user_id):
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT token, scope, label, created_at, revoked FROM api_keys WHERE user_id = ? "
+            "ORDER BY created_at DESC", (user_id,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def resolve_scoped_uid(token, required_scope):
+    """Return uid if `token` is a legacy full api_token, OR a scoped key whose
+    scope grants `required_scope` (comma list, or 'all'). None otherwise."""
+    uid = get_user_id_by_token(token)
+    if uid:
+        return uid
+    key = get_api_key(token)
+    if key:
+        scopes = [s.strip() for s in (key["scope"] or "").split(",")]
+        if "all" in scopes or required_scope in scopes:
+            return key["user_id"]
+    return None
 
 
 def set_accent_color(user_id, color):

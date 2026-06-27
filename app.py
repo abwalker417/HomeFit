@@ -2166,13 +2166,13 @@ def push_test():
 
 @app.route("/api/panel-summary")
 def api_panel_summary():
-    """Compact 'today' summary for an external panel (homestrip). Read-only.
-    Auth: Bearer api_token (or ?token=). Returns readiness + today's workout +
-    nutrition-vs-goal."""
+    """Compact 'today' summary for an external panel (homestrip) or a read-only
+    agent (NyX). Read-only. Auth: Bearer/?token= — the full api_token OR a scoped
+    key with the 'summary' scope. Returns readiness + today's workout + nutrition."""
     from datetime import date
     token = request.args.get("token", "") or \
         request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
-    uid = database.get_user_id_by_token(token)
+    uid = database.resolve_scoped_uid(token, "summary")
     if not uid:
         return jsonify({"error": "invalid token"}), 401
 
