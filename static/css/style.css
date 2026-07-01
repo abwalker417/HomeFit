@@ -737,7 +737,7 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 .history-detail-row .sets { color: var(--subtle); text-align: right; }
 .history-detail-row.skipped { opacity: 0.45; }
 
-#weight-chart { width: 100%; height: auto; }
+#weight-chart, #strength-chart { width: 100%; height: auto; }
 
 /* ---------- Profiles ---------- */
 .profiles-page h1 { text-align: center; margin-top: 24px; }
