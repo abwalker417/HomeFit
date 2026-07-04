@@ -1,6 +1,8 @@
 /* Lock the garage UI to a 1920x440 stage and scale-to-fit any display/window. */
 (function () {
   function fit() {
+    // tablet/phone mode (set by garage-mode.js): stage is fluid, no scaling
+    if (document.documentElement.classList.contains("g-tablet")) return;
     var s = document.querySelector(".g-stage");
     if (!s) return;
     s.style.transform = "scale(" + Math.min(window.innerWidth / 1920, window.innerHeight / 440) + ")";

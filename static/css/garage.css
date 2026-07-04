@@ -150,6 +150,62 @@ html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-selec
 .g-np-btn:active { background: rgba(var(--accent-rgb),.25); transform: scale(.93); }
 .g-np-play { background: var(--accent); color: #06181c; }
 
+/* ============================================================
+   Tablet / phone mode — html.g-tablet set by garage-mode.js when
+   the screen isn't strip-shaped. The stage goes fluid; the strip's
+   three-column workout row reflows into header / exercise / footer.
+   ============================================================ */
+html.g-tablet .g-stage { width: 100vw; height: 100vh; height: 100dvh; transform: none !important; }
+
+/* chooser: big 2-across tiles, APEX full-width on top */
+html.g-tablet .g-choose { padding: 16px; gap: 12px; }
+html.g-tablet .g-choose-head { flex-wrap: wrap; }
+html.g-tablet .g-choose-head .g-pick-title { font-size: 24px; }
+html.g-tablet .g-choices { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 1fr; gap: 12px; }
+html.g-tablet .g-choice-apex { grid-column: 1 / -1; }
+html.g-tablet .g-choice-k { font-size: 26px; }
+
+/* workout: column flow — who-bar on top, exercise fills, rest+finish row */
+html.g-tablet .g-shell { padding: 12px; gap: 10px; }
+html.g-tablet .g-workout { display: flex; flex-direction: column; gap: 10px; }
+html.g-tablet .g-who { flex-direction: row; justify-content: flex-start; gap: 14px; padding: 10px 14px; flex: 0 0 auto; }
+html.g-tablet .g-who .g-avatar { width: 52px; height: 52px; }
+html.g-tablet .g-who .g-avatar-letter { font-size: 24px; }
+html.g-tablet .g-who-name { font-size: 20px; }
+html.g-tablet .g-who-plan { flex: 1; min-width: 0; text-align: left; padding: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.g-tablet .g-elapsed { flex-direction: row; align-items: baseline; gap: 8px; margin: 0; }
+html.g-tablet .g-elapsed-v { font-size: 24px; }
+html.g-tablet .g-who .g-switch { margin: 0; flex: 0 0 auto; }
+
+html.g-tablet .g-current { flex: 1; min-height: 0; justify-content: center;
+  gap: clamp(12px, 3vh, 28px); padding: 16px; }
+html.g-tablet .g-ex-head { flex-wrap: wrap; row-gap: 8px; }
+html.g-tablet .g-ex-name { font-size: 26px; white-space: normal; flex: 1 1 100%; }
+html.g-tablet .g-steppers { flex-wrap: wrap; }
+html.g-tablet .g-stepper { min-width: 280px; justify-content: space-between; }
+
+html.g-tablet .g-right { flex-direction: row; gap: 10px; flex: 0 0 auto; }
+html.g-tablet .g-rest { flex-direction: row; gap: 16px; padding: 12px 16px; }
+html.g-tablet .g-rest-time { font-size: 40px; }
+html.g-tablet .g-rest-skip { margin: 0; }
+html.g-tablet .g-finish-btn { height: auto; min-height: 72px; flex: 0 0 32%; }
+
+/* how-to overlay: stack demo above text, let it scroll */
+html.g-tablet .g-demo-ov { padding: 20px; }
+html.g-tablet .g-demo-body { flex-direction: column; gap: 18px; padding: 0;
+  max-width: 100%; overflow: auto; align-items: center; }
+html.g-tablet .g-demo-name { font-size: 24px; text-align: center; }
+html.g-tablet .g-demo-text { max-width: 640px; font-size: 18px; }
+
+/* finish card: single column, capped to the screen */
+html.g-tablet #g-done .g-done-card { width: min(94vw, 980px); height: auto;
+  max-height: 92vh; max-height: 92dvh; flex-direction: column; overflow: auto; gap: 18px; }
+html.g-tablet .g-done-left { flex: none; }
+html.g-tablet .g-done-right { border-left: none; padding-left: 0;
+  border-top: 1px solid rgba(255,255,255,.10); padding-top: 16px; }
+html.g-tablet #g-done .g-finish-btn { flex: none; }
+
 /* messages / done */
 .g-msg { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   font-size: 30px; font-weight: 700; color: #aeb9c6; }
