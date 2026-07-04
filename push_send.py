@@ -61,7 +61,15 @@ def send_streak_reminders():
     monday = (today - timedelta(days=today.weekday())).isoformat()
     for uid in database.get_push_user_ids():
         profile = database.get_profile(uid) or {}
-        target = profile.get("days_per_week") or 4
+        # Away mode (travel/vacation/sick): never nag on a paused day, and
+        # paused days this week shrink the target — same math as the dashboard.
+        pause = database.current_week_pause(uid)
+        if pause["today_paused"]:
+            continue
+        target = max(0, (profile.get("days_per_week") or 4) - pause["paused_days"])
+        if target == 0:
+            continue  # fully-away week — nothing owed
+        usable_days_left = max(0, days_left - pause["remaining_paused"])
         # Workout days this week = HomeFit sessions + counting Apple workouts
         # (golf, long sessions) — same source of truth as the dashboard/streak.
         week_dates = database.workout_day_dates(uid, since_iso=monday)
@@ -71,8 +79,8 @@ def send_streak_reminders():
         if done >= target:
             continue  # weekly target already met
         # Last chance: still achievable with today, lost without it
-        last_chance = (done + days_left >= target
-                       and done + days_left - 1 < target)
+        last_chance = (done + usable_days_left >= target
+                       and done + usable_days_left - 1 < target)
         week_streak = database.get_week_streak(uid, target)
         if last_chance:
             title = "Streak at risk"
@@ -96,6 +104,8 @@ def send_nudges():
     today = date.today().isoformat()
     ai_ok = coach.is_available()
     for uid in database.get_push_user_ids():
+        if database.get_active_pause(uid):
+            continue  # away mode — no train/food nudges while traveling or sick
         try:
             nudge = nudge_service.evaluate(uid)
         except Exception as e:

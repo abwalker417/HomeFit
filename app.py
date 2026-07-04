@@ -260,8 +260,16 @@ def _progress_stats(user_id):
     days_left = 7 - today.weekday()  # includes today
     done = len(week_dates)
     stats["week_workouts"] = done
+    # Away mode (travel/vacation/sick): paused days reduce this week's targets
+    # and pause the streak/nudges — see database.streak_pause.
+    pause = database.current_week_pause(user_id)
+    stats["away"] = pause["active"]
+    stats["away_upcoming"] = database.get_upcoming_pause(user_id)
+    stats["target_days_week"] = max(0, stats["target_days"] - pause["paused_days"])
+    usable_days_left = max(0, days_left - pause["remaining_paused"])
     # Separate cardio goal: distinct days this week with any logged walk/cardio
     stats["cardio_goal"] = profile.get("cardio_days_per_week") or 5
+    stats["cardio_goal_week"] = max(0, stats["cardio_goal"] - pause["paused_days"])
     cardio_dates = {(c.get("started_at") or "")[:10] for c in externals
                     if (c.get("started_at") or "")[:10] >= monday_iso}
     cardio_dates.discard("")
@@ -269,9 +277,11 @@ def _progress_stats(user_id):
     # Today is the last chance to keep the weekly target reachable
     stats["must_train_today"] = (
         not trained_today
-        and done < stats["target_days"]
-        and done + days_left >= stats["target_days"]
-        and done + days_left - 1 < stats["target_days"]
+        and not pause["today_paused"]
+        and stats["target_days_week"] > 0
+        and done < stats["target_days_week"]
+        and done + usable_days_left >= stats["target_days_week"]
+        and done + usable_days_left - 1 < stats["target_days_week"]
     )
     if stats["last_workout"]:
         try:
@@ -358,6 +368,44 @@ def set_accent():
         return jsonify({"error": "invalid color"}), 400
     database.set_accent_color(uid, color)
     return jsonify({"ok": True, "color": color, "accent_rgb": _accent_rgb(color)})
+
+
+@app.route("/api/away", methods=["POST"])
+def api_away_start():
+    """Start (or schedule/backdate) away mode — travel/vacation/sick days that
+    pause streaks, relax weekly targets and mute training nudges."""
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    from datetime import date
+    data = request.get_json(silent=True) or {}
+    reason = data.get("reason") or "travel"
+    if reason not in ("travel", "vacation", "sick"):
+        return jsonify({"error": "invalid reason"}), 400
+    start = (data.get("start_date") or "").strip() or None
+    end = (data.get("end_date") or "").strip() or None
+    try:
+        if start:
+            date.fromisoformat(start)
+        if end:
+            date.fromisoformat(end)
+    except ValueError:
+        return jsonify({"error": "invalid date"}), 400
+    if start and end and end < start:
+        return jsonify({"error": "end date is before start date"}), 400
+    database.start_streak_pause(uid, reason=reason, start_date=start, end_date=end)
+    return jsonify({"ok": True, "away": database.get_active_pause(uid),
+                    "upcoming": database.get_upcoming_pause(uid)})
+
+
+@app.route("/api/away/end", methods=["POST"])
+def api_away_end():
+    """"I'm back" — close the active away window (and drop scheduled ones)."""
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    database.end_streak_pause(uid)
+    return jsonify({"ok": True})
 
 
 @app.route("/profiles")
@@ -488,6 +536,8 @@ def profile_edit(user_id):
         all_users=database.list_users(),
         api_token=database.get_or_create_api_token(user_id) if user_id == session.get("user_id") else None,
         apex_memory=database.get_apex_memory(user_id),
+        away=database.get_active_pause(user_id),
+        away_upcoming=database.get_upcoming_pause(user_id),
     )
 
 

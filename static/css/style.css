@@ -170,6 +170,56 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
   margin: 8px 0 0;
 }
 
+/* Away mode (travel/vacation/sick) — streaks paused */
+.hero-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.away-badge {
+  display: inline-block;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.away-note {
+  color: var(--warn);
+}
+.away-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+.away-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--subtle);
+}
+.away-form select,
+.away-form input[type="date"] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 15px;
+}
+.away-form .btn {
+  align-self: flex-start;
+}
+
 .hero {
   background: rgba(20, 22, 26, 0.6);
   -webkit-backdrop-filter: blur(18px) saturate(1.1);

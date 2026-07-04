@@ -321,6 +321,16 @@ def init_db():
                 UNIQUE(user_id, entry_date)
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS streak_pause (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                start_date TEXT NOT NULL,
+                end_date   TEXT,
+                reason     TEXT NOT NULL DEFAULT 'travel',
+                created_at TEXT NOT NULL
+            )
+        """)
 
 
         conn.execute("DELETE FROM schema_version")
@@ -698,6 +708,8 @@ def get_coaching_context(user_id):
                       for r in get_recent_metric(user_id, "steps", days=7)],
         "step_goal": get_step_goal(user_id),
         "apex_memory": get_apex_memory(user_id),
+        "away_mode": get_active_pause(user_id),
+        "week_pause": current_week_pause(user_id),
     }
 
 
@@ -1212,22 +1224,141 @@ def workout_day_dates(user_id, since_iso=None):
     return days
 
 
-def get_streak(user_id):
-    """Return the current consecutive-day workout streak (0 if broken)."""
+def start_streak_pause(user_id, reason="travel", start_date=None, end_date=None):
+    """Begin (or schedule) an away-mode window. Open-ended when end_date is
+    None — ends when the user taps "I'm back". Dates may be in the past
+    (retroactive: "I was sick Tue-Thu") or future (planned trip)."""
+    from datetime import date
+    start_date = start_date or date.today().isoformat()
+    now = datetime.now().isoformat()
+    with get_connection() as conn:
+        # one open window at a time — close any existing open one first
+        conn.execute(
+            "UPDATE streak_pause SET end_date = ? WHERE user_id = ? AND end_date IS NULL",
+            (start_date, user_id),
+        )
+        conn.execute(
+            "INSERT INTO streak_pause (user_id, start_date, end_date, reason, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (user_id, start_date, end_date, reason, now),
+        )
+
+
+def end_streak_pause(user_id):
+    """"I'm back" — today becomes a normal day again: close active windows as
+    of yesterday and drop future-scheduled ones."""
     from datetime import date, timedelta
-    iso = sorted(workout_day_dates(user_id), reverse=True)
-    if not iso:
-        return 0
-    dates = [date.fromisoformat(s) for s in iso]
+    today = date.today().isoformat()
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    with get_connection() as conn:
+        conn.execute(
+            "DELETE FROM streak_pause WHERE user_id = ? AND start_date > ?",
+            (user_id, today),
+        )
+        conn.execute(
+            "UPDATE streak_pause SET end_date = ? WHERE user_id = ? "
+            "AND (end_date IS NULL OR end_date >= ?)",
+            (yesterday, user_id, today),
+        )
+        # a same-day start+end leaves an empty window — drop it
+        conn.execute(
+            "DELETE FROM streak_pause WHERE user_id = ? AND end_date < start_date",
+            (user_id,),
+        )
+
+
+def get_active_pause(user_id):
+    """The away-mode window covering today, or None."""
+    from datetime import date
+    today = date.today().isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM streak_pause WHERE user_id = ? AND start_date <= ? "
+            "AND (end_date IS NULL OR end_date >= ?) ORDER BY start_date DESC LIMIT 1",
+            (user_id, today, today),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def get_upcoming_pause(user_id):
+    """The next future-scheduled away window (for UI display), or None."""
+    from datetime import date
+    today = date.today().isoformat()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM streak_pause WHERE user_id = ? AND start_date > ? "
+            "ORDER BY start_date LIMIT 1",
+            (user_id, today),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def pause_day_dates(user_id):
+    """Set of ISO dates covered by the user's away-mode windows. An open-ended
+    window runs through the end of the current week so this week's target math
+    sees the remaining days as paused too."""
+    from datetime import date, timedelta
     today = date.today()
-    if dates[0] < today - timedelta(days=1):
+    this_sunday = today + timedelta(days=6 - today.weekday())
+    days = set()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT start_date, end_date FROM streak_pause WHERE user_id = ?",
+            (user_id,),
+        ).fetchall()
+    for r in rows:
+        try:
+            start = date.fromisoformat(r["start_date"])
+            end = date.fromisoformat(r["end_date"]) if r["end_date"] else this_sunday
+        except (TypeError, ValueError):
+            continue
+        end = min(end, start + timedelta(days=365))  # sanity cap
+        d = start
+        while d <= end:
+            days.add(d.isoformat())
+            d += timedelta(days=1)
+    return days
+
+
+def current_week_pause(user_id):
+    """Away-mode impact on THIS week (Monday start): paused-day count, how many
+    remaining days (today..Sunday) are paused, whether today is paused, and the
+    active window. Shared by the dashboard stats, streak push and APEX context."""
+    from datetime import date, timedelta
+    today = date.today()
+    monday = today - timedelta(days=today.weekday())
+    paused = pause_day_dates(user_id)
+    week = [(monday + timedelta(days=i)).isoformat() for i in range(7)]
+    paused_week = [d for d in week if d in paused]
+    return {
+        "paused_days": len(paused_week),
+        "remaining_paused": sum(1 for d in paused_week if d >= today.isoformat()),
+        "today_paused": today.isoformat() in paused,
+        "active": get_active_pause(user_id),
+    }
+
+
+def get_streak(user_id):
+    """Return the current consecutive-day workout streak (0 if broken).
+    Away-mode days bridge the chain: they don't add to the count, but they
+    don't break it either."""
+    from datetime import date, timedelta
+    days = workout_day_dates(user_id)
+    if not days:
         return 0
-    streak = 1
-    for i in range(1, len(dates)):
-        if dates[i] == dates[i - 1] - timedelta(days=1):
+    paused = pause_day_dates(user_id)
+    today = date.today()
+    d = today
+    streak = 0
+    while True:
+        s = d.isoformat()
+        if s in days:
             streak += 1
+        elif s in paused or d == today:
+            pass  # paused day bridges; today isn't over yet
         else:
             break
+        d -= timedelta(days=1)
     return streak
 
 
@@ -1237,6 +1368,10 @@ def get_week_streak(user_id, target_days):
     The current week counts if the target is already met, or is still
     achievable (workouts so far + days left >= target) — an in-flight week
     shouldn't break the streak before it's lost.
+
+    Away-mode days reduce a week's effective target (sick 3 days on a
+    4-day target → owe 1). A week whose target drops to 0 is neutral:
+    it doesn't extend the streak, but doesn't break the chain either.
     """
     from datetime import date, timedelta
     target_days = max(1, int(target_days or 1))
@@ -1248,26 +1383,43 @@ def get_week_streak(user_id, target_days):
         d = date.fromisoformat(s)
         monday = d - timedelta(days=d.weekday())
         by_week[monday] = by_week.get(monday, 0) + 1
+    paused_by_week = {}
+    for s in pause_day_dates(user_id):
+        d = date.fromisoformat(s)
+        monday = d - timedelta(days=d.weekday())
+        paused_by_week[monday] = paused_by_week.get(monday, 0) + 1
+
+    def week_target(week):
+        return max(0, target_days - paused_by_week.get(week, 0))
 
     today = date.today()
     this_monday = today - timedelta(days=today.weekday())
-    days_left = 7 - today.weekday()  # includes today
+    week_pause = current_week_pause(user_id)
+    days_left = 7 - today.weekday() - week_pause["remaining_paused"]
     done_this_week = by_week.get(this_monday, 0)
+    this_target = week_target(this_monday)
 
     streak = 0
-    week = this_monday
-    if done_this_week >= target_days:
+    week = this_monday - timedelta(days=7)
+    if this_target == 0:
+        pass  # fully-away week — neutral, chain continues from last week
+    elif done_this_week >= this_target:
         streak = 1
-        week = this_monday - timedelta(days=7)
-    elif done_this_week + days_left >= target_days:
-        # current week still winnable — skip it without breaking the chain
-        week = this_monday - timedelta(days=7)
+    elif done_this_week + days_left >= this_target:
+        pass  # current week still winnable — skip it without breaking the chain
     else:
         return 0
 
-    while by_week.get(week, 0) >= target_days:
-        streak += 1
-        week -= timedelta(days=7)
+    while True:
+        tgt = week_target(week)
+        if tgt == 0:
+            week -= timedelta(days=7)  # fully-away week — neutral, keep walking
+            continue
+        if by_week.get(week, 0) >= tgt:
+            streak += 1
+            week -= timedelta(days=7)
+        else:
+            break
     return streak
 
 

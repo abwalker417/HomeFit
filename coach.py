@@ -203,18 +203,43 @@ def _build_context(coaching_data):
     cardio_days = sorted({(c.get("started_at") or "")[:10] for c in externals
                           if (c.get("started_at") or "")[:10] >= monday_iso})
     cardio_dow = ", ".join(_dow(d) for d in cardio_days) or "none yet"
+    # Away mode (travel/vacation/sick) relaxes both weekly goals: each paused
+    # day this week reduces the targets by one (floor 0 = week fully excused).
+    week_pause = coaching_data.get("week_pause") or {}
+    paused_days = week_pause.get("paused_days") or 0
+    goal_days_wk = max(0, goal_days - paused_days)
+    cardio_goal_wk = max(0, cardio_goal - paused_days)
+    pause_note = (f" (reduced from {goal_days} and {cardio_goal} — {paused_days} "
+                  f"away-mode day(s) this week)" if paused_days else "")
     lines += [
         f"THIS WEEK so far (Monday {monday_iso} through today) — USE THESE NUMBERS, do not recount by hand:",
-        f"- Workout days toward the {goal_days}x/week goal: {sessions} of {goal_days}",
+        f"- Workout days toward the {goal_days_wk}x/week goal: {sessions} of {goal_days_wk}",
         f"    · HomeFit workouts: {hf_list}",
         f"    · External sessions counted (Apple-recorded workouts like golf, or any session ≥45 min): {ext_list}",
-        f"- Cardio/walk days toward the {cardio_goal}x/week cardio goal: {len(cardio_days)} of {cardio_goal} ({cardio_dow})",
-        f"Two separate weekly goals: (1) {goal_days} WORKOUT days (HomeFit workouts + Apple-recorded "
-        f"workouts/long ≥45-min sessions; plain walks don't count); (2) {cardio_goal} CARDIO days (any day "
+        f"- Cardio/walk days toward the {cardio_goal_wk}x/week cardio goal: {len(cardio_days)} of {cardio_goal_wk} ({cardio_dow})",
+        f"Two separate weekly goals{pause_note}: (1) {goal_days_wk} WORKOUT days (HomeFit workouts + Apple-recorded "
+        f"workouts/long ≥45-min sessions; plain walks don't count); (2) {cardio_goal_wk} CARDIO days (any day "
         f"with a logged walk/cardio counts, one per day). Use these exact counts; never count anything "
         f"dated before {monday_iso} toward this week.",
         "",
     ]
+
+    away = coaching_data.get("away_mode")
+    if away:
+        reason = away.get("reason") or "away"
+        until = (f"through {away['end_date']}" if away.get("end_date")
+                 else "until they say they're back")
+        if reason == "sick":
+            guidance = ("They're SICK: prioritize rest, fluids and recovery. No training "
+                        "pressure at all; when they feel better, suggest easing back in light.")
+        else:
+            guidance = ("They're traveling: keep it totally low-pressure. Only offer "
+                        "hotel/bodyweight or walking ideas if THEY ask.")
+        lines += [
+            f"AWAY MODE IS ON ({reason}, {until}). Streaks and weekly goals are paused — "
+            f"never guilt them about missed workouts or goals during this window. {guidance}",
+            "",
+        ]
 
     if workouts:
         lines.append("Recent HomeFit workouts (newest first):")

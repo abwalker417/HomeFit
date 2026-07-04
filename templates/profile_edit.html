@@ -73,6 +73,72 @@
   </div>
 </section>
 
+{% if user.id == current_user.id %}
+<section class="card" id="away-card">
+  <h2>Away mode</h2>
+  {% if away %}
+  <p class="subtle" style="font-size:13px;">
+    You're marked <strong style="color:var(--warn);">{{ away.reason }}</strong>
+    since {{ away.start_date }}{% if away.end_date %}, through {{ away.end_date }}{% else %} (until you're back){% endif %}.
+    Streaks and weekly goals are paused; training reminders are muted.
+  </p>
+  <button type="button" id="away-end" class="btn btn-primary">I'm back</button>
+  {% else %}
+  {% if away_upcoming %}
+  <p class="subtle" style="font-size:13px;">
+    Scheduled: <strong>{{ away_upcoming.reason }}</strong> {{ away_upcoming.start_date }} →
+    {{ away_upcoming.end_date or "open" }}. <button type="button" id="away-end" class="pill">Cancel</button>
+  </p>
+  {% endif %}
+  <p class="subtle" style="font-size:13px;">Traveling, on vacation, or sick? Away days pause your streaks, shrink the week's workout &amp; cardio targets, and mute training reminders — no lost streak for days you couldn't train. Dates can be in the past ("I was sick Tue–Thu") or the future (a planned trip).</p>
+  <div class="away-form">
+    <label>Reason
+      <select id="away-reason">
+        <option value="travel">Traveling</option>
+        <option value="vacation">Vacation</option>
+        <option value="sick">Sick</option>
+      </select>
+    </label>
+    <label>From <input type="date" id="away-start"></label>
+    <label>Until <input type="date" id="away-end-date"> <span class="subtle" style="font-size:11px;">(optional — leave blank and tap "I'm back" later)</span></label>
+    <button type="button" id="away-start-btn" class="btn btn-primary">Start away mode</button>
+  </div>
+  {% endif %}
+  <span id="away-status" class="subtle" style="font-size:12px;"></span>
+</section>
+<script>
+(function () {
+  var startBtn = document.getElementById("away-start-btn");
+  var endBtn = document.getElementById("away-end");
+  var status = document.getElementById("away-status");
+  function call(url, body) {
+    fetch(url, {method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(body || {})})
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.ok) { location.reload(); }
+        else { status.textContent = d.error || "Something went wrong."; }
+      })
+      .catch(function () { status.textContent = "Network error — try again."; });
+  }
+  if (startBtn) startBtn.addEventListener("click", function () {
+    call("/api/away", {
+      reason: document.getElementById("away-reason").value,
+      start_date: document.getElementById("away-start").value,
+      end_date: document.getElementById("away-end-date").value,
+    });
+  });
+  if (endBtn) endBtn.addEventListener("click", function () { call("/api/away/end"); });
+  var start = document.getElementById("away-start");
+  if (start && !start.value) {
+    var d = new Date();  // local date, not toISOString (UTC = tomorrow in the evening)
+    start.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
+                + "-" + String(d.getDate()).padStart(2, "0");
+  }
+})();
+</script>
+{% endif %}
+
 <section class="card">
   <h2>APEX memory</h2>
   <p class="subtle" style="font-size:13px;">What your AI coach remembers about you across conversations — goals, preferences, injuries, life context. APEX updates this on its own each night, and you can tell it "remember that…" in chat. Edit it directly here anytime.</p>
