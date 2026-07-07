@@ -218,8 +218,13 @@ html.g-tablet #g-done .g-finish-btn { flex: none; }
   html.g-tablet .g-step-btn { width: 52px; height: 52px; }
   html.g-tablet .g-who-name { font-size: 18px; }
   html.g-tablet .g-choice-k { font-size: 22px; }
-  html.g-tablet .g-finish-btn { min-height: 64px; }
-  html.g-tablet .g-rest-skip { padding: 6px 18px; }
+  html.g-tablet .g-log-btn { height: 56px; font-size: 22px; }
+  /* rest + finish trimmed so the exercise card keeps its buttons on-screen */
+  html.g-tablet .g-rest { padding: 6px 12px; }
+  html.g-tablet .g-rest-time { font-size: clamp(40px, 6.5vh, 56px); }
+  html.g-tablet .g-rest-k { font-size: 12px; }
+  html.g-tablet .g-rest-skip { padding: 5px 16px; font-size: 13px; }
+  html.g-tablet .g-finish-btn { min-height: 48px; font-size: 18px; flex: 0 0 24%; }
 }
 
 /* messages / done */
