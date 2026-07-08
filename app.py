@@ -3,6 +3,7 @@
 import json
 import os
 import random
+import re
 import subprocess
 from collections import defaultdict
 from datetime import timedelta
@@ -2349,10 +2350,39 @@ def manifest():
     return app.send_static_file("manifest.json")
 
 
+def _sw_cache_version():
+    """Newest static-asset mtime → a version token that changes every deploy that
+    touches a cached asset, so the SW purges old caches and refetches on its own."""
+    latest = 0
+    static_dir = os.path.join(app.root_path, "static")
+    for root, _dirs, files in os.walk(static_dir):
+        for f in files:
+            if f.endswith((".js", ".css", ".json", ".html")):
+                try:
+                    m = os.stat(os.path.join(root, f)).st_mtime_ns
+                    if m > latest:
+                        latest = m
+                except OSError:
+                    pass
+    return latest
+
+
 @app.route("/sw.js")
 def service_worker():
-    response = app.send_static_file("js/sw.js")
+    # Inject a deploy-derived cache version and serve sw.js itself uncached, so a
+    # new deploy always propagates instead of the browser pinning a stale worker.
+    sw_path = os.path.join(app.root_path, "static", "js", "sw.js")
+    with open(sw_path, "r") as fh:
+        body = fh.read()
+    body = re.sub(
+        r"const CACHE = '[^']*';",
+        "const CACHE = 'homefit-%d';" % _sw_cache_version(),
+        body,
+        count=1,
+    )
+    response = app.response_class(body, mimetype="text/javascript")
     response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
 
 
