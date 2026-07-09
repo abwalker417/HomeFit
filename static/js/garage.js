@@ -4,9 +4,11 @@
   const W = window.GARAGE;
   if (!W || !W.exercises || !W.exercises.length) return;
   const exs = W.exercises;
+  const WM = window.WeightMode;
   exs.forEach((e) => {
     e.logged = [];
-    e.workW = e.last_weight != null ? e.last_weight : 0;
+    e.mode = WM.modeOf(e);
+    e.workW = WM.snap(e.mode, e.last_weight != null ? e.last_weight : 0);
     e.workR = e.reps;
   });
   let cur = 0;
@@ -31,7 +33,7 @@
       const s = draft.ex[e.id];
       if (s) {
         e.logged = Array.isArray(s.logged) ? s.logged : [];
-        if (s.workW != null) e.workW = s.workW;
+        if (s.workW != null) e.workW = WM.snap(e.mode, s.workW);
         if (s.workR != null) e.workR = s.workR;
       }
     });
@@ -72,7 +74,10 @@
     $("g-set-line").textContent = done
       ? `✓ All ${e.sets} sets done`
       : `Set ${e.logged.length + 1} of ${e.sets} · target ${e.reps}${e.unit === "reps" ? " reps" : ""}`;
-    $("g-weight").textContent = e.workW;
+    const wd = WM.display(e.mode, e.workW);
+    $("g-weight").textContent = wd.main;
+    const wsub = $("g-weight-sub");
+    if (wsub) { wsub.textContent = wd.sub; wsub.style.display = wd.sub ? "" : "none"; }
     $("g-reps").textContent = e.workR;
     let dots = "";
     for (let i = 0; i < e.sets; i++) {
@@ -89,8 +94,8 @@
 
   document.querySelectorAll(".g-step-btn").forEach((b) => b.addEventListener("click", () => {
     const e = ex(), a = b.dataset.act;
-    if (a === "w+") e.workW += 5;
-    else if (a === "w-") e.workW = Math.max(0, e.workW - 5);
+    if (a === "w+") e.workW = WM.step(e.mode, e.workW, +1);
+    else if (a === "w-") e.workW = WM.step(e.mode, e.workW, -1);
     else if (a === "r+") e.workR += 1;
     else if (a === "r-") e.workR = Math.max(0, e.workR - 1);
     render(); saveDraft();

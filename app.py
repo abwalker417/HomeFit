@@ -980,6 +980,7 @@ def _garage_workout(uid):
             "sets": int(e.get("sets") or 3), "reps": int(e.get("reps") or 10),
             "unit": e.get("unit", "reps"), "rest": int(e.get("rest") or 60),
             "last_weight": last_weight(e.get("id")),
+            "equipment": e.get("equipment") or raw.get(e.get("id"), {}).get("equipment"),
             "anim": anims.get(e.get("id")),
             "instructions": raw.get(e.get("id"), {}).get("instructions"),
         })
@@ -1040,6 +1041,7 @@ def _garage_workout_for_type(uid, wtype):
             "sets": int(e.get("default_sets") or 3), "reps": int(e.get("default_reps") or 10),
             "unit": e.get("unit", "reps"), "rest": int(e.get("rest_seconds") or 45),
             "last_weight": last_weight(s["id"]),
+            "equipment": e.get("equipment"),
             "anim": anims.get(s["id"]),
             "instructions": e.get("instructions"),
         })

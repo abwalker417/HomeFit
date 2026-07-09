@@ -32,6 +32,7 @@
   .wk-step-btn:active { background:var(--accent); color:#fff; }
   .wk-step-v { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; }
   .wk-step-u { font-size:13px; color:var(--subtle); margin-left:2px; }
+  .wk-step-sub { display:block; font-size:12px; color:var(--subtle); margin-top:6px; white-space:nowrap; }
 
   .wk-rest { display:flex; align-items:center; gap:12px; justify-content:center; margin-bottom:14px;
              padding:10px; border-radius:12px; background:rgba(var(--accent-rgb,56,189,248),.10); }
@@ -106,6 +107,7 @@
           <span><span id="wk-weight" class="wk-step-v">—</span><span class="wk-step-u">lb</span></span>
           <button type="button" class="wk-step-btn" data-act="w+">+</button>
         </div>
+        <span id="wk-weight-sub" class="wk-step-sub" style="display:none"></span>
       </div>
       <div class="wk-stepper">
         <span class="wk-step-k" id="wk-reps-k">Reps</span>
@@ -228,6 +230,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/weight-modes.js') }}?v={{ static_version }}"></script>
 <script src="{{ url_for('static', filename='js/workout-flow.js') }}?v={{ static_version }}"></script>
 <script>
   startWorkout();

@@ -1,5 +1,7 @@
 import json
+import math
 import random
+import re
 from pathlib import Path
 
 EXERCISE_PATH = Path(__file__).parent / "data" / "exercises.json"
@@ -313,6 +315,39 @@ def pick_random_muscle_group():
     return random.choice(["arms", "back", "chest", "core", "glutes", "legs", "shoulders"])
 
 
+def _snap_overload_weight(ex_id, equipment, current, suggested):
+    """Snap a suggested weight UP onto what the equipment can actually load:
+    dumbbells move in 5s, barbell is the 45 lb bar + plate pairs (10 lb jumps),
+    landmine is the bar + one-side plates (5 lb jumps), cable is the effective
+    stack/2 weight (5.5 lb jumps, 220 lb stack = 110 max)."""
+    eq = " ".join(equipment or []).replace("_", " ").lower()
+
+    def up(base, step, cap=None):
+        k = math.ceil(round((suggested - base) / step, 6))
+        w = base + max(k, 0) * step
+        if w <= current:
+            w = current + step
+        if cap is not None:
+            w = min(w, cap)
+        return round(w, 1)
+
+    ex_id = str(ex_id).lower()
+    if ex_id.startswith("landmine"):
+        return up(45, 5)
+    if "cage" in eq or "cable" in eq:
+        # Cage tag mixes cable attachments, bodyweight bars and racked barbell lifts.
+        if re.search(r"cable|pulldown|pushdown|face.?pull", ex_id):
+            return up(0, 5.5, cap=110)
+        if re.search(r"pullup|pull.?up|dip", ex_id):
+            return suggested
+        return up(45, 10)
+    if "barbell" in eq:
+        return up(45, 10)
+    if "dumbbell" in eq:
+        return up(0, 5)
+    return suggested
+
+
 def get_progressive_overload_suggestions(exercise_history):
     """
     Analyze exercise history and return suggestions for progressive overload.
@@ -343,6 +378,9 @@ def get_progressive_overload_suggestions(exercise_history):
             increase = max(2.5, round(max_w * 0.075 / 2.5) * 2.5)
             suggested = max_w + increase
             ex_data = get_exercise_by_id(ex_id)
+            suggested = _snap_overload_weight(ex_id, (ex_data or {}).get("equipment"), max_w, suggested)
+            if suggested <= max_w:
+                continue
             suggestions.append({
                 "exercise_id": ex_id,
                 "exercise_name": ex_data["name"] if ex_data else ex_id,
