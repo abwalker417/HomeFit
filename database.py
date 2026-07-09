@@ -246,6 +246,16 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS day_swap (
+                user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                day        TEXT NOT NULL,
+                old_id     TEXT NOT NULL,
+                new_id     TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (user_id, day, old_id)
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS push_subscriptions (
                 endpoint          TEXT PRIMARY KEY,
                 user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1776,6 +1786,29 @@ def is_rest_override(user_id, day):
         row = conn.execute(
             "SELECT 1 FROM rest_override WHERE user_id=? AND day=?", (user_id, day)).fetchone()
     return bool(row)
+
+
+def add_day_swap(user_id, day, old_id, new_id):
+    """One-day exercise swap (YYYY-MM-DD): replace old_id with new_id in that day's
+    loaded workout only — the weekly plan template is untouched."""
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO day_swap (user_id, day, old_id, new_id, created_at) VALUES (?,?,?,?,?) "
+            "ON CONFLICT(user_id, day, old_id) DO UPDATE SET new_id=excluded.new_id",
+            (user_id, day, old_id, new_id, datetime.now().isoformat()))
+
+
+def get_day_swaps(user_id, day):
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT old_id, new_id FROM day_swap WHERE user_id=? AND day=?",
+            (user_id, day)).fetchall()
+    return {r["old_id"]: r["new_id"] for r in rows}
+
+
+def clear_day_swaps(user_id, day):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM day_swap WHERE user_id=? AND day=?", (user_id, day))
 
 
 def get_apex_chat(user_id):

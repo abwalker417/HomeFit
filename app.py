@@ -70,6 +70,7 @@ PUBLIC_ENDPOINTS = {
     "api_food_agent_today", "api_food_agent_log", "api_food_agent_log_image",
     "api_food_agent_goals", "api_food_agent_favorites", "api_food_agent_log_favorite",
     "api_coach_readiness", "api_coach_plan", "api_coach_rest_day", "api_coach_rest_day_clear",
+    "api_coach_swap_options", "api_coach_swap",
     "garage", "garage_pick", "garage_choose", "garage_workout_view", "garage_complete",
     "garage_autosave",
     "garage_media", "garage_media_control", "garage_media_art", "garage_light",
@@ -843,6 +844,149 @@ def api_coach_rest_day_clear():
     day = ((request.get_json(silent=True) or {}).get("date") or _date.today().isoformat()).strip()
     database.clear_rest_override(uid, day)
     return jsonify({"ok": True, "cleared": day})
+
+
+# ── Exercise swap (rename/replace a move on a plan day, themed to that day) ──
+def _lib_index():
+    from workout_logic import load_exercises
+    return {e["id"]: e for e in load_exercises()}
+
+
+def _swapped_slot(slot, new_id, lib):
+    """Build a plan/session exercise slot for new_id, keeping the old set count but
+    adopting the new move's natural reps/unit (a plank is seconds, a swing is reps)."""
+    nl = lib.get(new_id, {})
+    return {"id": new_id, "sets": slot.get("sets") or nl.get("default_sets", 3),
+            "reps": nl.get("default_reps", slot.get("reps", 10)), "unit": nl.get("unit", "reps")}
+
+
+def _resolve_new_exercise(query, profile):
+    """Resolve a replacement name/id to exactly one AVAILABLE exercise.
+    Returns (exercise_or_None, candidate_list_for_disambiguation)."""
+    from workout_logic import all_exercises_with_status
+    q = (query or "").strip().lower()
+    avail = [e for e in all_exercises_with_status(profile) if e["available"]]
+    for e in avail:
+        if e["id"].lower() == q:
+            return e, [e]
+    exact = [e for e in avail if (e["name"] or "").lower() == q]
+    if len(exact) == 1:
+        return exact[0], exact
+    part = [e for e in avail if q and q in (e["name"] or "").lower()]
+    if len(part) == 1:
+        return part[0], part
+    return None, (exact or part)
+
+
+def _find_old_in_plan(plan, query, lib):
+    """Every (day_index, ex_index, id, name, day) in the plan matching query by id/name."""
+    q = (query or "").strip().lower()
+    hits = []
+    for di, day in enumerate(plan):
+        for ei, ex in enumerate(day.get("exercises", [])):
+            eid = ex.get("id") or ""
+            name = lib.get(eid, {}).get("name") or eid
+            if eid.lower() == q or (name or "").lower() == q or (q and q in (name or "").lower()):
+                hits.append((di, ei, eid, name, day))
+    return hits
+
+
+def _resolve_plan_day(plan, day_q):
+    q = (day_q or "").strip().lower()
+    if not q:
+        return None
+    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    if q == "today":
+        from datetime import date as _date
+        return _date.today().weekday() % len(plan)
+    if q in days:
+        return days.index(q) % len(plan)
+    if q.isdigit():
+        return int(q) % len(plan)
+    for i, dd in enumerate(plan):
+        if q in (dd.get("name") or "").lower():
+            return i
+    return None
+
+
+@app.route("/api/coach/swap-options", methods=["GET"])
+def api_coach_swap_options():
+    uid = _coach_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    plan = (database.get_apex_plan(uid) or {}).get("plan") or []
+    if not plan:
+        return jsonify({"ok": False, "error": "no plan set"})
+    lib = _lib_index()
+    hits = _find_old_in_plan(plan, request.args.get("old", ""), lib)
+    day_idx = _resolve_plan_day(plan, request.args.get("day", ""))
+    if day_idx is not None:
+        hits = [h for h in hits if h[0] == day_idx]
+    if not hits:
+        return jsonify({"ok": False, "error": f"couldn't find that exercise in the plan"})
+    di, ei, old_id, old_name, day = hits[0]
+    old_cat = lib.get(old_id, {}).get("category", "")
+    current = {e.get("id") for e in day.get("exercises", [])}
+    from workout_logic import all_exercises_with_status
+    cands = [{"id": e["id"], "name": e["name"], "equipment": e["equipment"]}
+             for e in all_exercises_with_status(database.get_profile(uid) or {})
+             if e["available"] and e["category"] == old_cat and e["id"] not in current]
+    return jsonify({"ok": True,
+                    "day": {"index": di, "name": day.get("name"), "focus": day.get("focus")},
+                    "old": {"id": old_id, "name": old_name, "category": old_cat},
+                    "candidates": cands[:10]})
+
+
+@app.route("/api/coach/swap", methods=["POST"])
+def api_coach_swap():
+    uid = _coach_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    scope = (d.get("scope") or "").strip().lower()
+    if scope not in ("today", "plan"):
+        return jsonify({"ok": False, "error": "scope must be 'today' or 'plan'"})
+    plan = (database.get_apex_plan(uid) or {}).get("plan") or []
+    if not plan:
+        return jsonify({"ok": False, "error": "no plan set"})
+    lib = _lib_index()
+    profile = database.get_profile(uid) or {}
+    new_ex, new_cands = _resolve_new_exercise(d.get("new", ""), profile)
+    if not new_ex:
+        return jsonify({"ok": False,
+                        "error": f"'{d.get('new')}' isn't a single available exercise",
+                        "candidates": [c["name"] for c in new_cands[:8]]})
+    hits = _find_old_in_plan(plan, d.get("old", ""), lib)
+    day_idx = _resolve_plan_day(plan, d.get("day", ""))
+    if day_idx is not None:
+        hits = [h for h in hits if h[0] == day_idx]
+    if not hits:
+        return jsonify({"ok": False, "error": f"couldn't find '{d.get('old')}' in the plan"})
+    di, ei, old_id, old_name, day = hits[0]
+    if new_ex["id"] == old_id:
+        return jsonify({"ok": False, "error": "that's the same exercise it already is"})
+
+    if scope == "plan":
+        plan[di]["exercises"][ei] = _swapped_slot(plan[di]["exercises"][ei], new_ex["id"], lib)
+        database.save_apex_plan(uid, plan)
+        return jsonify({"ok": True, "scope": "plan", "day": day.get("name"),
+                        "swapped": {"from": old_name, "to": new_ex["name"]}})
+
+    from datetime import date as _date
+    today_idx = _date.today().weekday() % len(plan)
+    if di != today_idx:
+        return jsonify({"ok": False, "on_other_day": day.get("name"),
+                        "error": f"'{old_name}' is on your {day.get('name')} day, not today — "
+                                 f"want it changed in the plan going forward instead?"})
+    database.add_day_swap(uid, _date.today().isoformat(), old_id, new_ex["id"])
+    return jsonify({"ok": True, "scope": "today", "day": day.get("name"),
+                    "swapped": {"from": old_name, "to": new_ex["name"]}})
+
+
+@app.route("/profiles/switch", methods=["POST", "GET"])
+def profile_switch_out():
+    session.pop("user_id", None)
+    return redirect(url_for("profiles"))
 
 
 @app.route("/profiles/switch", methods=["POST", "GET"])
@@ -1827,11 +1971,19 @@ def load_plan_today():
         return jsonify({"rest": True, "name": day.get("name", "Rest Day")})
     if not day.get("exercises"):
         return jsonify({"error": "no exercises for today"}), 404
+    # Apply any one-day exercise swaps for today (APEX "just today" swap) — the
+    # weekly plan template above is untouched; we only reshape today's session.
+    exercises = day["exercises"]
+    swaps = database.get_day_swaps(uid, (body.get("date") or _date.today().isoformat()))
+    if swaps:
+        lib = _lib_index()
+        exercises = [_swapped_slot(ex, swaps[ex["id"]], lib) if ex.get("id") in swaps else ex
+                     for ex in exercises]
     session["today_workout"] = {
         "label": day.get("name", "Today's Workout"),
         "focus": day.get("focus", ""),
         "ai_generated": True,
-        "exercises": day["exercises"],
+        "exercises": exercises,
     }
     return jsonify({"ok": True})
 
