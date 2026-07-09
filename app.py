@@ -67,6 +67,8 @@ PUBLIC_ENDPOINTS = {
     "profile_switch_out", "manifest", "service_worker", "static",
     "api_last_workout", "api_recent_workouts", "api_last_weight", "api_external_workout", "api_sleep",
     "api_health_metric", "push_register_apns", "api_panel_summary",
+    "api_food_agent_today", "api_food_agent_log", "api_food_agent_log_image",
+    "api_food_agent_goals", "api_food_agent_favorites", "api_food_agent_log_favorite",
     "garage", "garage_pick", "garage_choose", "garage_workout_view", "garage_complete",
     "garage_autosave",
     "garage_media", "garage_media_control", "garage_media_art", "garage_light",
