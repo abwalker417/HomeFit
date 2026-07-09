@@ -14,7 +14,8 @@ window.startWorkout = function () {
   try { WK = JSON.parse(document.getElementById('wk-data').textContent) || {}; } catch (_) {}
   const exs = (WK.exercises || []).filter((e) => e && e.id);
   if (!exs.length) return;
-  exs.forEach((e) => { e.sets = Math.max(1, parseInt(e.sets, 10) || 1); e.reps = parseInt(e.reps, 10) || 10; });
+  const WM = window.WeightMode;
+  exs.forEach((e) => { e.sets = Math.max(1, parseInt(e.sets, 10) || 1); e.reps = parseInt(e.reps, 10) || 10; e.mode = WM.modeOf(e); });
 
   const BODYWEIGHT = ['bodyweight', 'none', '', 'pull_up_bar', 'bench_or_chair', 'resistance_bands'];
   function isWeighted(e) {
@@ -25,8 +26,8 @@ window.startWorkout = function () {
   }
   function defaultW(e) {
     const wh = e.weight_hint;
-    if (wh) return wh.suggested_weight != null ? wh.suggested_weight : (wh.last_weight != null ? wh.last_weight : 0);
-    return 0;
+    const w = wh ? (wh.suggested_weight != null ? wh.suggested_weight : (wh.last_weight != null ? wh.last_weight : 0)) : 0;
+    return WM.snap(e.mode, w);
   }
 
   // ---- state (v2 draft shape, shared with the garage panel) ----
@@ -68,7 +69,7 @@ window.startWorkout = function () {
       const saved = (best.ex || {})[e.id];
       if (saved) state.ex[e.id] = {
         logged: Array.isArray(saved.logged) ? saved.logged : [],
-        workW: saved.workW != null ? saved.workW : defaultW(e),
+        workW: saved.workW != null ? WM.snap(e.mode, saved.workW) : defaultW(e),
         workR: saved.workR != null ? saved.workR : e.reps,
       };
     });
@@ -130,8 +131,13 @@ window.startWorkout = function () {
     }
     $('wk-dots').innerHTML = dots;
     const wstep = $('wk-weight-stepper');
-    if (isWeighted(e)) { wstep.style.display = ''; $('wk-weight').textContent = s.workW; }
-    else { wstep.style.display = 'none'; }
+    if (isWeighted(e)) {
+      wstep.style.display = '';
+      const wd = WM.display(e.mode, s.workW);
+      $('wk-weight').textContent = wd.main;
+      const wsub = $('wk-weight-sub');
+      if (wsub) { wsub.textContent = wd.sub; wsub.style.display = wd.sub ? '' : 'none'; }
+    } else { wstep.style.display = 'none'; }
     $('wk-reps-k').textContent = timed ? 'Seconds' : 'Reps';
     $('wk-reps').textContent = s.workR;
     const log = $('wk-log');
@@ -144,8 +150,8 @@ window.startWorkout = function () {
   // ---- steppers ----
   document.querySelectorAll('.wk-step-btn').forEach((b) => b.addEventListener('click', () => {
     const e = exAt(cur), s = stOf(e), a = b.dataset.act;
-    if (a === 'w+') s.workW += 5;
-    else if (a === 'w-') s.workW = Math.max(0, s.workW - 5);
+    if (a === 'w+') s.workW = WM.step(e.mode, s.workW, +1);
+    else if (a === 'w-') s.workW = WM.step(e.mode, s.workW, -1);
     else if (a === 'r+') s.workR += 1;
     else if (a === 'r-') s.workR = Math.max(0, s.workR - 1);
     render(); save();
@@ -246,6 +252,7 @@ window.startWorkout = function () {
       unit: x.unit || 'reps', rest: x.rest_seconds || 60, instructions: x.instructions || '',
       equipment: x.equipment, anim: x.anim, demo_image: null, weight_hint: null,
     };
+    e.mode = WM.modeOf(e);
     exs.push(e);
     state.ex[e.id] = { logged: [], workW: defaultW(e), workR: e.reps };
     cur = exs.length - 1;

@@ -64,7 +64,7 @@
           <div class="g-stepper">
             <span class="g-step-k">Weight</span>
             <button class="g-step-btn" data-act="w-">−</button>
-            <span><span id="g-weight" class="g-step-v">--</span><span class="g-step-u">lb</span></span>
+            <span class="g-step-wrap"><span><span id="g-weight" class="g-step-v">--</span><span class="g-step-u">lb</span></span><span id="g-weight-sub" class="g-step-sub" style="display:none"></span></span>
             <button class="g-step-btn" data-act="w+">+</button>
           </div>
           <div class="g-stepper">
@@ -142,6 +142,7 @@
   </div>
 
   <script>window.GARAGE = {{ workout|tojson }}; window.G_MEDIA = {{ 'true' if has_media else 'false' }}; window.GARAGE_DRAFT = {{ (draft_state if draft_state else None)|tojson }};</script>
+  <script src="{{ url_for('static', filename='js/weight-modes.js') }}?v={{ static_version }}"></script>
   <script src="{{ url_for('static', filename='js/garage.js') }}?v={{ static_version }}"></script>
   {% endif %}
   </div>
