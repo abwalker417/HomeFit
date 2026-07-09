@@ -69,6 +69,7 @@ PUBLIC_ENDPOINTS = {
     "api_health_metric", "push_register_apns", "api_panel_summary",
     "api_food_agent_today", "api_food_agent_log", "api_food_agent_log_image",
     "api_food_agent_goals", "api_food_agent_favorites", "api_food_agent_log_favorite",
+    "api_coach_readiness", "api_coach_plan", "api_coach_rest_day", "api_coach_rest_day_clear",
     "garage", "garage_pick", "garage_choose", "garage_workout_view", "garage_complete",
     "garage_autosave",
     "garage_media", "garage_media_control", "garage_media_art", "garage_light",
@@ -777,6 +778,71 @@ def api_food_agent_log_favorite():
     database.add_food_log(uid, fav["name"], fav.get("items", []), totals, 0)
     return jsonify({"ok": True, "logged": {"description": fav["name"], "totals": totals},
                     "today": _food_day_total(uid), "goal": database.get_nutrition_goal(uid)})
+
+
+# ── Agent coach API (scoped 'coach' key; lets NyX/APEX read readiness + adjust days) ──
+def _coach_uid():
+    token = (request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
+             or request.args.get("token", "").strip())
+    return database.resolve_scoped_uid(token, "coach")
+
+
+def _coach_planned_today(uid):
+    """Today's plan day + whether it's already a rest day (weekly rest OR a
+    per-date override). date.today() is Brent-local (server runs Mountain time)."""
+    from datetime import date as _date
+    today = _date.today()
+    plan = (database.get_apex_plan(uid) or {}).get("plan") or []
+    day = plan[today.weekday() % len(plan)] if plan else None
+    override = database.is_rest_override(uid, today.isoformat())
+    planned = None
+    if day:
+        planned = {"name": day.get("name"), "focus": day.get("focus"),
+                   "rest": bool(day.get("rest")),
+                   "exercises": [e.get("name") or e.get("id") for e in day.get("exercises", [])]}
+    return today, planned, (override or bool(day and day.get("rest")))
+
+
+@app.route("/api/coach/readiness", methods=["GET"])
+def api_coach_readiness():
+    uid = _coach_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    today, planned, is_rest = _coach_planned_today(uid)
+    return jsonify({"ok": True, "date": today.isoformat(),
+                    "readiness": database.get_readiness(uid),
+                    "planned_today": planned, "already_rest": is_rest})
+
+
+@app.route("/api/coach/plan", methods=["GET"])
+def api_coach_plan():
+    uid = _coach_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    return jsonify({"ok": True, "plan": (database.get_apex_plan(uid) or {}).get("plan") or []})
+
+
+@app.route("/api/coach/rest-day", methods=["POST"])
+def api_coach_rest_day():
+    uid = _coach_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    from datetime import date as _date
+    day = ((request.get_json(silent=True) or {}).get("date") or _date.today().isoformat()).strip()
+    database.set_rest_override(uid, day)
+    _, planned, _r = _coach_planned_today(uid)
+    return jsonify({"ok": True, "rest_day": day, "replaced": planned})
+
+
+@app.route("/api/coach/rest-day/clear", methods=["POST"])
+def api_coach_rest_day_clear():
+    uid = _coach_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    from datetime import date as _date
+    day = ((request.get_json(silent=True) or {}).get("date") or _date.today().isoformat()).strip()
+    database.clear_rest_override(uid, day)
+    return jsonify({"ok": True, "cleared": day})
 
 
 @app.route("/profiles/switch", methods=["POST", "GET"])
@@ -1752,6 +1818,11 @@ def load_plan_today():
     plan = plan_data["plan"]
     day_index = day_of_week % len(plan)
     day = plan[day_index]
+    # Per-date recovery override (e.g. APEX marked today a rest day for low
+    # readiness) — a one-day thing that never rewrites the weekly plan.
+    from datetime import date as _date
+    if database.is_rest_override(uid, (body.get("date") or _date.today().isoformat())):
+        return jsonify({"rest": True, "name": "Rest Day (recovery)"})
     if day.get("rest"):
         return jsonify({"rest": True, "name": day.get("name", "Rest Day")})
     if not day.get("exercises"):

@@ -238,6 +238,14 @@ def init_db():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS rest_override (
+                user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                day        TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (user_id, day)
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS push_subscriptions (
                 endpoint          TEXT PRIMARY KEY,
                 user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1746,6 +1754,28 @@ def save_apex_plan(user_id, plan):
                ON CONFLICT(user_id) DO UPDATE SET plan_json=excluded.plan_json, created_at=excluded.created_at""",
             (user_id, json.dumps(plan), now),
         )
+
+
+def set_rest_override(user_id, day):
+    """Mark a single calendar day (YYYY-MM-DD) as a recovery/rest day WITHOUT
+    touching the weekly plan template. Used by APEX when readiness is low."""
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO rest_override (user_id, day, created_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id, day) DO NOTHING",
+            (user_id, day, datetime.now().isoformat()))
+
+
+def clear_rest_override(user_id, day):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM rest_override WHERE user_id=? AND day=?", (user_id, day))
+
+
+def is_rest_override(user_id, day):
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM rest_override WHERE user_id=? AND day=?", (user_id, day)).fetchone()
+    return bool(row)
 
 
 def get_apex_chat(user_id):

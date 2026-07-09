@@ -61,7 +61,8 @@ def evaluate(user_id, now=None):
 
     # 1) Planned training day, not trained yet, it's afternoon+.
     day = _plan_today(user_id, weekday)
-    if day and not day.get("rest") and hour >= 14 and not _trained_today(user_id, today_iso):
+    if (day and not day.get("rest") and hour >= 14 and not _trained_today(user_id, today_iso)
+            and not database.is_rest_override(user_id, today_iso)):
         candidates["untrained_plan_day"] = {
             "day_name": day.get("name") or _DAY_NAMES[weekday],
             "exercises": [e.get("name", e.get("id", "")) for e in day.get("exercises", [])][:4],
