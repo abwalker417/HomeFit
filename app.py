@@ -681,6 +681,102 @@ def api_food_favorite_delete():
     return jsonify({"ok": True, "favorites": database.get_food_favorites(uid)})
 
 
+# ── Agent food API (scoped 'food' key; lets Sage log/manage nutrition by chat) ──
+def _food_agent_uid():
+    token = (request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
+             or request.args.get("token", "").strip())
+    return database.resolve_scoped_uid(token, "food")
+
+
+@app.route("/api/food/agent/today", methods=["GET"])
+def api_food_agent_today():
+    uid = _food_agent_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    return jsonify({"ok": True, "goal": database.get_nutrition_goal(uid),
+                    "today": _food_day_total(uid), "logged": database.get_food_log_today(uid)})
+
+
+@app.route("/api/food/agent/log", methods=["POST"])
+def api_food_agent_log():
+    uid = _food_agent_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    text = ((request.get_json(silent=True) or {}).get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "no text"}), 400
+    parsed = food_parser.parse_meal(text, goal=database.get_nutrition_goal(uid))
+    items, totals = parsed.get("items", []), parsed.get("totals", {})
+    if not items:
+        return jsonify({"ok": False, "note": parsed.get("note", "couldn't identify any food")})
+    database.add_food_log(uid, text, items, totals, parsed.get("cost_usd", 0) or 0)
+    return jsonify({"ok": True, "logged": {"description": text, "totals": totals},
+                    "today": _food_day_total(uid), "goal": database.get_nutrition_goal(uid)})
+
+
+@app.route("/api/food/agent/log-image", methods=["POST"])
+def api_food_agent_log_image():
+    uid = _food_agent_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    data_url = d.get("image", "")
+    if not data_url.startswith("data:image"):
+        return jsonify({"error": "no image"}), 400
+    if len(data_url) > 8_000_000:
+        return jsonify({"error": "image too large"}), 413
+    parsed = food_parser.parse_meal_image(data_url, d.get("note", ""),
+                                          goal=database.get_nutrition_goal(uid))
+    items, totals = parsed.get("items", []), parsed.get("totals", {})
+    if not items:
+        return jsonify({"ok": False, "note": parsed.get("note", "couldn't identify food in the photo")})
+    desc = d.get("note") or ", ".join(i.get("name", "") for i in items) or "photo meal"
+    database.add_food_log(uid, desc, items, totals, parsed.get("cost_usd", 0) or 0)
+    return jsonify({"ok": True, "logged": {"description": desc, "totals": totals},
+                    "today": _food_day_total(uid), "goal": database.get_nutrition_goal(uid)})
+
+
+@app.route("/api/food/agent/goals", methods=["POST"])
+def api_food_agent_goals():
+    uid = _food_agent_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    d = request.get_json(silent=True) or {}
+    cur = database.get_nutrition_goal(uid) or {}
+    database.save_nutrition_goal(uid, d.get("calories", cur.get("calories")),
+                                 d.get("protein_g", cur.get("protein_g")),
+                                 d.get("carbs_g", cur.get("carbs_g")),
+                                 d.get("fat_g", cur.get("fat_g")))
+    return jsonify({"ok": True, "goal": database.get_nutrition_goal(uid)})
+
+
+@app.route("/api/food/agent/favorites", methods=["GET"])
+def api_food_agent_favorites():
+    uid = _food_agent_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    favs = database.get_food_favorites(uid)
+    return jsonify({"ok": True, "favorites": [
+        {"id": f["id"], "name": f["name"], "calories": f["calories"],
+         "protein_g": f["protein_g"]} for f in favs]})
+
+
+@app.route("/api/food/agent/log-favorite", methods=["POST"])
+def api_food_agent_log_favorite():
+    uid = _food_agent_uid()
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    fid = (request.get_json(silent=True) or {}).get("id")
+    fav = next((f for f in database.get_food_favorites(uid) if str(f["id"]) == str(fid)), None)
+    if not fav:
+        return jsonify({"error": "favorite not found"}), 404
+    totals = {"calories": fav["calories"], "protein_g": fav["protein_g"],
+              "carbs_g": fav["carbs_g"], "fat_g": fav["fat_g"]}
+    database.add_food_log(uid, fav["name"], fav.get("items", []), totals, 0)
+    return jsonify({"ok": True, "logged": {"description": fav["name"], "totals": totals},
+                    "today": _food_day_total(uid), "goal": database.get_nutrition_goal(uid)})
+
+
 @app.route("/profiles/switch", methods=["POST", "GET"])
 def profile_switch_out():
     session.pop("user_id", None)
