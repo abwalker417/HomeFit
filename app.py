@@ -709,6 +709,7 @@ def api_food_agent_log():
     text = ((request.get_json(silent=True) or {}).get("text") or "").strip()
     if not text:
         return jsonify({"error": "no text"}), 400
+    import food_parser
     parsed = food_parser.parse_meal(text, goal=database.get_nutrition_goal(uid))
     items, totals = parsed.get("items", []), parsed.get("totals", {})
     if not items:
@@ -729,6 +730,7 @@ def api_food_agent_log_image():
         return jsonify({"error": "no image"}), 400
     if len(data_url) > 8_000_000:
         return jsonify({"error": "image too large"}), 413
+    import food_parser
     parsed = food_parser.parse_meal_image(data_url, d.get("note", ""),
                                           goal=database.get_nutrition_goal(uid))
     items, totals = parsed.get("items", []), parsed.get("totals", {})
