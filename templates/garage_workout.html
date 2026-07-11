@@ -49,6 +49,7 @@
         <div class="g-who-name">{{ user.name }}</div>
         <div class="g-who-plan">{{ workout.name }}</div>
         <div class="g-elapsed"><span class="g-elapsed-k">TIME</span><span id="g-elapsed" class="g-elapsed-v">0:00</span></div>
+        <button id="g-add" class="g-switch g-add" type="button">+ Add exercise</button>
         <a class="g-switch" href="{{ url_for('garage_choose') }}">⇄ Switch</a>
       </div>
 
@@ -121,6 +122,24 @@
     <div class="g-demo-hint">tap anywhere to close</div>
   </div>
 
+  <div id="g-add-modal" class="g-add-ov hidden">
+    <div class="g-add-head">
+      <span class="g-add-title">Add exercise</span>
+      <button id="g-add-close" class="g-add-close" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="g-add-filter">
+      <input id="g-add-search" type="search" placeholder="Search exercises…" autocomplete="off">
+      <div class="g-add-cats">
+        <button class="g-cat active" data-cat="all" type="button">All</button>
+        <button class="g-cat" data-cat="upper" type="button">Upper</button>
+        <button class="g-cat" data-cat="legs" type="button">Legs</button>
+        <button class="g-cat" data-cat="core" type="button">Core</button>
+        <button class="g-cat" data-cat="cardio" type="button">Cardio</button>
+      </div>
+    </div>
+    <ul id="g-add-list" class="g-add-list"></ul>
+  </div>
+
   <div id="g-done" class="g-done hidden">
     <div class="g-done-card">
       <div class="g-done-left">
@@ -141,7 +160,7 @@
     </div>
   </div>
 
-  <script>window.GARAGE = {{ workout|tojson }}; window.G_MEDIA = {{ 'true' if has_media else 'false' }}; window.GARAGE_DRAFT = {{ (draft_state if draft_state else None)|tojson }};</script>
+  <script>window.GARAGE = {{ workout|tojson }}; window.G_MEDIA = {{ 'true' if has_media else 'false' }}; window.GARAGE_DRAFT = {{ (draft_state if draft_state else None)|tojson }}; window.GARAGE_LIB = {{ library|tojson }};</script>
   <script src="{{ url_for('static', filename='js/weight-modes.js') }}?v={{ static_version }}"></script>
   <script src="{{ url_for('static', filename='js/garage.js') }}?v={{ static_version }}"></script>
   {% endif %}

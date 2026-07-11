@@ -222,5 +222,68 @@
     loadNP(); setInterval(loadNP, 4000);
   }
 
+  // ---- add exercise from the library (mirrors the mobile in-workout add) ----
+  function addExercise(x) {
+    const existing = exs.findIndex((z) => String(z.id) === String(x.id));
+    if (existing !== -1) { cur = existing; render(); return; }  // already in — just jump to it
+    const e = {
+      id: x.id, name: x.name, sets: Math.max(1, x.default_sets || 3), reps: x.default_reps || 10,
+      unit: x.unit || "reps", rest: x.rest_seconds || 60, last_weight: null,
+      equipment: x.equipment, anim: x.anim, instructions: x.instructions || "",
+    };
+    e.logged = [];
+    e.mode = WM.modeOf(e);
+    e.workW = WM.snap(e.mode, 0);
+    e.workR = e.reps;
+    exs.push(e);
+    cur = exs.length - 1;
+    render(); saveDraft();
+  }
+
+  (function setupAdd() {
+    const btn = $("g-add"), modal = $("g-add-modal");
+    if (!btn || !modal) return;
+    const lib = Array.isArray(window.GARAGE_LIB) ? window.GARAGE_LIB : [];
+    const listEl = $("g-add-list"), search = $("g-add-search");
+    let cat = "all";
+    const inWorkout = (id) => exs.some((z) => String(z.id) === String(id));
+    function renderLib() {
+      const q = (search.value || "").trim().toLowerCase();
+      listEl.innerHTML = "";
+      lib.filter((x) => (cat === "all" || x.category === cat) && (!q || x.name.toLowerCase().includes(q)))
+        .slice(0, 120).forEach((x) => {
+          const li = document.createElement("li");
+          li.className = "g-add-item";
+          const has = inWorkout(x.id);
+          const eq = x.equipment && x.equipment !== "bodyweight" ? " · " + x.equipment : "";
+          li.innerHTML = `<div class="g-add-info"><span class="g-add-name"></span>` +
+            `<span class="g-add-meta"></span></div>` +
+            `<button class="g-add-btn2" ${has ? "disabled" : ""}>${has ? "✓ In" : "+ Add"}</button>`;
+          li.querySelector(".g-add-name").textContent = x.name;
+          li.querySelector(".g-add-meta").textContent = (x.category || "") + eq;
+          if (!has) li.querySelector(".g-add-btn2").addEventListener("click", () => { addExercise(x); close(); });
+          listEl.appendChild(li);
+        });
+      if (!listEl.children.length) listEl.innerHTML = '<li class="g-add-empty">No matches</li>';
+    }
+    function setCat(c, el) {
+      cat = c;
+      document.querySelectorAll(".g-cat").forEach((k) => k.classList.toggle("active", k === el));
+      renderLib();
+    }
+    function open() {
+      search.value = "";
+      setCat("all", document.querySelector('.g-cat[data-cat="all"]'));
+      modal.classList.remove("hidden");
+    }
+    function close() { modal.classList.add("hidden"); }
+    btn.addEventListener("click", open);
+    $("g-add-close").addEventListener("click", close);
+    modal.addEventListener("click", (ev) => { if (ev.target === modal) close(); });
+    ["input", "keyup", "search", "change"].forEach((ev) => search.addEventListener(ev, renderLib));
+    document.querySelectorAll(".g-cat").forEach((c) =>
+      c.addEventListener("click", () => setCat(c.dataset.cat, c)));
+  })();
+
   render();
 })();

@@ -1352,6 +1352,29 @@ def _garage_workout_for_type(uid, wtype):
     return {"rest": False, "name": GARAGE_TYPES[wtype], "exercises": exercises}
 
 
+def _garage_library(uid):
+    """Full available-exercise library for the panel's 'Add exercise' picker — mirrors
+    the mobile in-workout add (embedded client-side, no per-tap network round-trip).
+    Available, non-ignored moves only, so the kiosk list stays to what this user can do."""
+    from workout_logic import all_exercises_with_status, load_exercises as _load_ex
+    profile = database.get_profile(uid) or {}
+    raw = {e["id"]: e for e in _load_ex()}
+    anims = _load_exercise_animations()
+    lib = []
+    for st in all_exercises_with_status(profile):
+        if not st.get("available") or st.get("ignored"):
+            continue
+        r = raw.get(st["id"], {})
+        lib.append({
+            "id": st["id"], "name": st["name"], "category": st["category"],
+            "equipment": st.get("equipment"),
+            "default_sets": r.get("default_sets", 3), "default_reps": r.get("default_reps", 10),
+            "unit": r.get("unit", "reps"), "rest_seconds": r.get("rest_seconds", 60),
+            "instructions": r.get("instructions", ""), "anim": anims.get(st["id"]),
+        })
+    return lib
+
+
 def _accent_ctx(uid):
     """Accent hex/rgb/name for a garage user (the panel has no logged-in session,
     so we resolve it from the picked garage_user, mirroring inject_globals)."""
@@ -1401,6 +1424,7 @@ def garage_workout_view():
                            user=database.get_user(uid), uid=uid, wtype=wtype,
                            has_media=bool(_garage_media_cfg().get("player")),
                            draft_state=draft_state,
+                           library=_garage_library(uid),
                            **_accent_ctx(uid))
 
 
