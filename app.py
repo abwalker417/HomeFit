@@ -378,8 +378,9 @@ def set_accent():
 @app.route("/api/away", methods=["POST"])
 def api_away_start():
     """Start (or schedule/backdate) away mode — travel/vacation/sick days that
-    pause streaks, relax weekly targets and mute training nudges."""
-    uid = session.get("user_id")
+    pause streaks, relax weekly targets and mute training nudges.
+    Auth: logged-in session (the UI) OR a coach-scoped token (NyX)."""
+    uid = session.get("user_id") or _coach_uid()
     if not uid:
         return jsonify({"error": "unauthorized"}), 401
     from datetime import date
@@ -405,8 +406,9 @@ def api_away_start():
 
 @app.route("/api/away/end", methods=["POST"])
 def api_away_end():
-    """"I'm back" — close the active away window (and drop scheduled ones)."""
-    uid = session.get("user_id")
+    """"I'm back" — close the active away window (and drop scheduled ones).
+    Auth: logged-in session (the UI) OR a coach-scoped token (NyX)."""
+    uid = session.get("user_id") or _coach_uid()
     if not uid:
         return jsonify({"error": "unauthorized"}), 401
     database.end_streak_pause(uid)
