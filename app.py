@@ -70,7 +70,7 @@ PUBLIC_ENDPOINTS = {
     "api_food_agent_today", "api_food_agent_log", "api_food_agent_log_image",
     "api_food_agent_goals", "api_food_agent_favorites", "api_food_agent_log_favorite",
     "api_coach_readiness", "api_coach_plan", "api_coach_rest_day", "api_coach_rest_day_clear",
-    "api_coach_swap_options", "api_coach_swap",
+    "api_coach_swap_options", "api_coach_swap", "api_away_start", "api_away_end",
     "garage", "garage_pick", "garage_choose", "garage_workout_view", "garage_complete",
     "garage_autosave",
     "garage_media", "garage_media_control", "garage_media_art", "garage_light",
