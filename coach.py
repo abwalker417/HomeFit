@@ -8,6 +8,10 @@ import database
 PEAKAI_URL = "http://192.168.68.33:4000"
 PEAKAI_API_KEY = "peak-homefit-key"  # dedicated key -> HomeFit's spend is tagged 'homefit' in PeakAI (was the shared 'peak-homelab-key', which hid it)
 PEAKAI_MODEL = "claude-sonnet"  # Sonnet 4.6 — Haiku was unreliable at relative-date / plan-edit commands; local (ornith/mistral/qwen) tested 2026-07-11: too slow (50-70s) or hallucinated exercise IDs
+# Only the STRUCTURED/interactive work (workout generation, coach chat/plan-edits) needs
+# Sonnet. The high-volume prose (post-workout insights, brief, digest, nudges) goes to a
+# cheap model — "only fire Sonnet when it's needed."
+MODEL_CHEAP = "gpt-4o-mini"
 
 SYSTEM_PROMPT = """You are APEX, a personal AI fitness coach embedded in HomeFit.
 You have access to the user's complete fitness profile and workout history.
@@ -20,7 +24,7 @@ You keep a persistent MEMORY about this user (shown in the data block when prese
 IMPORTANT: You cannot save plans yourself. When you propose a plan change, always end with "Say 'save the change' to commit it." Never claim a plan has been saved unless the user has explicitly asked you to save/commit/update it."""
 
 
-def _peakai_call(messages, max_tokens=1024, timeout=90):
+def _peakai_call(messages, max_tokens=1024, timeout=90, model=None):
     resp = requests.post(
         f"{PEAKAI_URL}/v1/chat/completions",
         headers={
@@ -28,7 +32,7 @@ def _peakai_call(messages, max_tokens=1024, timeout=90):
             "Content-Type": "application/json",
         },
         json={
-            "model": PEAKAI_MODEL,
+            "model": model or PEAKAI_MODEL,
             "messages": messages,
             "stream": False,
         },
@@ -63,12 +67,12 @@ def _parse_json_safe(raw):
         return json.loads(fixed)
 
 
-def _generate(prompt, json_mode=False, system=None, max_tokens=1024, timeout=90):
+def _generate(prompt, json_mode=False, system=None, max_tokens=1024, timeout=90, model=None):
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
-    return _peakai_call(messages, max_tokens=max_tokens, timeout=timeout)
+    return _peakai_call(messages, max_tokens=max_tokens, timeout=timeout, model=model)
 
 
 def is_available():
@@ -560,7 +564,7 @@ The user just finished: {last.get('day_name', 'Workout')} ({last.get('duration_s
 
 Write a 2-3 sentence post-workout insight. Reference something specific from their sets/weights if available. One thing done well, one concrete tip for next time. Be direct and brief — no greeting, no sign-off."""
 
-    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
+    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60, model=MODEL_CHEAP)
 
 
 _NUDGE_GUIDE = {
@@ -601,7 +605,7 @@ to them (use their name/memory naturally if it fits), under 120 characters, plai
 text, no emoji-spam (one tasteful emoji max), no hashtags. Return ONLY JSON:
 {{"title": "2-4 word title", "body": "the one-line message"}}"""
     obj = _parse_json_safe(_generate(prompt, json_mode=True, system=SYSTEM_PROMPT,
-                                     max_tokens=200, timeout=45))
+                                     max_tokens=200, timeout=45, model=MODEL_CHEAP))
     if isinstance(obj, dict) and obj.get("body"):
         title = str(obj.get("title") or "HomeFit").strip()[:40]
         body = str(obj["body"]).strip().strip('"')[:160]
@@ -680,7 +684,7 @@ no headers, no greeting, no sign-off). Cover ONLY the areas that have data:
 - Nutrition: protein/calorie adherence if logged
 - One specific focus for next week that ties it together (recovery-aware)."""
 
-    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60)
+    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60, model=MODEL_CHEAP)
 
 
 def generate_daily_brief(coaching_data):
@@ -749,7 +753,7 @@ Write the user's DAILY DIGEST — a real recap of yesterday and what today looks
 Reference only data that exists. Output ONLY the digest sentences — no title, date,
 header, separators, bullets, markdown, greeting, sign-off, or character count."""
 
-    return _clean_brief(_generate(prompt, system=SYSTEM_PROMPT, max_tokens=400, timeout=60))
+    return _clean_brief(_generate(prompt, system=SYSTEM_PROMPT, max_tokens=400, timeout=60, model=MODEL_CHEAP))
 
 
 def _clean_brief(text):
