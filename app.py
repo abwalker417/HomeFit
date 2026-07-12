@@ -1092,7 +1092,18 @@ def index():
             "kcal": kcal,
         }
     else:
-        stats["today_workout"] = None
+        # No gym session — an Apple-recorded workout (swim, ride, golf) also
+        # completes the day; same rule as the streak (counts_as_workout_session).
+        ext = database.get_today_external_sessions(uid)
+        if ext:
+            e = ext[0]
+            stats["today_workout"] = {
+                "name": e.get("workout_type") or "Workout",
+                "duration_min": int(e.get("duration_minutes") or 0),
+                "kcal": int(e.get("kcal") or 0),
+            }
+        else:
+            stats["today_workout"] = None
     start_w = stats.get("starting_weight") or profile.get("current_weight")
     current_w = profile.get("current_weight")
     goal_w = profile.get("goal_weight")
@@ -2587,8 +2598,10 @@ def api_panel_summary():
                        "exercises": len(day.get("exercises", []))}
     recent = database.get_workout_history(uid, limit=10)
     today_workouts = [w for w in recent if (w.get("completed_at") or "").startswith(today)]
-    trained = bool(today_workouts)
-    workout_minutes = sum((w.get("duration_seconds") or 0) // 60 for w in today_workouts)
+    ext_today = database.get_today_external_sessions(uid)
+    trained = bool(today_workouts or ext_today)
+    workout_minutes = (sum((w.get("duration_seconds") or 0) // 60 for w in today_workouts)
+                       + sum(int(c.get("duration_minutes") or 0) for c in ext_today))
     if workout:
         workout["done"] = trained
 

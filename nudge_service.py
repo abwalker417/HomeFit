@@ -29,7 +29,8 @@ def _trained_today(user_id, today_iso):
     for w in database.get_workout_history(user_id, limit=10):
         if (w.get("completed_at") or "").startswith(today_iso):
             return True
-    return False
+    # Apple-recorded sessions (swim, ride, golf) complete the day too
+    return bool(database.get_today_external_sessions(user_id))
 
 
 def _plan_today(user_id, weekday):

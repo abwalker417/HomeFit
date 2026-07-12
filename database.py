@@ -1144,6 +1144,16 @@ def counts_as_workout_session(c):
     return wtype not in ("", "walking") or (c.get("duration_minutes") or 0) >= 45
 
 
+def get_today_external_sessions(user_id):
+    """Today's Apple-recorded activities that count as a workout session
+    (counts_as_workout_session), newest first — so a swim/ride/golf round shows
+    as the completed workout everywhere a HomeFit gym session does."""
+    today = datetime.now().date().isoformat()
+    return [c for c in get_external_workouts(user_id, days=2)
+            if (c.get("started_at") or "")[:10] == today
+            and counts_as_workout_session(c)]
+
+
 def record_external_workout(user_id, source, workout_type, started_at, ended_at,
                             duration_minutes, kcal, distance_mi, avg_hr, status):
     with get_connection() as conn:
