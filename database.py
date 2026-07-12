@@ -9,7 +9,7 @@ import json
 import os
 import secrets
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from typing import Optional
@@ -1144,13 +1144,24 @@ def counts_as_workout_session(c):
     return wtype not in ("", "walking") or (c.get("duration_minutes") or 0) >= 45
 
 
+def external_local_date(started_at):
+    """external_workouts.started_at is naive UTC (see /api/external-workout's
+    _parse) — bucket by the LOCAL calendar day, or evening cardio (after 6 PM
+    Mountain) gets credited to the next day."""
+    try:
+        return (datetime.fromisoformat(started_at)
+                .replace(tzinfo=timezone.utc).astimezone().date().isoformat())
+    except (ValueError, TypeError):
+        return (started_at or "")[:10]
+
+
 def get_today_external_sessions(user_id):
     """Today's Apple-recorded activities that count as a workout session
     (counts_as_workout_session), newest first — so a swim/ride/golf round shows
     as the completed workout everywhere a HomeFit gym session does."""
     today = datetime.now().date().isoformat()
     return [c for c in get_external_workouts(user_id, days=2)
-            if (c.get("started_at") or "")[:10] == today
+            if external_local_date(c.get("started_at")) == today
             and counts_as_workout_session(c)]
 
 
@@ -1246,7 +1257,7 @@ def workout_day_dates(user_id, since_iso=None):
     for c in get_external_workouts(user_id, days=400, limit=5000):
         if not counts_as_workout_session(c):
             continue
-        d = (c.get("started_at") or "")[:10]
+        d = external_local_date(c.get("started_at"))
         if d and (since_iso is None or d >= since_iso):
             days.add(d)
     return days

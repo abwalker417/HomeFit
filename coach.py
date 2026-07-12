@@ -191,21 +191,24 @@ def _build_context(coaching_data):
     externals = coaching_data.get("external_workouts") or []
     goal_days = profile.get("days_per_week") or 4
     hf_week = [w for w in workouts if (w.get("completed_at") or "")[:10] >= monday_iso]
+    # started_at is naive UTC — bucket by LOCAL day (external_local_date) or
+    # evening cardio gets credited to the next day.
     ext_week = [c for c in externals
-                if (c.get("started_at") or "")[:10] >= monday_iso
+                if database.external_local_date(c.get("started_at")) >= monday_iso
                 and database.counts_as_workout_session(c)]
     workout_days = {(w.get("completed_at") or "")[:10] for w in hf_week}
-    workout_days |= {(c.get("started_at") or "")[:10] for c in ext_week}
+    workout_days |= {database.external_local_date(c.get("started_at")) for c in ext_week}
     workout_days.discard("")
     sessions = len(workout_days)
     hf_list = ", ".join(f"{_dow(w.get('completed_at',''))} {w.get('day_name') or 'workout'}"
                         for w in hf_week) or "none yet"
-    ext_list = ", ".join(f"{_dow(c.get('started_at',''))} {c.get('workout_type','activity')} "
+    ext_list = ", ".join(f"{_dow(database.external_local_date(c.get('started_at')))} "
+                         f"{c.get('workout_type','activity')} "
                          f"({c.get('duration_minutes')}min)" for c in ext_week) or "none"
     # Separate cardio-days goal: distinct days this week with ANY logged cardio/walk.
     cardio_goal = profile.get("cardio_days_per_week") or 5
-    cardio_days = sorted({(c.get("started_at") or "")[:10] for c in externals
-                          if (c.get("started_at") or "")[:10] >= monday_iso})
+    cardio_days = sorted({d for d in (database.external_local_date(c.get("started_at"))
+                                      for c in externals) if d >= monday_iso})
     cardio_dow = ", ".join(_dow(d) for d in cardio_days) or "none yet"
     # Away mode (travel/vacation/sick) relaxes both weekly goals: each paused
     # day this week reduces the targets by one (floor 0 = week fully excused).
@@ -273,7 +276,7 @@ def _build_context(coaching_data):
                      "workout (e.g. golf) or long session that ALSO counts as a workout day. Walks are "
                      "CARDIO, not workouts — never describe a walk as a workout:")
         for c in externals[:6]:
-            d = (c.get("started_at") or "")[:10]
+            d = database.external_local_date(c.get("started_at"))
             kcal = f", {c.get('kcal')} kcal" if c.get("kcal") else ""
             tag = "[WORKOUT]" if database.counts_as_workout_session(c) else "[CARDIO]"
             lines.append(f"- {_dow(d)} {d}: {c.get('workout_type','activity')} {c.get('duration_minutes')}min{kcal} {tag}")
@@ -628,10 +631,10 @@ def generate_weekly_digest(coaching_data):
     # Long external sessions (golf / cardio >=45 min) also count toward the weekly
     # goal; short daily walks do not.
     ext_week = [c for c in (coaching_data.get("external_workouts") or [])
-                if (c.get("started_at") or "")[:10] >= week_start_str
+                if database.external_local_date(c.get("started_at")) >= week_start_str
                 and database.counts_as_workout_session(c)]
     week_days = {(w.get("completed_at") or "")[:10] for w in this_week}
-    week_days |= {(c.get("started_at") or "")[:10] for c in ext_week}
+    week_days |= {database.external_local_date(c.get("started_at")) for c in ext_week}
     week_days.discard("")
     week_sessions = len(week_days)
     goal_days = int(profile.get("days_per_week") or 4)
@@ -654,8 +657,9 @@ def generate_weekly_digest(coaching_data):
 
     tl = coaching_data.get("training_load") or {}
     cardio_goal = int(profile.get("cardio_days_per_week") or 5)
-    cardio_days = {(c.get("started_at") or "")[:10] for c in (coaching_data.get("external_workouts") or [])
-                   if (c.get("started_at") or "")[:10] >= week_start_str}
+    cardio_days = {d for d in (database.external_local_date(c.get("started_at"))
+                               for c in (coaching_data.get("external_workouts") or []))
+                   if d >= week_start_str}
     cardio_note = f"\nCardio: {len(cardio_days)} of {cardio_goal} walk/cardio days hit this week."
 
     activity_note = ""

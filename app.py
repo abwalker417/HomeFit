@@ -275,9 +275,8 @@ def _progress_stats(user_id):
     # Separate cardio goal: distinct days this week with any logged walk/cardio
     stats["cardio_goal"] = profile.get("cardio_days_per_week") or 5
     stats["cardio_goal_week"] = max(0, stats["cardio_goal"] - pause["paused_days"])
-    cardio_dates = {(c.get("started_at") or "")[:10] for c in externals
-                    if (c.get("started_at") or "")[:10] >= monday_iso}
-    cardio_dates.discard("")
+    cardio_dates = {database.external_local_date(c.get("started_at")) for c in externals}
+    cardio_dates = {d for d in cardio_dates if d and d >= monday_iso}
     stats["cardio_days"] = len(cardio_dates)
     # Today is the last chance to keep the weekly target reachable
     stats["must_train_today"] = (
