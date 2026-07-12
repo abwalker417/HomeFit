@@ -6,8 +6,8 @@ import requests
 import database
 
 PEAKAI_URL = "http://192.168.68.33:4000"
-PEAKAI_API_KEY = "peak-homelab-key"
-PEAKAI_MODEL = "claude-sonnet"  # Sonnet 4.6 — Haiku was unreliable at relative-date / plan-edit commands
+PEAKAI_API_KEY = "peak-homefit-key"  # dedicated key -> HomeFit's spend is tagged 'homefit' in PeakAI (was the shared 'peak-homelab-key', which hid it)
+PEAKAI_MODEL = "claude-sonnet"  # Sonnet 4.6 — Haiku was unreliable at relative-date / plan-edit commands; local (ornith/mistral/qwen) tested 2026-07-11: too slow (50-70s) or hallucinated exercise IDs
 
 SYSTEM_PROMPT = """You are APEX, a personal AI fitness coach embedded in HomeFit.
 You have access to the user's complete fitness profile and workout history.
