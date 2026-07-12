@@ -83,6 +83,19 @@ def is_available():
         return False
 
 
+def _uid(coaching_data):
+    return (coaching_data.get("profile") or {}).get("user_id")
+
+
+def _user_now(coaching_data):
+    """Current naive datetime in the user's timezone (profile.timezone)."""
+    uid = _uid(coaching_data)
+    if uid:
+        return database.user_now(uid)
+    from datetime import datetime as _dt
+    return _dt.now()
+
+
 def _today_iso(coaching_data):
     """User's local 'today' as ISO, preferring the client-supplied date."""
     from datetime import date as _date
@@ -92,7 +105,7 @@ def _today_iso(coaching_data):
             return _date.fromisoformat(ds).isoformat()
         except Exception:
             pass
-    return _date.today().isoformat()
+    return _user_now(coaching_data).date().isoformat()
 
 
 def _build_context(coaching_data):
@@ -114,17 +127,15 @@ def _build_context(coaching_data):
         try:
             today = _date.fromisoformat(local_date_str)
         except Exception:
-            today = _date.today()
+            today = _user_now(coaching_data).date()
     else:
-        today = _date.today()
+        today = _user_now(coaching_data).date()
         today_label = f"{day_names[today.weekday()]}, {today.isoformat()}"
 
     # Time of day so APEX greets/advises correctly (it was telling users to
     # "get some sleep" in the morning because it only knew the date, not the
-    # hour). Server (CT 115) is America/Denver = the users' local time; prefer
-    # a client-supplied time if present.
-    from datetime import datetime as _dt
-    now_local = _dt.now()
+    # hour). Uses profile.timezone; prefers a client-supplied time if present.
+    now_local = _user_now(coaching_data)
     clock_str = coaching_data.get("local_time")  # e.g. "07:42"
     try:
         if clock_str:
@@ -191,23 +202,24 @@ def _build_context(coaching_data):
     externals = coaching_data.get("external_workouts") or []
     goal_days = profile.get("days_per_week") or 4
     hf_week = [w for w in workouts if (w.get("completed_at") or "")[:10] >= monday_iso]
-    # started_at is naive UTC — bucket by LOCAL day (external_local_date) or
-    # evening cardio gets credited to the next day.
+    # started_at is naive UTC — bucket by the USER's local day (external_local_date)
+    # or evening cardio gets credited to the next day.
+    uid = _uid(coaching_data)
     ext_week = [c for c in externals
-                if database.external_local_date(c.get("started_at")) >= monday_iso
+                if database.external_local_date(c.get("started_at"), uid) >= monday_iso
                 and database.counts_as_workout_session(c)]
     workout_days = {(w.get("completed_at") or "")[:10] for w in hf_week}
-    workout_days |= {database.external_local_date(c.get("started_at")) for c in ext_week}
+    workout_days |= {database.external_local_date(c.get("started_at"), uid) for c in ext_week}
     workout_days.discard("")
     sessions = len(workout_days)
     hf_list = ", ".join(f"{_dow(w.get('completed_at',''))} {w.get('day_name') or 'workout'}"
                         for w in hf_week) or "none yet"
-    ext_list = ", ".join(f"{_dow(database.external_local_date(c.get('started_at')))} "
+    ext_list = ", ".join(f"{_dow(database.external_local_date(c.get('started_at'), uid))} "
                          f"{c.get('workout_type','activity')} "
                          f"({c.get('duration_minutes')}min)" for c in ext_week) or "none"
     # Separate cardio-days goal: distinct days this week with ANY logged cardio/walk.
     cardio_goal = profile.get("cardio_days_per_week") or 5
-    cardio_days = sorted({d for d in (database.external_local_date(c.get("started_at"))
+    cardio_days = sorted({d for d in (database.external_local_date(c.get("started_at"), uid)
                                       for c in externals) if d >= monday_iso})
     cardio_dow = ", ".join(_dow(d) for d in cardio_days) or "none yet"
     # Away mode (travel/vacation/sick) relaxes both weekly goals: each paused
@@ -276,7 +288,7 @@ def _build_context(coaching_data):
                      "workout (e.g. golf) or long session that ALSO counts as a workout day. Walks are "
                      "CARDIO, not workouts — never describe a walk as a workout:")
         for c in externals[:6]:
-            d = database.external_local_date(c.get("started_at"))
+            d = database.external_local_date(c.get("started_at"), uid)
             kcal = f", {c.get('kcal')} kcal" if c.get("kcal") else ""
             tag = "[WORKOUT]" if database.counts_as_workout_session(c) else "[CARDIO]"
             lines.append(f"- {_dow(d)} {d}: {c.get('workout_type','activity')} {c.get('duration_minutes')}min{kcal} {tag}")
@@ -622,7 +634,8 @@ def generate_weekly_digest(coaching_data):
     context = _build_context(coaching_data)
     workouts = coaching_data.get("recent_workouts") or []
     profile = coaching_data.get("profile") or {}
-    today = date.today()
+    uid = _uid(coaching_data)
+    today = _user_now(coaching_data).date()
     days_since_monday = today.weekday()
     week_start_date = today - timedelta(days=days_since_monday)
     week_start_str = week_start_date.isoformat()
@@ -631,10 +644,10 @@ def generate_weekly_digest(coaching_data):
     # Long external sessions (golf / cardio >=45 min) also count toward the weekly
     # goal; short daily walks do not.
     ext_week = [c for c in (coaching_data.get("external_workouts") or [])
-                if database.external_local_date(c.get("started_at")) >= week_start_str
+                if database.external_local_date(c.get("started_at"), uid) >= week_start_str
                 and database.counts_as_workout_session(c)]
     week_days = {(w.get("completed_at") or "")[:10] for w in this_week}
-    week_days |= {database.external_local_date(c.get("started_at")) for c in ext_week}
+    week_days |= {database.external_local_date(c.get("started_at"), uid) for c in ext_week}
     week_days.discard("")
     week_sessions = len(week_days)
     goal_days = int(profile.get("days_per_week") or 4)
@@ -657,7 +670,7 @@ def generate_weekly_digest(coaching_data):
 
     tl = coaching_data.get("training_load") or {}
     cardio_goal = int(profile.get("cardio_days_per_week") or 5)
-    cardio_days = {d for d in (database.external_local_date(c.get("started_at"))
+    cardio_days = {d for d in (database.external_local_date(c.get("started_at"), uid)
                                for c in (coaching_data.get("external_workouts") or []))
                    if d >= week_start_str}
     cardio_note = f"\nCardio: {len(cardio_days)} of {cardio_goal} walk/cardio days hit this week."
@@ -693,9 +706,10 @@ no headers, no greeting, no sign-off). Cover ONLY the areas that have data:
 
 def generate_daily_brief(coaching_data):
     """Short morning push: yesterday's training + nutrition, today's focus."""
-    from datetime import date, timedelta
+    from datetime import timedelta
     context = _build_context(coaching_data)
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    user_today = _user_now(coaching_data).date()
+    yesterday = (user_today - timedelta(days=1)).isoformat()
 
     workouts = coaching_data.get("recent_workouts") or []
     trained = [w for w in workouts if (w.get("completed_at") or "").startswith(yesterday)]
@@ -732,7 +746,7 @@ def generate_daily_brief(coaching_data):
     today_note = ""
     plan = coaching_data.get("apex_plan")
     if plan:
-        wd = date.today().weekday()
+        wd = user_today.weekday()
         if wd < len(plan):
             day = plan[wd]
             today_note = " Today's plan: " + ("a rest day." if day.get("rest")

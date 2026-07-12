@@ -48,7 +48,7 @@ def evaluate(user_id, now=None):
 
     Time-aware: meal nudges only fire in the evening, the training nudge from
     mid-afternoon. The cron's run time also gates this."""
-    now = now or datetime.now()
+    now = now or database.user_now(user_id)
     hour = now.hour
     today_iso = now.date().isoformat()
     weekday = now.weekday()

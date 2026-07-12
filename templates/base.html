@@ -107,6 +107,22 @@
         server: window.location.origin
       });
     }
+    // Report the device timezone so streaks/briefs/day-crediting follow you
+    // when traveling. Only POSTs when it differs from what this device last
+    // reported for this profile (shared devices: keyed per user).
+    try {
+      var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      var tzKey = 'homefit_tz_{{ current_user.id }}';
+      if (tz && localStorage.getItem(tzKey) !== tz) {
+        fetch('/api/timezone', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({tz: tz})
+        }).then(function (r) {
+          if (r.ok) localStorage.setItem(tzKey, tz);
+        }).catch(function () {});
+      }
+    } catch (e) {}
   </script>
   {% endif %}
   {% block scripts %}{% endblock %}

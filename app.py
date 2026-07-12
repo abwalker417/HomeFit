@@ -244,7 +244,7 @@ def _progress_stats(user_id):
     stats.setdefault("last_workout", None)
     stats.setdefault("weight_change", None)
     history = database.get_workout_history(user_id)
-    today = datetime.now().date()
+    today = database.user_now(user_id).date()
     # weekday(): Mon=0 … Sun=6 — roll back to the most recent Sunday
     days_since_sunday = (today.weekday() + 1) % 7
     week_start = datetime.combine(today - timedelta(days=days_since_sunday), datetime.min.time()).isoformat()
@@ -275,7 +275,7 @@ def _progress_stats(user_id):
     # Separate cardio goal: distinct days this week with any logged walk/cardio
     stats["cardio_goal"] = profile.get("cardio_days_per_week") or 5
     stats["cardio_goal_week"] = max(0, stats["cardio_goal"] - pause["paused_days"])
-    cardio_dates = {database.external_local_date(c.get("started_at")) for c in externals}
+    cardio_dates = {database.external_local_date(c.get("started_at"), user_id) for c in externals}
     cardio_dates = {d for d in cardio_dates if d and d >= monday_iso}
     stats["cardio_days"] = len(cardio_dates)
     # Today is the last chance to keep the weekly target reachable
@@ -290,7 +290,7 @@ def _progress_stats(user_id):
     if stats["last_workout"]:
         try:
             last_dt = datetime.fromisoformat(stats["last_workout"])
-            stats["days_since_workout"] = (datetime.now() - last_dt).days
+            stats["days_since_workout"] = (database.user_now(user_id) - last_dt).days
         except Exception:
             stats["days_since_workout"] = None
     else:
@@ -372,6 +372,21 @@ def set_accent():
         return jsonify({"error": "invalid color"}), 400
     database.set_accent_color(uid, color)
     return jsonify({"ok": True, "color": color, "accent_rgb": _accent_rgb(color)})
+
+
+@app.route("/api/timezone", methods=["POST"])
+def api_timezone():
+    """Device-reported IANA timezone (base.html posts it on page load) — drives
+    all per-user 'what day is it' logic, so travel just works."""
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    tz = (request.get_json(silent=True) or {}).get("tz", "")
+    if tz == database.get_user_timezone(uid):
+        return jsonify({"ok": True, "tz": tz, "changed": False})
+    if not database.set_user_timezone(uid, tz):
+        return jsonify({"error": "invalid timezone"}), 400
+    return jsonify({"ok": True, "tz": tz, "changed": True})
 
 
 @app.route("/api/away", methods=["POST"])
@@ -570,8 +585,7 @@ def log_food_page():
     if not goal:
         database.save_nutrition_goal(uid, 2000, 120, 200, 65)
         goal = database.get_nutrition_goal(uid)
-    from datetime import date as _date
-    _today = _date.today().isoformat()
+    _today = database.user_today_iso(uid)
     past = [d for d in database.get_food_log_days(uid, days=14) if d["meal_date"] != _today]
     return render_template("log_food.html",
                            today_foods=database.get_food_log_today(uid), goal=goal,
@@ -793,9 +807,8 @@ def _coach_uid():
 
 def _coach_planned_today(uid):
     """Today's plan day + whether it's already a rest day (weekly rest OR a
-    per-date override). date.today() is Brent-local (server runs Mountain time)."""
-    from datetime import date as _date
-    today = _date.today()
+    per-date override). "Today" is the user's local day (profile.timezone)."""
+    today = database.user_now(uid).date()
     plan = (database.get_apex_plan(uid) or {}).get("plan") or []
     day = plan[today.weekday() % len(plan)] if plan else None
     override = database.is_rest_override(uid, today.isoformat())
@@ -831,8 +844,7 @@ def api_coach_rest_day():
     uid = _coach_uid()
     if not uid:
         return jsonify({"error": "unauthorized"}), 401
-    from datetime import date as _date
-    day = ((request.get_json(silent=True) or {}).get("date") or _date.today().isoformat()).strip()
+    day = ((request.get_json(silent=True) or {}).get("date") or database.user_today_iso(uid)).strip()
     database.set_rest_override(uid, day)
     _, planned, _r = _coach_planned_today(uid)
     return jsonify({"ok": True, "rest_day": day, "replaced": planned})
@@ -843,8 +855,7 @@ def api_coach_rest_day_clear():
     uid = _coach_uid()
     if not uid:
         return jsonify({"error": "unauthorized"}), 401
-    from datetime import date as _date
-    day = ((request.get_json(silent=True) or {}).get("date") or _date.today().isoformat()).strip()
+    day = ((request.get_json(silent=True) or {}).get("date") or database.user_today_iso(uid)).strip()
     database.clear_rest_override(uid, day)
     return jsonify({"ok": True, "cleared": day})
 
@@ -894,14 +905,13 @@ def _find_old_in_plan(plan, query, lib):
     return hits
 
 
-def _resolve_plan_day(plan, day_q):
+def _resolve_plan_day(plan, day_q, uid):
     q = (day_q or "").strip().lower()
     if not q:
         return None
     days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
     if q == "today":
-        from datetime import date as _date
-        return _date.today().weekday() % len(plan)
+        return database.user_now(uid).weekday() % len(plan)
     if q in days:
         return days.index(q) % len(plan)
     if q.isdigit():
@@ -922,7 +932,7 @@ def api_coach_swap_options():
         return jsonify({"ok": False, "error": "no plan set"})
     lib = _lib_index()
     hits = _find_old_in_plan(plan, request.args.get("old", ""), lib)
-    day_idx = _resolve_plan_day(plan, request.args.get("day", ""))
+    day_idx = _resolve_plan_day(plan, request.args.get("day", ""), uid)
     if day_idx is not None:
         hits = [h for h in hits if h[0] == day_idx]
     if not hits:
@@ -960,7 +970,7 @@ def api_coach_swap():
                         "error": f"'{d.get('new')}' isn't a single available exercise",
                         "candidates": [c["name"] for c in new_cands[:8]]})
     hits = _find_old_in_plan(plan, d.get("old", ""), lib)
-    day_idx = _resolve_plan_day(plan, d.get("day", ""))
+    day_idx = _resolve_plan_day(plan, d.get("day", ""), uid)
     if day_idx is not None:
         hits = [h for h in hits if h[0] == day_idx]
     if not hits:
@@ -975,13 +985,13 @@ def api_coach_swap():
         return jsonify({"ok": True, "scope": "plan", "day": day.get("name"),
                         "swapped": {"from": old_name, "to": new_ex["name"]}})
 
-    from datetime import date as _date
-    today_idx = _date.today().weekday() % len(plan)
+    user_today = database.user_now(uid).date()
+    today_idx = user_today.weekday() % len(plan)
     if di != today_idx:
         return jsonify({"ok": False, "on_other_day": day.get("name"),
                         "error": f"'{old_name}' is on your {day.get('name')} day, not today — "
                                  f"want it changed in the plan going forward instead?"})
-    database.add_day_swap(uid, _date.today().isoformat(), old_id, new_ex["id"])
+    database.add_day_swap(uid, user_today.isoformat(), old_id, new_ex["id"])
     return jsonify({"ok": True, "scope": "today", "day": day.get("name"),
                     "swapped": {"from": old_name, "to": new_ex["name"]}})
 
@@ -1002,12 +1012,14 @@ def cancel_workout():
 
 
 def _cardio_display(uid, days=14):
-    """Recent cardio with local-time display fields for templates."""
+    """Recent cardio with user-local display fields for templates."""
     from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+    tz = ZoneInfo(database.get_user_timezone(uid))
     items = database.get_external_workouts(uid, days=days)
     for c in items:
         try:
-            dt = datetime.fromisoformat(c["started_at"]).replace(tzinfo=timezone.utc).astimezone()
+            dt = datetime.fromisoformat(c["started_at"]).replace(tzinfo=timezone.utc).astimezone(tz)
             c["when"] = dt.strftime("%b %-d")
             c["time"] = dt.strftime("%-I:%M %p")
         except (ValueError, TypeError):
@@ -1080,7 +1092,7 @@ def index():
     # Check for a workout completed today
     from datetime import date
     last = database.get_last_workout(uid)
-    if last and last.get("completed_at", "")[:10] == date.today().isoformat():
+    if last and last.get("completed_at", "")[:10] == database.user_today_iso(uid):
         dur = last.get("duration_seconds") or 0
         exs = json.loads(last.get("exercises_json") or "[]")
         weight_kg = (profile.get("current_weight") or 0) * 0.453592
@@ -1122,7 +1134,7 @@ def index():
                            rings=database.get_activity_rings(uid),
                            steps=_dashboard_steps(uid),
                            has_active_workout=bool(session.get("today_workout")),
-                           today_iso=date.today().isoformat(),
+                           today_iso=database.user_today_iso(uid),
                            ai_online=coach.is_available())
 
 
@@ -1266,12 +1278,11 @@ def workout_ready():
 
 def _garage_workout(uid):
     """Today's planned workout for the garage logger (from the saved plan)."""
-    from datetime import date
     plan_data = database.get_apex_plan(uid)
     if not plan_data or not plan_data.get("plan"):
         return None
     plan = plan_data["plan"]
-    wd = date.today().weekday()
+    wd = database.user_now(uid).weekday()
     if wd >= len(plan):
         return None
     day = plan[wd]
@@ -1691,7 +1702,7 @@ def complete_workout():
     last = database.get_last_workout(uid)
     if last and last.get("day_name") == day_name:
         try:
-            age = (datetime.now() - datetime.fromisoformat(last["completed_at"])).total_seconds()
+            age = (database.user_now(uid) - datetime.fromisoformat(last["completed_at"])).total_seconds()
         except (ValueError, TypeError, KeyError):
             age = 999
         if 0 <= age < 120:
@@ -1922,9 +1933,8 @@ def apex_plan_page():
     uid = session.get("user_id")
     if not uid:
         return redirect(url_for("profiles"))
-    from datetime import date
     plan_data = database.get_apex_plan(uid)
-    today_index = date.today().weekday()  # 0=Monday
+    today_index = database.user_now(uid).weekday()  # 0=Monday
     return render_template(
         "apex_plan.html",
         plan=plan_data["plan"] if plan_data else None,
@@ -1989,15 +1999,13 @@ def load_plan_today():
     if client_weekday is not None:
         day_of_week = int(client_weekday)
     else:
-        from datetime import date
-        day_of_week = date.today().weekday()
+        day_of_week = database.user_now(uid).weekday()
     plan = plan_data["plan"]
     day_index = day_of_week % len(plan)
     day = plan[day_index]
     # Per-date recovery override (e.g. APEX marked today a rest day for low
     # readiness) — a one-day thing that never rewrites the weekly plan.
-    from datetime import date as _date
-    if database.is_rest_override(uid, (body.get("date") or _date.today().isoformat())):
+    if database.is_rest_override(uid, (body.get("date") or database.user_today_iso(uid))):
         return jsonify({"rest": True, "name": "Rest Day (recovery)"})
     if day.get("rest"):
         return jsonify({"rest": True, "name": day.get("name", "Rest Day")})
@@ -2006,7 +2014,7 @@ def load_plan_today():
     # Apply any one-day exercise swaps for today (APEX "just today" swap) — the
     # weekly plan template above is untouched; we only reshape today's session.
     exercises = day["exercises"]
-    swaps = database.get_day_swaps(uid, (body.get("date") or _date.today().isoformat()))
+    swaps = database.get_day_swaps(uid, (body.get("date") or database.user_today_iso(uid)))
     if swaps:
         lib = _lib_index()
         exercises = [_swapped_slot(ex, swaps[ex["id"]], lib) if ex.get("id") in swaps else ex
@@ -2130,7 +2138,7 @@ def api_recent_workouts():
         days = max(1, min(30, int(request.args.get("days", 3))))
     except (TypeError, ValueError):
         days = 3
-    cutoff = datetime.now() - timedelta(days=days)
+    cutoff = database.user_now(uid) - timedelta(days=days)
     profile = database.get_profile(uid)
     weight = (profile or {}).get("current_weight") or 0
     out = []
@@ -2486,7 +2494,7 @@ def progress():
     stats["total_kcal"] = sum(w["kcal"] for w in workouts)
 
     # Group history by ISO week (Monday start), newest first
-    today = date.today()
+    today = database.user_now(uid).date()
     this_monday = today - timedelta(days=today.weekday())
     history_weeks = []
     for w in workouts:
@@ -2582,8 +2590,9 @@ def api_panel_summary():
     if not uid:
         return jsonify({"error": "invalid token"}), 401
 
-    today = date.today().isoformat()
-    weekday = date.today().weekday()
+    user_today = database.user_now(uid)
+    today = user_today.date().isoformat()
+    weekday = user_today.weekday()
 
     # today's planned workout
     plan_data = database.get_apex_plan(uid)
@@ -2666,7 +2675,8 @@ def energy_balance():
     eaten = {d["meal_date"]: (d["calories"] or 0) for d in database.get_food_log_days(uid, days=7)}
 
     weight_lbs = profile.get("current_weight") or 0
-    cutoff = (date.today() - timedelta(days=6)).isoformat()
+    user_today = database.user_now(uid).date()
+    cutoff = (user_today - timedelta(days=6)).isoformat()
     burned = {}
     for w in database.get_workout_history(uid):
         d = (w.get("completed_at") or "")[:10]
@@ -2678,20 +2688,16 @@ def energy_balance():
         burned[d] = burned.get(d, 0) + (kcal or 0)
 
     # Add cardio burn (Apple Health) so the "burned" side is complete
-    from datetime import datetime, timezone
     for c in database.get_external_workouts(uid, days=7):
         if not c.get("kcal"):
             continue
-        try:
-            d = datetime.fromisoformat(c["started_at"]).replace(tzinfo=timezone.utc).astimezone().date().isoformat()
-        except (ValueError, TypeError):
-            continue
+        d = database.external_local_date(c["started_at"], uid)
         if d >= cutoff:
             burned[d] = burned.get(d, 0) + c["kcal"]
 
     days = []
     for i in range(6, -1, -1):
-        d = date.today() - timedelta(days=i)
+        d = user_today - timedelta(days=i)
         ds = d.isoformat()
         days.append({
             "date": ds,

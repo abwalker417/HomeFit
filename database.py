@@ -10,6 +10,7 @@ import os
 import secrets
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from typing import Optional
@@ -143,8 +144,18 @@ def init_db():
         _ensure_column(conn, "profile", "fitness_goal", "TEXT NOT NULL DEFAULT 'general'")
         _ensure_column(conn, "profile", "workout_duration_target", "INTEGER NOT NULL DEFAULT 45")
         _ensure_column(conn, "profile", "accent_color", "TEXT NOT NULL DEFAULT '#f97316'")
+        _ensure_column(conn, "profile", "timezone", "TEXT")
         _ensure_column(conn, "users", "api_token", "TEXT")
         _ensure_column(conn, "users", "photo", "TEXT")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS push_log (
+                user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                kind       TEXT NOT NULL,
+                sent_date  TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(user_id, kind, sent_date)
+            )
+        """)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS apex_plan (
                 user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -453,6 +464,65 @@ def get_profile(user_id):
         return p
 
 
+# ── Per-user timezone ────────────────────────────────────────────────────────
+# Storage convention: timestamps are naive local-to-the-user (matches all
+# historical data, written when every user was Mountain). The ONE exception is
+# external_workouts.started_at, which is naive UTC. profile.timezone (IANA
+# name, auto-reported by the app/browser) drives all "what day is it for this
+# user" logic; DEFAULT_TZ covers profiles that haven't reported yet.
+
+DEFAULT_TZ = "America/Denver"
+_TZ_CACHE = {}   # user_id -> (tz_name, cached_at) — 2 gunicorn workers, keep a short TTL
+_TZ_TTL = 300
+
+
+def get_user_timezone(user_id):
+    hit = _TZ_CACHE.get(user_id)
+    if hit and (datetime.now() - hit[1]).total_seconds() < _TZ_TTL:
+        return hit[0]
+    with get_connection() as conn:
+        row = conn.execute("SELECT timezone FROM profile WHERE user_id = ?",
+                           (user_id,)).fetchone()
+    tz = (row["timezone"] if row and row["timezone"] else None) or DEFAULT_TZ
+    _TZ_CACHE[user_id] = (tz, datetime.now())
+    return tz
+
+
+def set_user_timezone(user_id, tz_name):
+    """Store the device-reported IANA timezone. Returns False on an invalid name."""
+    tz_name = (tz_name or "").strip()
+    try:
+        ZoneInfo(tz_name)
+    except Exception:
+        return False
+    with get_connection() as conn:
+        conn.execute("UPDATE profile SET timezone = ? WHERE user_id = ?",
+                     (tz_name, user_id))
+    _TZ_CACHE[user_id] = (tz_name, datetime.now())
+    return True
+
+
+def user_now(user_id):
+    """Current naive datetime in the user's timezone — use for ALL per-user
+    date/day-of-week logic and for stamping per-user data writes."""
+    return datetime.now(ZoneInfo(get_user_timezone(user_id))).replace(tzinfo=None)
+
+
+def user_today_iso(user_id):
+    return user_now(user_id).date().isoformat()
+
+
+def claim_push_send(user_id, kind, sent_date):
+    """Atomically claim a scheduled push (brief/digest/streak) for one local
+    day via UNIQUE(user, kind, date) — the half-hourly tick calls this so a
+    push fires exactly once per user-local day."""
+    with get_connection() as conn:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO push_log (user_id, kind, sent_date, created_at) VALUES (?, ?, ?, ?)",
+            (user_id, kind, sent_date, datetime.now().isoformat()))
+        return cur.rowcount > 0
+
+
 def save_profile(
     user_id,
     current_weight,
@@ -469,7 +539,7 @@ def save_profile(
     workout_duration_target=45,
     cardio_days_per_week=5,
 ):
-    now = datetime.now().isoformat()
+    now = user_now(user_id).isoformat()  # weight_log entries drive per-day charts
     values = (
         user_id,
         current_weight,
@@ -545,7 +615,7 @@ def toggle_ignored_exercise(user_id, exercise_id):
 
 
 def log_weight(user_id, weight):
-    now = datetime.now().isoformat()
+    now = user_now(user_id).isoformat()
     with get_connection() as conn:
         conn.execute(
             "INSERT INTO weight_log (user_id, weight, logged_at) VALUES (?, ?, ?)",
@@ -567,7 +637,8 @@ def get_weight_history(user_id, limit=60):
 
 
 def log_workout(user_id, day_name, day_number, exercises, duration_seconds):
-    now = datetime.now().isoformat()
+    # completed_at drives all day-crediting — stamp in the user's timezone
+    now = user_now(user_id).isoformat()
     with get_connection() as conn:
         conn.execute(
             """
@@ -732,7 +803,7 @@ def get_coaching_context(user_id):
 
 
 def get_steps_today(user_id):
-    today = datetime.now().date().isoformat()
+    today = user_today_iso(user_id)
     for r in get_recent_metric(user_id, "steps", days=2):
         if r["metric_date"] == today:
             return int(r["value"])
@@ -743,7 +814,7 @@ def get_step_goal(user_id):
     """Personalized step goal = each person's own ~2-week average (floored).
     Self-adjusts per lifestyle (office vs on-your-feet); 8000 default until
     there's enough history."""
-    today = datetime.now().date().isoformat()
+    today = user_today_iso(user_id)
     vals = [r["value"] for r in get_recent_metric(user_id, "steps", days=15)
             if r["metric_date"] != today and r["value"]]   # exclude today (partial)
     if len(vals) >= 5:
@@ -754,7 +825,7 @@ def get_step_goal(user_id):
 
 def get_activity_rings(user_id):
     """Today's Apple Activity rings (Move/Exercise/Stand) with the user's goals."""
-    today = datetime.now().date().isoformat()
+    today = user_today_iso(user_id)
 
     def m(name):
         for r in get_recent_metric(user_id, name, days=2):
@@ -953,7 +1024,7 @@ def set_sleep_status(user_id, entry_date, status):
 
 
 def get_recent_sleep(user_id, days=14, limit=30):
-    cutoff = (datetime.now().date() - timedelta(days=days)).isoformat()
+    cutoff = (user_now(user_id).date() - timedelta(days=days)).isoformat()
     with get_connection() as conn:
         rows = conn.execute(
             """
@@ -990,7 +1061,7 @@ def compute_readiness(user_id):
     sleep_score = 0.65 * dur_score + 0.35 * qual_score
 
     # Recent training load (last 2 days) — accumulated fatigue gently lowers it
-    cutoff = (datetime.now() - timedelta(days=2)).isoformat()
+    cutoff = (user_now(user_id) - timedelta(days=2)).isoformat()
     workouts = [w for w in get_workout_history(user_id, limit=20)
                 if (w.get("completed_at") or "") >= cutoff]
     cardio = get_external_workouts(user_id, days=2)
@@ -1038,7 +1109,7 @@ def get_readiness(user_id):
     through the day (logging a workout raises the fatigue penalty); caching the
     first real result keeps every surface consistent. Only a non-None result is
     cached, so it keeps retrying until last night's sleep is available."""
-    today = datetime.now().date().isoformat()
+    today = user_today_iso(user_id)
     with get_connection() as conn:
         row = conn.execute(
             "SELECT data FROM readiness_cache WHERE user_id=? AND cache_date=?",
@@ -1080,7 +1151,7 @@ def upsert_daily_metric(user_id, metric, metric_date, value, source="apple_healt
 
 
 def get_recent_metric(user_id, metric, days=14):
-    cutoff = (datetime.now().date() - timedelta(days=days)).isoformat()
+    cutoff = (user_now(user_id).date() - timedelta(days=days)).isoformat()
     with get_connection() as conn:
         rows = conn.execute(
             """SELECT metric_date, value FROM daily_metric
@@ -1098,7 +1169,7 @@ def get_latest_metric(user_id, metric):
 
 def training_load(user_id):
     """Recent training volume (workouts + cardio) for under-recovery checks."""
-    now = datetime.now()
+    now = user_now(user_id)
     c7 = (now - timedelta(days=7)).isoformat()
     c3 = (now - timedelta(days=3)).isoformat()
     workouts = get_workout_history(user_id, limit=40)
@@ -1144,13 +1215,17 @@ def counts_as_workout_session(c):
     return wtype not in ("", "walking") or (c.get("duration_minutes") or 0) >= 45
 
 
-def external_local_date(started_at):
+def external_local_date(started_at, user_id=None):
     """external_workouts.started_at is naive UTC (see /api/external-workout's
-    _parse) — bucket by the LOCAL calendar day, or evening cardio (after 6 PM
-    Mountain) gets credited to the next day."""
+    _parse) — bucket by the user's LOCAL calendar day, or evening cardio gets
+    credited to the next day. Falls back to server-local without a user_id."""
     try:
-        return (datetime.fromisoformat(started_at)
-                .replace(tzinfo=timezone.utc).astimezone().date().isoformat())
+        dt = datetime.fromisoformat(started_at).replace(tzinfo=timezone.utc)
+        if user_id:
+            dt = dt.astimezone(ZoneInfo(get_user_timezone(user_id)))
+        else:
+            dt = dt.astimezone()
+        return dt.date().isoformat()
     except (ValueError, TypeError):
         return (started_at or "")[:10]
 
@@ -1159,9 +1234,9 @@ def get_today_external_sessions(user_id):
     """Today's Apple-recorded activities that count as a workout session
     (counts_as_workout_session), newest first — so a swim/ride/golf round shows
     as the completed workout everywhere a HomeFit gym session does."""
-    today = datetime.now().date().isoformat()
+    today = user_today_iso(user_id)
     return [c for c in get_external_workouts(user_id, days=2)
-            if external_local_date(c.get("started_at")) == today
+            if external_local_date(c.get("started_at"), user_id) == today
             and counts_as_workout_session(c)]
 
 
@@ -1257,7 +1332,7 @@ def workout_day_dates(user_id, since_iso=None):
     for c in get_external_workouts(user_id, days=400, limit=5000):
         if not counts_as_workout_session(c):
             continue
-        d = external_local_date(c.get("started_at"))
+        d = external_local_date(c.get("started_at"), user_id)
         if d and (since_iso is None or d >= since_iso):
             days.add(d)
     return days
@@ -1267,8 +1342,7 @@ def start_streak_pause(user_id, reason="travel", start_date=None, end_date=None)
     """Begin (or schedule) an away-mode window. Open-ended when end_date is
     None — ends when the user taps "I'm back". Dates may be in the past
     (retroactive: "I was sick Tue-Thu") or future (planned trip)."""
-    from datetime import date
-    start_date = start_date or date.today().isoformat()
+    start_date = start_date or user_today_iso(user_id)
     now = datetime.now().isoformat()
     with get_connection() as conn:
         # one open window at a time — close any existing open one first
@@ -1286,9 +1360,9 @@ def start_streak_pause(user_id, reason="travel", start_date=None, end_date=None)
 def end_streak_pause(user_id):
     """"I'm back" — today becomes a normal day again: close active windows as
     of yesterday and drop future-scheduled ones."""
-    from datetime import date, timedelta
-    today = date.today().isoformat()
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    user_today = user_now(user_id).date()
+    today = user_today.isoformat()
+    yesterday = (user_today - timedelta(days=1)).isoformat()
     with get_connection() as conn:
         conn.execute(
             "DELETE FROM streak_pause WHERE user_id = ? AND start_date > ?",
@@ -1308,8 +1382,7 @@ def end_streak_pause(user_id):
 
 def get_active_pause(user_id):
     """The away-mode window covering today, or None."""
-    from datetime import date
-    today = date.today().isoformat()
+    today = user_today_iso(user_id)
     with get_connection() as conn:
         row = conn.execute(
             "SELECT * FROM streak_pause WHERE user_id = ? AND start_date <= ? "
@@ -1321,8 +1394,7 @@ def get_active_pause(user_id):
 
 def get_upcoming_pause(user_id):
     """The next future-scheduled away window (for UI display), or None."""
-    from datetime import date
-    today = date.today().isoformat()
+    today = user_today_iso(user_id)
     with get_connection() as conn:
         row = conn.execute(
             "SELECT * FROM streak_pause WHERE user_id = ? AND start_date > ? "
@@ -1337,7 +1409,7 @@ def pause_day_dates(user_id):
     window runs through the end of the current week so this week's target math
     sees the remaining days as paused too."""
     from datetime import date, timedelta
-    today = date.today()
+    today = user_now(user_id).date()
     this_sunday = today + timedelta(days=6 - today.weekday())
     days = set()
     with get_connection() as conn:
@@ -1364,7 +1436,7 @@ def current_week_pause(user_id):
     remaining days (today..Sunday) are paused, whether today is paused, and the
     active window. Shared by the dashboard stats, streak push and APEX context."""
     from datetime import date, timedelta
-    today = date.today()
+    today = user_now(user_id).date()
     monday = today - timedelta(days=today.weekday())
     paused = pause_day_dates(user_id)
     week = [(monday + timedelta(days=i)).isoformat() for i in range(7)]
@@ -1386,7 +1458,7 @@ def get_streak(user_id):
     if not days:
         return 0
     paused = pause_day_dates(user_id)
-    today = date.today()
+    today = user_now(user_id).date()
     d = today
     streak = 0
     while True:
@@ -1431,7 +1503,7 @@ def get_week_streak(user_id, target_days):
     def week_target(week):
         return max(0, target_days - paused_by_week.get(week, 0))
 
-    today = date.today()
+    today = user_now(user_id).date()
     this_monday = today - timedelta(days=today.weekday())
     week_pause = current_week_pause(user_id)
     days_left = 7 - today.weekday() - week_pause["remaining_paused"]
@@ -1465,7 +1537,7 @@ def get_week_streak(user_id, target_days):
 def get_weekly_digest(user_id):
     """Return cached digest if it was generated for the current week, else None."""
     from datetime import date, timedelta
-    today = date.today()
+    today = user_now(user_id).date()
     days_since_monday = today.weekday()
     week_start = (today - timedelta(days=days_since_monday)).isoformat()
     with get_connection() as conn:
@@ -1580,7 +1652,7 @@ def record_nudge(user_id, nudge_type, nudge_date, body=""):
 
 def save_weekly_digest(user_id, digest_text):
     from datetime import date, timedelta
-    today = date.today()
+    today = user_now(user_id).date()
     days_since_monday = today.weekday()
     week_start = (today - timedelta(days=days_since_monday)).isoformat()
     now = datetime.now().isoformat()
@@ -1598,7 +1670,7 @@ def save_weekly_digest(user_id, digest_text):
 
 def get_daily_brief(user_id):
     """Return today's cached daily brief, else None."""
-    today = datetime.now().date().isoformat()
+    today = user_today_iso(user_id)
     with get_connection() as conn:
         row = conn.execute(
             "SELECT brief_text FROM apex_daily_brief WHERE user_id = ? AND brief_date = ?",
@@ -1608,7 +1680,7 @@ def get_daily_brief(user_id):
 
 
 def save_daily_brief(user_id, brief_text):
-    today = datetime.now().date().isoformat()
+    today = user_today_iso(user_id)
     now = datetime.now().isoformat()
     with get_connection() as conn:
         conn.execute(
@@ -1659,7 +1731,7 @@ def get_apex_chat_updated_at(user_id):
 
 
 def add_food_log(user_id, description, items, totals, cost_usd=0.0, on_date=None):
-    now = datetime.now()
+    now = user_now(user_id)
     meal_date = on_date or now.date().isoformat()
     # for back-dated imports, stamp created_at at noon of that day so ordering is sane
     created = now.isoformat() if not on_date else f"{on_date}T12:00:00"
@@ -1676,7 +1748,7 @@ def add_food_log(user_id, description, items, totals, cost_usd=0.0, on_date=None
 
 def get_food_log_days(user_id, days=14):
     """Per-day nutrition totals (newest first) for the history view + APEX."""
-    cutoff = (datetime.now().date() - timedelta(days=days)).isoformat()
+    cutoff = (user_now(user_id).date() - timedelta(days=days)).isoformat()
     with get_connection() as conn:
         rows = conn.execute(
             """SELECT meal_date,
@@ -1690,7 +1762,7 @@ def get_food_log_days(user_id, days=14):
 
 
 def get_food_log_today(user_id):
-    today = datetime.now().date().isoformat()
+    today = user_today_iso(user_id)
     with get_connection() as conn:
         rows = conn.execute(
             "SELECT id, description, items_json, calories, protein_g, carbs_g, fat_g, created_at "
