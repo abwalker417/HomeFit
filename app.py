@@ -868,10 +868,19 @@ def _lib_index():
 
 def _swapped_slot(slot, new_id, lib):
     """Build a plan/session exercise slot for new_id, keeping the old set count but
-    adopting the new move's natural reps/unit (a plank is seconds, a swing is reps)."""
+    adopting the new move's natural reps/unit (a plank is seconds, a swing is reps).
+    Full generate_workout shape — saved plans and the plan editor read name/muscles/
+    equipment/instructions/rest straight off the slot, so a bare {id,sets,reps} slot
+    renders as a blank row."""
+    from workout_logic import _exercise_equipment, _exercise_muscles
     nl = lib.get(new_id, {})
-    return {"id": new_id, "sets": slot.get("sets") or nl.get("default_sets", 3),
-            "reps": nl.get("default_reps", slot.get("reps", 10)), "unit": nl.get("unit", "reps")}
+    return {"id": new_id, "name": nl.get("name", new_id),
+            "muscles": _exercise_muscles(nl), "equipment": _exercise_equipment(nl),
+            "difficulty": nl.get("difficulty", 1),
+            "instructions": nl.get("instructions", ""),
+            "sets": slot.get("sets") or nl.get("default_sets", 3),
+            "reps": nl.get("default_reps", slot.get("reps", 10)),
+            "rest": nl.get("rest_seconds", 45), "unit": nl.get("unit", "reps")}
 
 
 def _resolve_new_exercise(query, profile):
