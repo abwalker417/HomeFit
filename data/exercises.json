@@ -1616,6 +1616,20 @@
     "muscle_group": "core"
   },
   {
+    "id": "standing_crossbody_reach",
+    "name": "Standing Crossbody Reach",
+    "category": "core",
+    "difficulty": 1,
+    "contraindications": [],
+    "met": 3.5,
+    "default_reps": 12,
+    "default_sets": 3,
+    "rest_seconds": 30,
+    "instructions": "Stand tall with feet shoulder-width apart. Reach one arm up and across your body toward the opposite side, rotating through your torso and engaging your obliques, then return to center and alternate sides. Keep your hips facing forward and move with control.",
+    "equipment": "bodyweight",
+    "muscle_group": "core"
+  },
+  {
     "id": "step_up_knee_drive",
     "name": "Step-Up with Knee Drive",
     "category": "legs",
