@@ -1256,16 +1256,20 @@ def record_external_workout(user_id, source, workout_type, started_at, ended_at,
         )
 
 
-def find_overlapping_homefit_workout(user_id, start, end, pad_minutes=20):
+def find_overlapping_homefit_workout(user_id, start, end, pad_minutes=5):
     """Return the HomeFit workout whose time window overlaps [start, end], or None.
 
     Used to dedup external (HealthKit) workouts: a gym session recorded on the
     watch overlaps the HomeFit session that was already logged.
-    start/end are naive-UTC datetimes; workout_log.completed_at is naive-UTC ISO.
+    start/end are naive-UTC datetimes; workout_log.completed_at is naive LOCAL
+    time in the user's timezone (see log_workout), so convert it to UTC before
+    comparing. The pad only absorbs device clock jitter — a duplicate of the
+    same session overlaps by nearly its whole duration anyway.
     """
+    tz = ZoneInfo(get_user_timezone(user_id))
     pad = timedelta(minutes=pad_minutes)
-    day_lo = (start - timedelta(days=1)).isoformat()
-    day_hi = (end + timedelta(days=1)).isoformat()
+    day_lo = (start - timedelta(days=2)).isoformat()
+    day_hi = (end + timedelta(days=2)).isoformat()
     with get_connection() as conn:
         rows = conn.execute(
             """
@@ -1276,9 +1280,10 @@ def find_overlapping_homefit_workout(user_id, start, end, pad_minutes=20):
         ).fetchall()
     for r in rows:
         try:
-            hf_end = datetime.fromisoformat(r["completed_at"])
+            hf_end_local = datetime.fromisoformat(r["completed_at"])
         except (ValueError, TypeError):
             continue
+        hf_end = hf_end_local.replace(tzinfo=tz).astimezone(timezone.utc).replace(tzinfo=None)
         hf_start = hf_end - timedelta(seconds=r["duration_seconds"] or 0)
         if hf_start - pad <= end and start <= hf_end + pad:
             return dict(r)
