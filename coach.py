@@ -476,14 +476,12 @@ def generate_workout(coaching_data, exercise_library, focus=None):
     context = _build_context(coaching_data)
 
     # Build a compact exercise reference the LLM can pick from
-    available_equipment = set(profile.get("equipment") or [])
     ignored = set(profile.get("ignored_exercises") or [])
     limitations = profile.get("limitations") or []
 
     eligible = [
         e for e in exercise_library
         if e["id"] not in ignored
-        and (e["equipment"] in available_equipment or e["equipment"] == "bodyweight")
     ]
 
     library_lines = "\n".join(
@@ -801,12 +799,10 @@ def generate_weekly_plan(coaching_data, exercise_library):
     fitness_goal = profile.get("fitness_goal", "general")
     fitness_level = profile.get("fitness_level", "beginner")
 
-    available_equipment = set(profile.get("equipment") or [])
     ignored = set(profile.get("ignored_exercises") or [])
     eligible = [
         e for e in exercise_library
         if e["id"] not in ignored
-        and (e["equipment"] in available_equipment or e["equipment"] == "bodyweight")
     ]
     library_lines = "\n".join(
         f'  {{"id":"{e["id"]}","name":"{e["name"]}","muscle":"{e["muscle_group"]}"}}'

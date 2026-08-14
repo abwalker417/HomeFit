@@ -56,11 +56,12 @@ def test_filter_limitations_excludes_contraindicated():
     assert filtered_ids == {"dumbbell_curl"}
 
 def test_filter_selected_muscles_primary_over_target():
-    # Selecting "arms" should keep both dumbbell_curl and bench_press (upper maps to arms)
+    # A precise arm focus must not accept a chest movement merely because both
+    # live in the broad "upper" category.
     profile = {"equipment": [], "custom_equipment": [], "limitations": [], "ignored_exercises": []}
     filtered = workout_logic.filter_exercises(SAMPLE_EXERCISES, profile, selected_muscles=["arms"])
     filtered_ids = {ex["id"] for ex in filtered}
-    assert filtered_ids == {"dumbbell_curl", "bench_press"}
+    assert filtered_ids == {"dumbbell_curl"}
 
 def test_build_workout_returns_valid_structure(monkeypatch):
     # Monkeypatch load_exercises to use SAMPLE_EXERCISES
@@ -83,4 +84,3 @@ def test_build_workout_returns_valid_structure(monkeypatch):
     # All returned exercise IDs must be from the sample set
     for ex in result["exercises"]:
         assert ex["id"] in SAMPLE_IDS
-

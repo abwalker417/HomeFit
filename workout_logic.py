@@ -1,10 +1,12 @@
 import json
+import logging
 import math
 import random
 import re
 from pathlib import Path
 
 EXERCISE_PATH = Path(__file__).parent / "data" / "exercises.json"
+log = logging.getLogger(__name__)
 
 VALID_LIMITATIONS = ["knee pain", "back pain", "shoulder pain", "low impact", "wrist pain"]
 VALID_EQUIPMENT = [
@@ -62,6 +64,16 @@ CATEGORY_TO_MUSCLES = {
     "cardio": {"full body"},
 }
 
+_MUSCLE_RULES = (
+    (re.compile(r"crunch|plank|dead.?bug|bird.?dog|pallof|rotation|twist|oblique|knee.?raise|suitcase|figure.?eight|crossbody"), {"core"}),
+    (re.compile(r"glute|hip.?thrust|kickback|clamshell"), {"glutes"}),
+    (re.compile(r"squat|lunge|step.?up|calf|wall.?sit|deadlift|romanian|\brdl\b|good.?morning"), {"legs", "glutes"}),
+    (re.compile(r"bicep|hammer.?curl|barbell.?curl|tricep|skull.?crusher|\bdip\b"), {"arms"}),
+    (re.compile(r"chest|bench.?press|incline.?press|push.?up|floor.?fly|cable.?fly"), {"chest"}),
+    (re.compile(r"shoulder|overhead|lateral|arnold|halo|landmine.?press|clean.?and.?press|push.?press|rear.?delt|arm.?circle"), {"shoulders"}),
+    (re.compile(r"row|pull.?up|chin.?up|pulldown|pull.?apart|face.?pull|dead.?hang|scapular|shrug|superman"), {"back"}),
+)
+
 
 def load_exercises():
     if not EXERCISE_PATH.exists():
@@ -103,7 +115,60 @@ def _exercise_limitations(exercise):
 
 def _exercise_muscles(exercise):
     muscles = exercise.get("muscle_groups") or [exercise.get("muscle_group", "full body")]
-    return _normalize_values(muscles)
+    normalized = _normalize_values(muscles)
+    # Most of the original library was bulk-tagged "full_body", which is too
+    # broad for focus-safe workouts. Infer a primary area from stable IDs/names
+    # until the source data has complete muscle metadata.
+    if not normalized or set(normalized) == {"full body"}:
+        text = _norm(f"{exercise.get('id', '')} {exercise.get('name', '')}")
+        inferred = set()
+        for pattern, targets in _MUSCLE_RULES:
+            if pattern.search(text):
+                inferred.update(targets)
+        if inferred:
+            return sorted(inferred)
+        category = (exercise.get("category") or "").strip().lower()
+        category_targets = CATEGORY_TO_MUSCLES.get(category, set())
+        if category_targets:
+            return sorted(category_targets)
+    return normalized or ["full body"]
+
+
+def focus_muscles_from_label(label):
+    """Convert a user/plan-facing focus label into strict library muscles."""
+    value = _norm(str(label or ""))
+    if not value:
+        return []
+    if "full body" in value or "total body" in value or "recovery" in value:
+        return ["full body"]
+    if "upper" in value:
+        return ["arms", "back", "chest", "shoulders"]
+    if "lower" in value or "leg" in value or "glute" in value:
+        return ["legs", "glutes"]
+    if "push" in value:
+        return ["arms", "chest", "shoulders"]
+    if "pull" in value:
+        return ["arms", "back"]
+    matches = set(m for m in VALID_MUSCLE_GROUPS if m != "full body" and m in value)
+    if re.search(r"arm|bicep|tricep", value):
+        matches.add("arms")
+    if re.search(r"ab|core", value):
+        matches.add("core")
+    if re.search(r"quad|hamstring|calf", value):
+        matches.add("legs")
+    return sorted(matches)
+
+
+def is_recovery_exercise(exercise):
+    """Recovery sessions stay light and avoid loaded strength equipment."""
+    try:
+        difficulty = int(exercise.get("difficulty") or 1)
+    except (TypeError, ValueError):
+        difficulty = 1
+    equipment = set(_exercise_equipment(exercise))
+    return difficulty == 1 and bool(
+        equipment & {"bodyweight", "none", "resistance bands", "yoga mat"}
+    )
 
 
 def _exercise_targets_selected_muscles(exercise, target_muscles):
@@ -117,7 +182,10 @@ def _exercise_targets_selected_muscles(exercise, target_muscles):
         return True
     category = (exercise.get("category") or "").strip().lower()
     mapped = CATEGORY_TO_MUSCLES.get(category, set())
-    return bool(mapped & normalized_targets)
+    # Category fallback is only safe for a broad target such as Upper Body or
+    # Lower Body. It must not turn every generic upper exercise into an arm,
+    # chest, shoulder, or back exercise when a precise area was requested.
+    return bool(mapped and mapped.issubset(normalized_targets))
 
 
 def filter_exercises(exercises, profile, selected_muscles=None, preferred_equipment=None):
@@ -195,13 +263,15 @@ def _pick(exercises, count, difficulty_cap):
     return pool[:count]
 
 
-def build_workout(profile, day_label, selected_muscles=None, preferred_equipment=None):
+def build_workout(profile, day_label, selected_muscles=None, preferred_equipment=None, target_count=6):
     exercises = load_exercises()
     filtered = filter_exercises(exercises, profile, selected_muscles, preferred_equipment)
+    if _norm(str(day_label or "")) == "recovery":
+        filtered = [ex for ex in filtered if is_recovery_exercise(ex)]
     difficulty_cap = determine_difficulty_cap(profile.get("fitness_level"))
     goal = determine_goal(profile.get("current_weight", 0), profile.get("goal_weight", 0))
 
-    target_count = 6
+    target_count = max(3, min(int(target_count or 6), 10))
     chosen = _pick(filtered, target_count, difficulty_cap)
     if len(chosen) < target_count:
         # Relax difficulty constraint first (e.g. intermediate exercises for a beginner profile)
@@ -209,6 +279,14 @@ def build_workout(profile, day_label, selected_muscles=None, preferred_equipment
     if len(chosen) < target_count and not selected_muscles:
         # Not enough exercises even without difficulty filter — draw from full library
         chosen = _pick(exercises, target_count, {1, 2, 3})
+
+    log.info(
+        "workout build label=%r focus=%s eligible=%d chosen=%s",
+        day_label,
+        list(selected_muscles or []),
+        len(filtered),
+        [ex.get("id") for ex in chosen],
+    )
 
     workout = []
     for ex in chosen:

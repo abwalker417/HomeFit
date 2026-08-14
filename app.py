@@ -1181,24 +1181,57 @@ def _ai_build_workout(uid, profile, focus=None):
     if not coach.is_available():
         return None
     try:
-        from workout_logic import load_exercises
+        from workout_logic import (
+            _exercise_equipment,
+            _exercise_muscles,
+            filter_exercises,
+            focus_muscles_from_label,
+            is_recovery_exercise,
+            load_exercises,
+        )
         coaching_data = database.get_coaching_context(uid)
+        raw_library = load_exercises()
+        focus_muscles = focus_muscles_from_label(focus)
+        eligible = filter_exercises(raw_library, profile, focus_muscles)
+        if str(focus or "").strip().lower() == "recovery":
+            eligible = [e for e in eligible if is_recovery_exercise(e)]
+        if not eligible:
+            return None
+        eligible_ids = {e["id"] for e in eligible}
         exercise_library = [
-            {"id": e["id"], "name": e["name"], "muscle_group": e.get("muscle_group", ""),
-             "equipment": e.get("equipment", "bodyweight"),
+            {"id": e["id"], "name": e["name"], "muscle_group": ", ".join(_exercise_muscles(e)),
+             "equipment": _exercise_equipment(e),
              "default_sets": e.get("default_sets", 3), "default_reps": e.get("default_reps", 10)}
-            for e in load_exercises()
+            for e in eligible
         ]
         ai_plan = coach.generate_workout(coaching_data, exercise_library, focus=focus)
-        # Enrich AI-chosen exercises with full data from library
+        # Enforce the eligible set after the model responds as well. The model
+        # must never be able to drift outside the requested body area, available
+        # equipment, limitations, or ignored-exercise list.
         exercises = []
+        used_ids = set()
         for item in ai_plan.get("exercises", []):
+            if item.get("id") not in eligible_ids or item.get("id") in used_ids:
+                continue
             ex = get_exercise_by_id(item["id"])
             if not ex:
                 continue
             ex["sets"] = item.get("sets", ex["sets"])
             ex["reps"] = item.get("reps", ex["reps"])
             exercises.append(ex)
+            used_ids.add(item["id"])
+        # A short or partially-invalid model response is completed using the
+        # deterministic builder, which obeys the same focus filters.
+        desired_count = max(3, min(int(profile.get("workout_duration_target") or 45) // 7, 10))
+        fallback = build_workout(
+            profile, focus or "Today's Workout", focus_muscles, [], target_count=desired_count
+        )
+        for ex in fallback["exercises"]:
+            if len(exercises) >= desired_count:
+                break
+            if ex["id"] in eligible_ids and ex["id"] not in used_ids:
+                exercises.append(ex)
+                used_ids.add(ex["id"])
         if not exercises:
             return None
         return {
@@ -1976,23 +2009,61 @@ def generate_apex_plan():
     if not coach.is_available():
         return jsonify({"error": "APEX offline"}), 503
     try:
-        from workout_logic import load_exercises
+        from workout_logic import (
+            _exercise_equipment,
+            _exercise_muscles,
+            filter_exercises,
+            focus_muscles_from_label,
+            load_exercises,
+        )
         coaching_data = database.get_coaching_context(uid)
+        profile = database.get_profile(uid) or {}
+        raw_library = load_exercises()
+        eligible = filter_exercises(raw_library, profile)
+        eligible_ids = {e["id"] for e in eligible}
         exercise_library = [
-            {"id": e["id"], "name": e["name"], "muscle_group": e.get("muscle_group", ""),
-             "equipment": e.get("equipment", "bodyweight")}
-            for e in load_exercises()
+            {"id": e["id"], "name": e["name"], "muscle_group": ", ".join(_exercise_muscles(e)),
+             "equipment": _exercise_equipment(e)}
+            for e in eligible
         ]
         result = coach.generate_weekly_plan(coaching_data, exercise_library)
-        # Enrich exercises with full data
+        desired_count = max(3, min(int(profile.get("workout_duration_target") or 45) // 7, 10))
+        # Enrich and validate every model-selected exercise. Off-focus or
+        # unavailable IDs are replaced only with same-focus eligible moves.
         for day in result.get("plan", []):
+            if day.get("rest"):
+                day["exercises"] = []
+                continue
+            focus_muscles = focus_muscles_from_label(day.get("focus") or day.get("name"))
+            focus_ids = {
+                e["id"] for e in filter_exercises(eligible, profile, focus_muscles)
+            } or eligible_ids
             enriched = []
+            used_ids = set()
             for item in day.get("exercises", []):
+                if item.get("id") not in focus_ids or item.get("id") in used_ids:
+                    continue
                 ex = get_exercise_by_id(item["id"])
                 if ex:
                     ex["sets"] = item.get("sets", ex["sets"])
                     ex["reps"] = item.get("reps", ex["reps"])
                     enriched.append(ex)
+                    used_ids.add(item["id"])
+            fallback = build_workout(
+                profile,
+                day.get("name") or "Workout",
+                focus_muscles,
+                [],
+                target_count=desired_count,
+            )
+            for ex in fallback["exercises"]:
+                if len(enriched) >= desired_count:
+                    break
+                if ex["id"] in focus_ids and ex["id"] not in used_ids:
+                    enriched.append(ex)
+                    used_ids.add(ex["id"])
+            if not enriched:
+                raise ValueError(f"No eligible exercises for {day.get('name') or 'plan day'}")
             day["exercises"] = enriched
         database.save_apex_plan(uid, result["plan"])
         return jsonify({"ok": True, "plan": result["plan"]})
@@ -2035,11 +2106,46 @@ def load_plan_today():
         lib = _lib_index()
         exercises = [_swapped_slot(ex, swaps[ex["id"]], lib) if ex.get("id") in swaps else ex
                      for ex in exercises]
+    # Saved plans can predate profile/equipment changes. Build today's session
+    # from valid same-focus slots only, replacing anything stale or off-focus
+    # without rewriting the weekly plan behind the user's back.
+    from workout_logic import filter_exercises, focus_muscles_from_label
+    profile = database.get_profile(uid) or {}
+    raw_library = list(_lib_index().values())
+    focus_muscles = focus_muscles_from_label(day.get("focus") or day.get("name"))
+    eligible_ids = {e["id"] for e in filter_exercises(raw_library, profile, focus_muscles)}
+    target_count = max(3, min(len(exercises) or 6, 10))
+    safe_exercises = []
+    used_ids = set()
+    for ex in exercises:
+        if ex.get("id") in eligible_ids and ex.get("id") not in used_ids:
+            enriched = get_exercise_by_id(ex["id"])
+            if not enriched:
+                continue
+            enriched["sets"] = ex.get("sets", enriched["sets"])
+            enriched["reps"] = ex.get("reps", enriched["reps"])
+            safe_exercises.append(enriched)
+            used_ids.add(ex.get("id"))
+    fallback = build_workout(
+        profile,
+        day.get("name") or "Today's Workout",
+        focus_muscles,
+        [],
+        target_count=target_count,
+    )
+    for ex in fallback["exercises"]:
+        if len(safe_exercises) >= target_count:
+            break
+        if ex["id"] in eligible_ids and ex["id"] not in used_ids:
+            safe_exercises.append(ex)
+            used_ids.add(ex["id"])
+    if not safe_exercises:
+        return jsonify({"error": "no eligible exercises for today's focus"}), 409
     session["today_workout"] = {
         "label": day.get("name", "Today's Workout"),
         "focus": day.get("focus", ""),
         "ai_generated": True,
-        "exercises": exercises,
+        "exercises": safe_exercises,
     }
     return jsonify({"ok": True})
 
