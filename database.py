@@ -88,6 +88,13 @@ CREATE TABLE IF NOT EXISTS workout_log (
 
 CREATE INDEX IF NOT EXISTS ix_weight_user  ON weight_log (user_id, logged_at);
 CREATE INDEX IF NOT EXISTS ix_workout_user ON workout_log (user_id, completed_at);
+
+CREATE TABLE IF NOT EXISTS pin_fails (
+    user_id INTEGER NOT NULL,
+    ts REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_pin_fails_user_ts ON pin_fails (user_id, ts);
 """
 
 
@@ -443,6 +450,31 @@ def verify_pin(user_id: int, pin: str) -> bool:
     if not row or not row["pin_hash"]:
         return False
     return check_password_hash(row["pin_hash"], pin)
+
+
+# ── PIN-failure lockout (persisted in `pin_fails`) ───────────────────────────
+# Stored in SQLite so lockout is shared across the 2 gunicorn workers and
+# survives restarts — the previous in-memory dict was per-worker.
+
+def record_pin_fail(user_id, ts):
+    with get_connection() as conn:
+        conn.execute("INSERT INTO pin_fails (user_id, ts) VALUES (?, ?)", (user_id, ts))
+
+
+def clear_pin_fails(user_id):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM pin_fails WHERE user_id = ?", (user_id,))
+
+
+def recent_pin_fails(user_id, since_ts):
+    """Prune this user's PIN fails older than since_ts, then return the remaining
+    timestamps (oldest→newest)."""
+    with get_connection() as conn:
+        conn.execute("DELETE FROM pin_fails WHERE user_id = ? AND ts < ?", (user_id, since_ts))
+        rows = conn.execute(
+            "SELECT ts FROM pin_fails WHERE user_id = ? ORDER BY ts", (user_id,)
+        ).fetchall()
+    return [r["ts"] for r in rows]
 
 
 def _decode_json_list(value):

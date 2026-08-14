@@ -5,9 +5,7 @@ import os
 import random
 import re
 import subprocess
-from collections import defaultdict
 from datetime import timedelta
-from threading import Lock
 from time import time
 
 import requests
@@ -79,8 +77,9 @@ PUBLIC_ENDPOINTS = {
 PIN_FAIL_WINDOW_SEC = 15 * 60
 PIN_FAIL_THRESHOLD = 5
 PIN_LOCKOUT_SEC = 10 * 60
-_pin_fails = defaultdict(list)
-_pin_fails_lock = Lock()
+# PIN-failure lockout is tracked in the SQLite `pin_fails` table (see database.py
+# record_pin_fail / recent_pin_fails / clear_pin_fails) so it's shared across the
+# gunicorn workers and survives restarts — the old in-memory dict was per-worker.
 
 
 def _clean_list(values):
@@ -142,30 +141,20 @@ def can_manage_profiles():
     return session.get("is_owner") is True
 
 
-def _prune_and_count(user_id, now):
-    fails = [t for t in _pin_fails[user_id] if now - t < PIN_FAIL_WINDOW_SEC]
-    _pin_fails[user_id] = fails
-    return fails
-
-
 def pin_lockout_remaining(user_id):
     now = time()
-    with _pin_fails_lock:
-        fails = _prune_and_count(user_id, now)
-        if len(fails) >= PIN_FAIL_THRESHOLD:
-            latest = max(fails)
-            return max(0, int(PIN_LOCKOUT_SEC - (now - latest)))
-        return 0
+    fails = database.recent_pin_fails(user_id, now - PIN_FAIL_WINDOW_SEC)
+    if len(fails) >= PIN_FAIL_THRESHOLD:
+        return max(0, int(PIN_LOCKOUT_SEC - (now - max(fails))))
+    return 0
 
 
 def record_pin_fail(user_id):
-    with _pin_fails_lock:
-        _pin_fails[user_id].append(time())
+    database.record_pin_fail(user_id, time())
 
 
 def clear_pin_fails(user_id):
-    with _pin_fails_lock:
-        _pin_fails.pop(user_id, None)
+    database.clear_pin_fails(user_id)
 
 
 def _lockout_message(seconds):
