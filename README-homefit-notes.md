@@ -39,7 +39,11 @@ itself from the validated release.
 - Coach is a normal top navigation tab and full page, not a floating button.
 - Navigation is top-only. The main app uses theme-driven color and gradients,
   without a photo background.
-- Accent themes are selected in Profile.
+- Active workouts auto-save after every change, show total-set progress, and
+  allow an immediate undo for an accidental logged set.
+- The Garage panel is an optional household companion for Brent and Shay. It
+  shares the same active-workout draft as the phone/PWA, but is not part of the
+  core experience required by every BuiltHere household.
 
 ## Workout safety
 
@@ -66,7 +70,7 @@ and when loaded, without rewriting the stored plan.
 
 ## Validation status
 
-- Automated suite: 66 tests passing as of 2026-08-14.
+- Automated suite: 75 tests passing as of 2026-08-14.
 - Coverage includes focus-safe generation, saved-plan sanitation, installer
   rollback/retention, primary authenticated page rendering, and missing-token
   rejection across external APIs.

@@ -104,7 +104,7 @@
   $("g-log").addEventListener("click", () => {
     const e = ex();
     if (e.logged.length >= e.sets) return;
-    e.logged.push({ weight: e.workW, reps: e.workR });
+    e.logged.push({ weight: e.workW, reps: e.workR, logged_at: Date.now() });
     startRest(e.rest || 60);
     if (e.logged.length >= e.sets) {
       const next = exs.findIndex((x, i) => i > cur && x.logged.length < x.sets);

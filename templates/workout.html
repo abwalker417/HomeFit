@@ -44,6 +44,10 @@
                   border-radius:10px; padding:6px 12px; cursor:pointer; }
 
   .wk-log { width:100%; font-size:18px; padding:16px; margin-bottom:12px; }
+  .wk-undo { display:block; width:100%; padding:7px; margin:-5px 0 10px; border:0; background:none; color:var(--subtle); font:inherit; font-size:13px; cursor:pointer; }
+  .wk-undo:disabled { visibility:hidden; }
+  .wk-session-progress { display:block; margin-top:2px; color:var(--subtle); font-size:11px; }
+  .wk-sync-status { margin:2px 0 14px; color:var(--subtle); font-size:12px; text-align:center; }
   .wk-nav { display:flex; gap:8px; }
   .wk-nav-btn { flex:1; }
   .wk-finish { display:block; width:100%; max-width:520px; margin:0 auto; }
@@ -77,7 +81,7 @@
   </p>
   <h1>{{ day.name }}</h1>
   <div class="wk-statusbar">
-    <span id="wk-progress" class="wk-progress">1 / {{ day.exercises|length }}</span>
+    <span><strong id="wk-progress" class="wk-progress">1 / {{ day.exercises|length }}</strong><small id="wk-session-progress" class="wk-session-progress">0 sets logged</small></span>
     <span class="wk-timer-box">
       <span class="wk-timer-label">Time <small>(tap to edit)</small></span>
       <span id="workout-timer" class="wk-timer" title="Tap to correct time">00:00</span>
@@ -126,6 +130,8 @@
     </div>
 
     <button type="button" id="wk-log" class="btn btn-primary wk-log">✓ Log Set</button>
+    <button type="button" id="wk-undo" class="wk-undo" disabled>Undo last set</button>
+    <p class="wk-sync-status">Saved automatically. You can resume this session on another device.</p>
 
     <div class="wk-nav">
       <button type="button" id="wk-prev" class="btn btn-secondary wk-nav-btn">‹ Prev</button>
@@ -187,7 +193,7 @@
 
   <div style="max-width:480px; margin:0 auto; display:flex; flex-direction:column; gap:10px;">
     <a href="/" class="btn btn-primary" style="display:block; text-align:center;">Back to Dashboard</a>
-    <a href="/apex" class="btn btn-secondary" style="display:block; text-align:center;">Chat with Coach</a>
+    <a href="{{ url_for('coach_page') }}" class="btn btn-secondary" style="display:block; text-align:center;">Chat with Coach</a>
   </div>
 
 </div>

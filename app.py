@@ -1703,6 +1703,27 @@ def garage_complete():
     exercises = data.get("exercises", [])
     duration = data.get("duration_seconds")
     day_name = data.get("day_name", "Garage Workout")
+    # The large panel can double-submit when Finish is tapped twice. Match the
+    # phone logger's short idempotency window so one physical workout remains
+    # one history entry whichever surface completes it.
+    from datetime import datetime
+    last = database.get_last_workout(uid)
+    if last and last.get("day_name") == day_name:
+        try:
+            age = (database.user_now(uid) - datetime.fromisoformat(last["completed_at"])).total_seconds()
+        except (ValueError, TypeError, KeyError):
+            age = 999
+        if 0 <= age < 120:
+            profile = database.get_profile(uid)
+            completed = [e for e in last.get("exercises", []) if e.get("completed") and e.get("id")]
+            enriched = [get_exercise_by_id(e["id"]) for e in completed]
+            kcal = _calc_kcal([e for e in enriched if e],
+                              (profile or {}).get("current_weight") or 0,
+                              last.get("duration_seconds"))
+            database.clear_workout_draft(uid)
+            return jsonify({"ok": True, "kcal": kcal,
+                            "exercises_completed": len(completed), "day_name": day_name,
+                            "duplicate": True, "insight": None, "overload": []})
     database.log_workout(uid, day_name, 1, exercises, duration)
     database.clear_workout_draft(uid)
     completed = [e for e in exercises if e.get("completed") and e.get("id")]

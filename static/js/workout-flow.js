@@ -94,6 +94,17 @@ window.startWorkout = function () {
   const exAt = (i) => exs[i];
   const stOf = (e) => state.ex[e.id] || (state.ex[e.id] = { logged: [], workW: defaultW(e), workR: e.reps });
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const totalSets = () => exs.reduce((sum, e) => sum + e.sets, 0);
+  const loggedSets = () => exs.reduce((sum, e) => sum + stOf(e).logged.length, 0);
+  function latestLoggedSet() {
+    let latest = null;
+    exs.forEach((exercise) => stOf(exercise).logged.forEach((set, index) => {
+      if (set.logged_at && (!latest || set.logged_at > latest.set.logged_at)) {
+        latest = { exercise, index, set };
+      }
+    }));
+    return latest;
+  }
 
   // ---- timer (tap to correct) ----
   const timerEl = $('workout-timer');
@@ -121,6 +132,7 @@ window.startWorkout = function () {
     const timed = e.unit === 'seconds';
     $('wk-ex-name').textContent = e.name;
     $('wk-progress').textContent = `${cur + 1} / ${exs.length}`;
+    $('wk-session-progress').textContent = `${loggedSets()} of ${totalSets()} sets logged`;
     $('wk-setline').textContent = done
       ? `✓ All ${e.sets} sets done`
       : `Set ${s.logged.length + 1} of ${e.sets} · target ${e.reps}${timed ? 's' : ' reps'}`;
@@ -145,6 +157,7 @@ window.startWorkout = function () {
     log.disabled = done; log.style.opacity = done ? '.5' : '1';
     $('wk-prev').disabled = cur === 0;
     $('wk-next').disabled = cur === exs.length - 1;
+    $('wk-undo').disabled = !latestLoggedSet();
   }
 
   // ---- steppers ----
@@ -161,7 +174,7 @@ window.startWorkout = function () {
   $('wk-log').addEventListener('click', () => {
     const e = exAt(cur), s = stOf(e);
     if (s.logged.length >= e.sets) return;
-    s.logged.push({ weight: isWeighted(e) ? s.workW : null, reps: s.workR });
+    s.logged.push({ weight: isWeighted(e) ? s.workW : null, reps: s.workR, logged_at: Date.now() });
     startRest(e.rest || 60);
     if (s.logged.length >= e.sets) {
       const next = exs.findIndex((x, i) => i > cur && stOf(x).logged.length < x.sets);
@@ -172,6 +185,15 @@ window.startWorkout = function () {
 
   $('wk-prev').addEventListener('click', () => { if (cur > 0) { cur--; render(); save(); } });
   $('wk-next').addEventListener('click', () => { if (cur < exs.length - 1) { cur++; render(); save(); } });
+  $('wk-undo').addEventListener('click', () => {
+    const latest = latestLoggedSet();
+    if (!latest) return;
+    stOf(latest.exercise).logged.splice(latest.index, 1);
+    cur = exs.indexOf(latest.exercise);
+    clearInterval(restInt);
+    const rest = $('wk-rest'); rest.classList.add('hidden'); rest.classList.remove('active', 'done');
+    render(); save();
+  });
 
   // ---- rest timer ----
   let restInt = null;
@@ -323,7 +345,7 @@ window.startWorkout = function () {
 
     const exercisesForInsight = exs
       .filter((e) => stOf(e).logged.length > 0)
-      .map((e) => ({ name: e.name, sets: stOf(e).logged }));
+      .map((e) => ({ id: e.id, name: e.name, completed: true, sets: stOf(e).logged }));
     fetch('/api/post-workout-insight', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ exercises: exercisesForInsight }),
