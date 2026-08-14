@@ -1302,6 +1302,7 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
   line-height: 1.4;
 }
 /* APEX and user message colours */
+.msg { max-width:86%; padding:11px 13px; border-radius:15px; line-height:1.48; overflow-wrap:anywhere; }
 .msg-apex {
   background: #0f2d4a;
   border: 1px solid #1e4d80;

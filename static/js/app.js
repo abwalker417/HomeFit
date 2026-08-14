@@ -62,6 +62,7 @@ if ('serviceWorker' in navigator) {
         history = data.messages;
         messages.innerHTML = '';
         history.forEach(m => addMsg(m.content, m.role === 'assistant' ? 'apex' : m.role, false));
+        messages.scrollTop = messages.scrollHeight;
       }
     } catch {}
   }
