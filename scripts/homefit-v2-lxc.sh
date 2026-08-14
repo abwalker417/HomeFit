@@ -97,6 +97,6 @@ ip_without_prefix="${CT_IP%/*}"
 ok "HomeFit V2 is installed"
 printf '\n URL:       http://%s:%s\n' "$ip_without_prefix" "$APP_PORT"
 printf ' Logs:      pct exec %s -- journalctl -u homefit -f\n' "$CTID"
-printf ' Update:    pct exec %s -- homefit-update\n' "$CTID"
+printf ' Update:    pct exec %s -- /usr/local/sbin/homefit-update\n' "$CTID"
 printf ' Configure: pct enter %s; nano /etc/homefit/homefit.env\n\n' "$CTID"
 printf 'Cloudflare and APNs are intentionally not configured by this installer.\n'

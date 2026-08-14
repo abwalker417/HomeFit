@@ -116,3 +116,10 @@ new release with a separate virtual environment, checked by importing the app,
 then activated with an atomic `current` symlink. SQLite is backed up before the
 new release is validated, and a failed HTTP health check restores the previous
 application symlink.
+
+From the Proxmox host, invoke the updater with its absolute path because
+`pct exec` does not always include `/usr/local/sbin` in `PATH`:
+
+```bash
+pct exec 120 -- /usr/local/sbin/homefit-update
+```
