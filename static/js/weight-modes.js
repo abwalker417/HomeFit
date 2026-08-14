@@ -1,4 +1,4 @@
-/* HomeFit equipment-aware weight steppers, shared by the garage panel and the
+/* BuiltHere equipment-aware weight steppers, shared by the garage panel and the
    phone flow. workW (the value logged and saved in drafts) is always the REAL
    lifted weight:
      - dumbbells: 5 lb bells, 5 lb steps

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>{% block title %}HomeFit{% endblock %}</title>
+  <title>{% block title %}BuiltHere{% endblock %}</title>
   <link rel="manifest" href="{{ url_for('manifest') }}">
   <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512.png') }}?v={{ static_version }}">
   <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}?v={{ static_version }}">
@@ -15,9 +15,15 @@
   <div class="app-background" aria-hidden="true"></div>
   <header class="app-header">
     <a class="brand" href="{{ url_for('index') }}">
-      <img class="brand-mark" src="{{ url_for('static', filename='icons/redesign/brand/' + accent_name + '.png') }}?v={{ static_version }}" alt="HomeFit">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64" focusable="false">
+          <path class="brand-mark-pillar" d="M12 10h10v44H12z"/>
+          <path class="brand-mark-build" d="M20 10h13c10 0 16 5 16 13 0 6-3 10-8 12 6 2 9 6 9 12 0 9-6 14-18 14H20v-10h12c5 0 8-2 8-6s-3-6-8-6H20v-9h11c5 0 7-2 7-5 0-4-2-5-7-5H20z"/>
+          <path class="brand-mark-foundation" d="M8 54h45"/>
+        </svg>
+      </span>
       <span>
-        <span class="brand-name">HomeFit</span>
+        <span class="brand-name"><strong>Built</strong>Here</span>
         {% if current_user %}
           <span class="subtitle">
             {% if current_user.photo %}
@@ -37,7 +43,7 @@
       <a class="{{ 'is-active' if request.endpoint == 'coach_page' else '' }}" href="{{ url_for('coach_page') }}">Coach</a>
       <a class="{{ 'is-active' if request.endpoint == 'profile_edit' else '' }}" href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
     </nav>
-    <span class="header-slogan" aria-hidden="true">No Mirror.<br>No Membership.<br>No Days Off.</span>
+    <span class="header-slogan" aria-hidden="true">Your space.<br>Your equipment.<br>Your workout.</span>
     <button id="hamburger-btn" class="hamburger-btn" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -66,7 +72,7 @@
   {% if current_user and api_token %}
   <script>
     // Hand the API token to the native iOS app so it can sync Apple Health
-    // workouts into HomeFit (no-op in Safari / the PWA).
+    // workouts into BuiltHere (no-op in Safari / the PWA).
     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.homefitNative) {
       window.webkit.messageHandlers.homefitNative.postMessage({
         type: 'config',

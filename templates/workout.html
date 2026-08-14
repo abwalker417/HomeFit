@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ day.name }} — HomeFit{% endblock %}
+{% block title %}{{ day.name }} — BuiltHere{% endblock %}
 
 {% block content %}
 <style>
@@ -72,7 +72,7 @@
     </div>
   </div>
   <p class="eyebrow">
-    {% if day.ai_generated %}<span style="color:var(--accent);">Apex pick</span> · {% endif %}
+    {% if day.ai_generated %}<span style="color:var(--accent);">Built for today</span> · {% endif %}
     {% if day.focus %}{{ day.focus }}{% endif %}
   </p>
   <h1>{{ day.name }}</h1>
@@ -174,7 +174,7 @@
   </div>
 
   <div id="apex-summary-card" class="card" style="max-width:480px; margin:0 auto 14px; padding:20px;">
-    <p class="card-eyebrow">APEX ANALYSIS</p>
+    <p class="card-eyebrow">COACH NOTES</p>
     <div id="apex-summary-body">
       <p style="color:var(--subtle); font-size:14px; margin:0;">Analyzing your session...</p>
     </div>
@@ -187,7 +187,7 @@
 
   <div style="max-width:480px; margin:0 auto; display:flex; flex-direction:column; gap:10px;">
     <a href="/" class="btn btn-primary" style="display:block; text-align:center;">Back to Dashboard</a>
-    <a href="/apex" class="btn btn-secondary" style="display:block; text-align:center;">Chat with APEX</a>
+    <a href="/apex" class="btn btn-secondary" style="display:block; text-align:center;">Chat with Coach</a>
   </div>
 
 </div>

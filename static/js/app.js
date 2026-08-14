@@ -1,4 +1,4 @@
-/* HomeFit — front-end glue */
+/* BuiltHere — front-end glue */
 
 // Register the PWA service worker so iPhone users can install to the home screen.
 if ('serviceWorker' in navigator) {
@@ -30,7 +30,7 @@ if ('serviceWorker' in navigator) {
   backdrop.addEventListener('click', close);
 })();
 
-/* ---------- APEX coach ---------- */
+/* ---------- BuiltHere Coach ---------- */
 (function () {
   const fab = document.getElementById('apex-fab');
   const panel = document.getElementById('apex-panel');
@@ -161,6 +161,7 @@ if ('serviceWorker' in navigator) {
 
   function renderMarkdown(text) {
     return text
+      .replace(/\bAPEX\b/gi, 'Coach')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/^### (.+)$/gm, '<strong>$1</strong>')
@@ -230,8 +231,8 @@ if ('serviceWorker' in navigator) {
   if (!isFloatingPanel) loadHistory();
 })();
 
-/* ---------- Apex form cues ---------- */
-function wireApexCue(btn) {
+/* ---------- Coach form cues ---------- */
+function wireCoachCue(btn) {
   btn.addEventListener('click', async () => {
     const body = btn.closest('.ex-body');
     const wrap = body.querySelector('.ex-cue-wrap');
@@ -259,7 +260,7 @@ function wireApexCue(btn) {
         wrap.style.display = 'block';
         btn.textContent = 'Hide tips';
       } else {
-        btn.textContent = 'Apex offline';
+        btn.textContent = 'Coach offline';
       }
     } catch {
       btn.textContent = 'Error';
@@ -267,7 +268,7 @@ function wireApexCue(btn) {
     btn.disabled = false;
   });
 }
-document.querySelectorAll('.apex-cue-btn').forEach(wireApexCue);
+document.querySelectorAll('.apex-cue-btn').forEach(wireCoachCue);
 
 /* ---------- Weight logging (dashboard) ---------- */
 function setupWeightForm() {
@@ -300,7 +301,7 @@ function setupWeightForm() {
   });
 }
 
-/* ---------- Weekly APEX digest ---------- */
+/* ---------- Weekly Coach digest ---------- */
 function loadWeeklyDigest() {
   const card = document.getElementById('weekly-digest-card');
   const body = document.getElementById('weekly-digest-body');
@@ -340,7 +341,7 @@ function setupPushToggle() {
   if (!supported) {
     btn.disabled = true;
     btn.textContent = 'Not supported on this device';
-    if (status) status.textContent = 'On iPhone, add HomeFit to your Home Screen first (Share → Add to Home Screen), then enable here.';
+    if (status) status.textContent = 'On iPhone, add BuiltHere to your Home Screen first (Share → Add to Home Screen), then enable here.';
     return;
   }
 
@@ -728,7 +729,7 @@ function startWorkout() {
     setsContainer.addEventListener('input', persistSets);
 
     // Restore previously entered sets; otherwise auto-open the log for weighted
-    // exercises (and when APEX suggests a bump) so the inputs are there by
+    // exercises (and when Coach suggests a bump) so the inputs are there by
     // default. Bodyweight / timed moves stay collapsed behind the button.
     const saved = (state.sets || {})[exId];
     if (saved && saved.length) {
@@ -875,7 +876,7 @@ function startWorkout() {
     if (workoutSection) workoutSection.style.display = 'none';
     wcSection.classList.remove('hidden');
 
-    // Fetch APEX insight asynchronously
+    // Fetch Coach insight asynchronously
     fetch('/api/post-workout-insight', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1115,7 +1116,7 @@ function setupAddExercise(root, state, STORE_KEY, wireExercise) {
     const li = buildNode(e);
     list.appendChild(li);
     wireExercise(li);
-    li.querySelectorAll('.apex-cue-btn').forEach(wireApexCue);
+    li.querySelectorAll('.apex-cue-btn').forEach(wireCoachCue);
     renumber();
     if (persist) {
       if (!state.added.includes(e.id)) state.added.push(e.id);

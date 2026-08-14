@@ -20,7 +20,7 @@ memory/
 .claude/
 HomeFitIcon-Transparent.png
 # Source icon files (processed versions live in static/icons/)
-icons/
+/icons/
 *.ico
 Apex-AI-2.png
 Core.png

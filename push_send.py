@@ -32,7 +32,7 @@ def send_digest_for(uid):
         (l.lstrip("- ").strip() for l in digest.splitlines() if l.strip()),
         "Your weekly digest is ready.",
     )
-    n = push_notify.send_to_user(uid, "APEX Weekly Digest", first, url="/")
+    n = push_notify.send_to_user(uid, "BuiltHere · Weekly review", first, url="/")
     print(f"user {uid}: digest push sent to {n} device(s)")
 
 
@@ -47,7 +47,7 @@ def send_daily_brief_for(uid):
         return
     if not brief:
         return
-    n = push_notify.send_to_user(uid, "APEX Daily Brief", brief.strip(), url="/")
+    n = push_notify.send_to_user(uid, "BuiltHere · Today", brief.strip(), url="/")
     print(f"user {uid}: daily brief sent to {n} device(s)")
 
 
@@ -66,7 +66,7 @@ def send_streak_reminder_for(uid):
     if target == 0:
         return  # fully-away week — nothing owed
     usable_days_left = max(0, days_left - pause["remaining_paused"])
-    # Workout days this week = HomeFit sessions + counting Apple workouts
+    # Workout days this week = BuiltHere sessions + counting Apple workouts
     # (golf, long sessions) — same source of truth as the dashboard/streak.
     week_dates = database.workout_day_dates(uid, since_iso=monday)
     if today.isoformat() in week_dates:
@@ -93,7 +93,7 @@ def send_streak_reminder_for(uid):
 
 def send_nudge_for(uid, ai_ok=None):
     """One proactive contextual nudge, deduped per type/local-day (nudge_log).
-    Triggers are data-driven (nudge_service); APEX phrases them personably."""
+    Triggers are data-driven (nudge_service); Coach phrases them personably."""
     import coach
     import nudge_service
     if ai_ok is None:
@@ -128,7 +128,7 @@ def send_nudge_for(uid, ai_ok=None):
 
 
 def update_memory_for(uid, name=None):
-    """Let APEX update its persistent memory of one user from the day's
+    """Let Coach update its persistent memory of one user from the day's
     conversation. Skips users with no new chat since the last update."""
     import coach
     messages = database.get_apex_chat(uid)

@@ -1,4 +1,4 @@
-/* HomeFit — mobile-first, iPhone-friendly styling */
+/* BuiltHere — adaptive training, built around what you have. */
 
 :root {
   --bg: #080b10;
@@ -82,13 +82,22 @@ a { color: var(--accent); text-decoration: none; }
 
 .brand { display: flex; align-items: center; gap: 10px; color: var(--text); }
 .brand-mark {
-  display: block;
+  display: grid;
+  place-items: center;
   width: 42px; height: 42px;
-  border-radius: 10px;
-  object-fit: cover;
+  border-radius: 12px;
+  color: var(--accent);
+  background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(var(--accent-rgb),.07));
+  border: 1px solid rgba(255,255,255,.09);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.26);
   flex-shrink: 0;
 }
-.brand-name { font-weight: 600; letter-spacing: 0.2px; }
+.brand-mark svg { width: 33px; height: 33px; overflow: visible; }
+.brand-mark-pillar { fill: var(--text); }
+.brand-mark-build { fill: currentColor; }
+.brand-mark-foundation { fill:none; stroke:var(--text); stroke-width:3; stroke-linecap:round; opacity:.92; }
+.brand-name { font-weight: 500; letter-spacing: -0.035em; font-size: 17px; }
+.brand-name strong { font-weight: 800; }
 
 .header-slogan {
   margin-left: auto;

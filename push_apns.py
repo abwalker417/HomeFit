@@ -1,9 +1,9 @@
 """APNs (native iOS) push — token-based (.p8) provider auth over HTTP/2.
 
-A parallel delivery channel to web push so the native HomeFit app receives the
+A parallel delivery channel to web push so the native BuiltHere app receives the
 same notifications. Configure by dropping the APNs auth key at data/apns_key.p8
 and its Key ID (env APNS_KEY_ID or data/apns.json). Team/bundle default to the
-HomeFit values. If unconfigured, every call is a graceful no-op.
+BuiltHere values. If unconfigured, every call is a graceful no-op.
 
 Requires: pip install "httpx[http2]" "pyjwt[crypto]"
 """

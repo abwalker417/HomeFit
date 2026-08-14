@@ -1,4 +1,4 @@
-"""Daily APEX brief orchestration — shared by the dashboard (/api/daily-brief)
+"""Daily Coach brief orchestration — shared by the dashboard (/api/daily-brief)
 and the push_send.py cron so both show the same sleep-aware brief, cached per day."""
 
 import coach

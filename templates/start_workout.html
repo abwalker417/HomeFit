@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Start workout — HomeFit{% endblock %}
+{% block title %}Start workout — BuiltHere{% endblock %}
 
 {% block content %}
 <section class="hero">
   <p class="eyebrow">Today's workout</p>
   <h1>Ready to train?</h1>
   <p class="subtle">
-    {% if ai_online %}Apex will build a personalised workout based on your history.
-    {% else %}Apex is offline — check that PeakAI is running.{% endif %}
+    {% if ai_online %}Coach can build a personalised workout from your history and what you have available.
+    {% else %}Coach is temporarily offline. You can still choose a workout from Today.{% endif %}
   </p>
 </section>
 
@@ -16,8 +16,8 @@
   <form method="post" id="ai-form">
     <input type="hidden" name="focus_mode" value="ai">
     <button type="submit" class="btn btn-primary" style="width:100%;" id="ai-btn">
-      <img src="{{ url_for('static', filename='icons/redesign/apex/' + accent_name + '.png') }}" style="width:22px;height:22px;border-radius:6px;vertical-align:middle;margin-right:8px;">
-      Let Apex build my workout
+      <img src="{{ url_for('static', filename='icons/builthere-mark.svg') }}?v={{ static_version }}" alt="" style="width:22px;height:22px;border-radius:6px;vertical-align:middle;margin-right:8px;">
+      Let Coach build my workout
     </button>
   </form>
 </section>
@@ -35,7 +35,7 @@
   document.getElementById('ai-form').addEventListener('submit', () => {
     const btn = document.getElementById('ai-btn');
     btn.disabled = true;
-    btn.textContent = 'Apex is building your workout…';
+    btn.textContent = 'Coach is building your workout…';
   });
 </script>
 {% endif %}

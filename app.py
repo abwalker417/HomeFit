@@ -1,4 +1,4 @@
-"""Flask entrypoint for HomeFit (multi-user v2)."""
+"""Flask entrypoint for BuiltHere (multi-user v2)."""
 
 import json
 import os
@@ -187,7 +187,7 @@ def _dashboard_plan(profile):
         goal = "gain"
     return {
         "goal": goal,
-        "summary": "Choose a focus each day and HomeFit will build a matching workout from your available equipment.",
+        "summary": "Choose a focus each day and BuiltHere will build a matching workout from your available equipment.",
         "days": days,
     }
 
@@ -248,7 +248,7 @@ def _progress_stats(user_id):
     monday = today - timedelta(days=today.weekday())
     monday_iso = monday.isoformat()
     externals = database.get_external_workouts(user_id, days=7)
-    # Workout days = HomeFit sessions + counting Apple workouts (golf, long
+    # Workout days = BuiltHere sessions + counting Apple workouts (golf, long
     # sessions); shared with the streak + push reminders.
     week_dates = database.workout_day_dates(user_id, since_iso=monday_iso)
     trained_today = today.isoformat() in week_dates
@@ -1387,7 +1387,7 @@ def workout_ready():
     return jsonify({"ready": True})
 
 
-# ── Garage kiosk: HomeFit workout logger for a wall-mounted strip panel ──────
+# ── Garage kiosk: BuiltHere workout logger for a wall-mounted strip panel ──────
 # Standalone, no-PIN, big-button. Reuses the plan + logging; own lean template.
 
 def _garage_workout(uid):
@@ -1429,7 +1429,7 @@ def _garage_workout(uid):
 
 
 GARAGE_TYPES = {
-    "apex":     "APEX",
+    "apex":     "Today's Plan",
     "upper":    "Upper Body",
     "lower":    "Lower Body",
     "core":     "Core",
@@ -2077,7 +2077,7 @@ def generate_apex_plan():
     if not uid:
         return jsonify({"error": "unauthorized"}), 401
     if not coach.is_available():
-        return jsonify({"error": "APEX offline"}), 503
+        return jsonify({"error": "Coach is temporarily offline"}), 503
     try:
         from workout_logic import (
             _exercise_equipment,
@@ -2283,7 +2283,7 @@ def api_last_workout():
 
 @app.route("/api/recent-workouts")
 def api_recent_workouts():
-    """Recent HomeFit gym sessions for the native app to backfill into Apple Health.
+    """Recent BuiltHere gym sessions for the native app to backfill into Apple Health.
 
     A workout logged outside the iOS app (garage panel, desktop browser, the other
     user's phone) never hits the logWorkout JS bridge, so it never reaches Apple
@@ -2350,8 +2350,8 @@ def api_last_weight():
 def api_external_workout():
     """Relay for Apple Health workouts (posted by the native app / an iOS Shortcut).
 
-    Dedups against HomeFit's own logged sessions, then records genuinely external
-    cardio into HomeFit's external_workouts table (progress + energy balance).
+    Dedups against BuiltHere's own logged sessions, then records genuinely external
+    cardio into BuiltHere's external_workouts table (progress + energy balance).
     Body: {type, start, [end], [duration_minutes], [kcal], [distance_mi], [avg_hr], [source]}
     """
     from datetime import datetime, timedelta, timezone
@@ -2415,7 +2415,7 @@ def api_external_workout():
         database.set_external_workout_status(uid, name, started_iso, "skipped_overlap")
         return jsonify({
             "status": "skipped",
-            "reason": f"overlaps HomeFit workout '{overlap['day_name']}'",
+            "reason": f"overlaps BuiltHere workout '{overlap['day_name']}'",
         }), 200
 
     database.set_external_workout_status(uid, name, started_iso, "recorded")
@@ -2426,7 +2426,7 @@ def api_external_workout():
 def api_sleep():
     """Relay for Apple Health / Oura sleep (posted by the native app).
     Body: {date, bedtime, wake_time, duration_seconds, [deep_s,rem_s,light_s,awake_s], [source]}
-    Dedups one night per date (UNIQUE) and records it into HomeFit's sleep_log.
+    Dedups one night per date (UNIQUE) and records it into BuiltHere's sleep_log.
     """
     from datetime import datetime
     token = request.args.get("token", "") or \
@@ -2522,7 +2522,7 @@ def coach_chat():
     if not message:
         return jsonify({"error": "empty message"}), 400
     if not coach.is_available():
-        return jsonify({"error": "APEX is offline — check that PeakAI is running."}), 503
+        return jsonify({"error": "Coach is temporarily offline. Try again shortly."}), 503
     try:
         import logging
         logging.warning(f"APEX chat: local_date={local_date!r} local_day={local_day!r}")
@@ -2743,7 +2743,7 @@ def push_test():
     if not uid:
         return jsonify({"error": "unauthorized"}), 401
     import push_notify
-    n = push_notify.send_to_user(uid, "HomeFit", "Test notification — you're wired up.", "/")
+    n = push_notify.send_to_user(uid, "BuiltHere", "Test notification — you're wired up.", "/")
     return jsonify({"ok": True, "sent": n})
 
 
@@ -2837,7 +2837,7 @@ def strength_history():
 
 @app.route("/api/energy-balance")
 def energy_balance():
-    """Last-7-days calories in (HomeFit food log) vs burned (HomeFit workouts + Apple Health cardio)."""
+    """Last-7-days calories in (BuiltHere food log) vs burned (BuiltHere workouts + Apple Health cardio)."""
     from datetime import date, timedelta
     uid = session["user_id"]
     profile = database.get_profile(uid) or {}
@@ -2908,7 +2908,7 @@ def service_worker():
         body = fh.read()
     body = re.sub(
         r"const CACHE = '[^']*';",
-        "const CACHE = 'homefit-%d';" % _sw_cache_version(),
+        "const CACHE = 'builthere-%d';" % _sw_cache_version(),
         body,
         count=1,
     )

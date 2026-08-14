@@ -1,5 +1,5 @@
-"""Proactive APEX nudges — decide (cheaply, deterministically) whether a user
-needs a contextual nudge right now, then let APEX phrase it personably.
+"""Proactive Coach nudges — decide (cheaply, deterministically) whether a user
+needs a contextual nudge right now, then let Coach phrase it personably.
 
 Triggers are evaluated from data (no LLM needed to DECIDE — only to PHRASE), so
 this is cheap and never spammy. One nudge per run, deduped per type per day via
@@ -92,7 +92,7 @@ def evaluate(user_id, now=None):
 
 
 def fallback_text(nudge):
-    """Deterministic phrasing if APEX is offline — never blocks a nudge."""
+    """Deterministic phrasing if Coach is offline — never blocks a nudge."""
     t, f = nudge["type"], nudge["facts"]
     if t == "untrained_plan_day":
         return ("Time to train", f"{f['day_name']} is still on today's plan — no workout logged yet.")
@@ -100,4 +100,4 @@ def fallback_text(nudge):
         return ("Fuel up", f"You're at {f['eaten']} of {f['goal']} cal — {f['remaining']} left. Don't forget dinner.")
     if t == "protein_low":
         return ("Protein check", f"Only {f['protein']}g protein so far — about {f['remaining']}g to your goal.")
-    return ("HomeFit", "Check in with APEX.")
+    return ("BuiltHere", "Check in with Coach.")

@@ -1,6 +1,6 @@
-/* HomeFit service worker — offline-first for app shell */
+/* BuiltHere service worker — offline-first for app shell */
 
-const CACHE = 'homefit-v73';
+const CACHE = 'builthere-v1';
 const APP_SHELL = [
   '/static/css/style.css',
   '/static/js/app.js',
@@ -57,9 +57,9 @@ self.addEventListener('fetch', (event) => {
 /* ---------- Web push ---------- */
 self.addEventListener('push', (event) => {
   let data = {};
-  try { data = event.data.json(); } catch { data = { title: 'HomeFit', body: event.data && event.data.text() }; }
+  try { data = event.data.json(); } catch { data = { title: 'BuiltHere', body: event.data && event.data.text() }; }
   event.waitUntil(
-    self.registration.showNotification(data.title || 'HomeFit', {
+    self.registration.showNotification(data.title || 'BuiltHere', {
       body: data.body || '',
       icon: '/static/icons/icon-192.png',
       badge: '/static/icons/icon-192.png',

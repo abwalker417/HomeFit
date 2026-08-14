@@ -1,4 +1,4 @@
-"""Single-call meal parser for HomeFit's food logger.
+"""Single-call meal parser for BuiltHere's food logger.
 
 One LLM call turns a free-text meal OR a photo into structured foods + macros.
 No tool loop — just parse-once. Text uses a cheap model; photos use a vision

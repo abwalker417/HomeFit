@@ -1,4 +1,4 @@
-/* HomeFit garage kiosk — workout logger. One exercise at a time, big buttons,
+/* BuiltHere garage kiosk — workout logger. One exercise at a time, big buttons,
    logs every set on the panel, auto rest timer, posts at Finish. */
 (function () {
   const W = window.GARAGE;
@@ -168,7 +168,7 @@
       exercises: exs.map((e) => ({ id: e.id, name: e.name,
         completed: e.logged.length > 0, sets: e.logged })),
     };
-    // Show the completion card immediately with what we know; fill kcal + APEX
+    // Show the completion card immediately with what we know; fill kcal + Coach
     // feedback once the server responds.
     $("g-done-title").textContent = W.name;
     $("g-done-time").textContent = fmtT(dur);

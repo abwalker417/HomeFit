@@ -1,4 +1,4 @@
-"""AI coaching for HomeFit — routed through PeakAI (OpenAI-compatible)."""
+"""AI coaching for BuiltHere — routed through PeakAI (OpenAI-compatible)."""
 
 import json
 import os
@@ -14,7 +14,7 @@ PEAKAI_MODEL = os.environ.get("PEAKAI_MODEL", "claude-sonnet")
 # cheap model — "only fire Sonnet when it's needed."
 MODEL_CHEAP = os.environ.get("PEAKAI_CHEAP_MODEL", "gpt-4o-mini")
 
-SYSTEM_PROMPT = """You are APEX, a personal AI fitness coach embedded in HomeFit.
+SYSTEM_PROMPT = """You are the personal fitness coach built into BuiltHere. Users know you simply as “Coach”; do not introduce yourself as a named AI persona or mention the underlying AI provider.
 You have access to the user's complete fitness profile and workout history.
 Be concise, encouraging, and specific — always reference their actual data.
 Give practical advice they can act on immediately.
@@ -133,7 +133,7 @@ def _build_context(coaching_data):
         today = _user_now(coaching_data).date()
         today_label = f"{day_names[today.weekday()]}, {today.isoformat()}"
 
-    # Time of day so APEX greets/advises correctly (it was telling users to
+    # Time of day so Coach greets/advises correctly (it was telling users to
     # "get some sleep" in the morning because it only knew the date, not the
     # hour). Uses profile.timezone; prefers a client-supplied time if present.
     now_local = _user_now(coaching_data)
@@ -194,8 +194,8 @@ def _build_context(coaching_data):
         except Exception:
             return "?"
 
-    # Pre-compute THIS WEEK's sessions so APEX never does its own (error-prone)
-    # date math. Week runs Monday→Sunday. HomeFit workouts always count; an
+    # Pre-compute THIS WEEK's sessions so Coach never does its own (error-prone)
+    # date math. Week runs Monday→Sunday. BuiltHere workouts always count; an
     # external/Apple-Health session counts toward the weekly goal ONLY if it's a
     # real workout (>=45 min) — golf and long cardio count, short daily walks do not.
     monday = today - _td(days=today.weekday())
@@ -234,10 +234,10 @@ def _build_context(coaching_data):
     lines += [
         f"THIS WEEK so far (Monday {monday_iso} through today) — USE THESE NUMBERS, do not recount by hand:",
         f"- Workout days toward the {goal_days_wk}x/week goal: {sessions} of {goal_days_wk}",
-        f"    · HomeFit workouts: {hf_list}",
+        f"    · BuiltHere workouts: {hf_list}",
         f"    · External sessions counted (Apple-recorded workouts like golf, or any session ≥45 min): {ext_list}",
         f"- Cardio/walk days toward the {cardio_goal_wk}x/week cardio goal: {len(cardio_days)} of {cardio_goal_wk} ({cardio_dow})",
-        f"Two separate weekly goals{pause_note}: (1) {goal_days_wk} WORKOUT days (HomeFit workouts + Apple-recorded "
+        f"Two separate weekly goals{pause_note}: (1) {goal_days_wk} WORKOUT days (BuiltHere workouts + Apple-recorded "
         f"workouts/long ≥45-min sessions; plain walks don't count); (2) {cardio_goal_wk} CARDIO days (any day "
         f"with a logged walk/cardio counts, one per day). Use these exact counts; never count anything "
         f"dated before {monday_iso} toward this week.",
@@ -262,7 +262,7 @@ def _build_context(coaching_data):
         ]
 
     if workouts:
-        lines.append("Recent HomeFit workouts (newest first):")
+        lines.append("Recent BuiltHere workouts (newest first):")
         for w in workouts[:6]:
             exercises = w.get("exercises", [])
             completed = [e for e in exercises if e.get("completed")]
@@ -284,7 +284,7 @@ def _build_context(coaching_data):
         lines.append("")
 
     if externals:
-        lines.append("Recent Apple Health activity (NOT HomeFit gym sessions). Each is tagged: "
+        lines.append("Recent Apple Health activity (NOT BuiltHere gym sessions). Each is tagged: "
                      "[CARDIO] = counts toward the cardio-days goal only; [WORKOUT] = an Apple-recorded "
                      "workout (e.g. golf) or long session that ALSO counts as a workout day. Walks are "
                      "CARDIO, not workouts — never describe a walk as a workout:")
@@ -311,7 +311,7 @@ def _build_context(coaching_data):
         lines.append("")
 
     if nutrition_log:
-        lines.append("Recent nutrition (logged in HomeFit):")
+        lines.append("Recent nutrition (logged in BuiltHere):")
         for day in nutrition_log[:5]:
             meals = ", ".join(f"{m}: {', '.join(foods)}" for m, foods in day.get("meals", {}).items())
             lines.append(
@@ -390,7 +390,7 @@ def _build_context(coaching_data):
 
     other_activity = coaching_data.get("other_activity") or []
     if other_activity:
-        lines.append("Other activity (Apple Health / Oura / manual — NOT HomeFit workouts):")
+        lines.append("Other activity (Apple Health / Oura / manual — NOT BuiltHere workouts):")
         for day in other_activity[:5]:
             parts = []
             for a in day.get("activities", []):
@@ -433,7 +433,7 @@ def chat(message, coaching_data, history=None):
         messages.append({"role": turn["role"], "content": turn["content"]})
 
     # Re-assert TODAY's date AFTER the history. A chat thread can span multiple
-    # days; APEX otherwise anchors on the date it stated earlier in the thread
+    # days; Coach otherwise anchors on the date it stated earlier in the thread
     # and thinks it's still yesterday. Placing this last gives it the most weight.
     from datetime import datetime as _dt
     _now = _dt.now()
@@ -597,7 +597,7 @@ _NUDGE_GUIDE = {
 def generate_nudge(coaching_data, nudge_type, facts):
     """A single short, personable push notification. Returns (title, body).
 
-    Uses the live context (so APEX's memory + the user's name come through). Falls
+    Uses the live context (so Coach's memory + the user's name come through). Falls
     back to None if the AI is offline so the caller can use a deterministic line."""
     guide = _NUDGE_GUIDE.get(nudge_type)
     if not guide:
@@ -614,14 +614,14 @@ def generate_nudge(coaching_data, nudge_type, facts):
     prompt = f"""{context}
 Situation: {situation}
 
-Write ONE short push notification from APEX to this user. Personable and specific
+Write ONE short push notification from Coach to this user. Personable and specific
 to them (use their name/memory naturally if it fits), under 120 characters, plain
 text, no emoji-spam (one tasteful emoji max), no hashtags. Return ONLY JSON:
 {{"title": "2-4 word title", "body": "the one-line message"}}"""
     obj = _parse_json_safe(_generate(prompt, json_mode=True, system=SYSTEM_PROMPT,
                                      max_tokens=200, timeout=45, model=MODEL_CHEAP))
     if isinstance(obj, dict) and obj.get("body"):
-        title = str(obj.get("title") or "HomeFit").strip()[:40]
+        title = str(obj.get("title") or "BuiltHere").strip()[:40]
         body = str(obj["body"]).strip().strip('"')[:160]
         return (title, body)
     return None
@@ -689,7 +689,7 @@ def generate_weekly_digest(coaching_data):
     prompt = f"""{context}
 
 WEEKLY REVIEW for {week_start_str} to today:
-- Training: {week_sessions} of {goal_days} workout days done (HomeFit workouts + Apple-recorded workouts like golf or long ≥45-min sessions); {tl.get('minutes_7d', 0)} active min over 7 days.{nutrition_note}{sleep_note}{cardio_note}{activity_note}
+- Training: {week_sessions} of {goal_days} workout days done (BuiltHere workouts + Apple-recorded workouts like golf or long ≥45-min sessions); {tl.get('minutes_7d', 0)} active min over 7 days.{nutrition_note}{sleep_note}{cardio_note}{activity_note}
 
 Write a weekly review as 4-6 short plain-text bullets (each starting with "- ", one sentence each,
 no headers, no greeting, no sign-off). Cover ONLY the areas that have data:
@@ -887,7 +887,7 @@ def wants_to_update_goals(message):
 
 
 def extract_goals_from_chat(history):
-    """Parse proposed calorie/macro targets from recent APEX messages. Returns dict."""
+    """Parse proposed calorie/macro targets from recent Coach messages. Returns dict."""
     recent = history[-6:]
     apex_msgs = "\n\n".join(
         m["content"][:800] for m in recent if m["role"] == "assistant"
@@ -975,7 +975,7 @@ Return ONLY: {{"plan":[{{"day":1,"name":"...","focus":"...","rest":false,"exerci
     return {"plan": plan[:7]}
 
 
-# ── APEX persistent memory ────────────────────────────────────────────────────
+# ── Coach persistent memory ────────────────────────────────────────────────────
 
 REMEMBER_PHRASES = [
     "remember that", "remember this", "remember i", "remember my", "remember to",
@@ -998,12 +998,12 @@ def update_memory(existing_memory, recent_messages, profile=None):
     memory, prunes stale/outdated lines, and keeps it bounded. Returns the new
     markdown (or the existing memory unchanged on any failure)."""
     convo = "\n".join(
-        f"{'USER' if m['role'] == 'user' else 'APEX'}: {m['content'][:600]}"
+        f"{'USER' if m['role'] == 'user' else 'Coach'}: {m['content'][:600]}"
         for m in (recent_messages or [])[-12:]
     )[-3500:]
     name = (profile or {}).get("name", "the user")
 
-    prompt = f"""You maintain APEX's long-term MEMORY about {name} — durable facts that make \
+    prompt = f"""You maintain Coach's long-term MEMORY about {name} — durable facts that make \
 coaching personal across conversations. Update the memory below using the recent conversation.
 
 RULES:

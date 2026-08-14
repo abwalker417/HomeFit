@@ -1,4 +1,4 @@
-/* HomeFit phone workout — panel-style, one exercise at a time. Weight/reps
+/* BuiltHere phone workout — panel-style, one exercise at a time. Weight/reps
    steppers, "Log Set" auto-starts the rest timer, prev/next nav. Shares a v2
    draft format with the garage panel so a session resumes across phone <-> panel.
    Overrides the legacy list-based startWorkout() from app.js on this page. */

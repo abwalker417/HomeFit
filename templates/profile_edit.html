@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Edit profile — HomeFit{% endblock %}
+{% block title %}Edit profile — BuiltHere{% endblock %}
 
 {% block content %}
 <section class="page-heading">
-  <div><p class="eyebrow">PROFILE</p><h1>Make HomeFit yours.</h1><p class="subtle">Your identity, training preferences, equipment, and privacy.</p></div>
+  <div><p class="eyebrow">PROFILE</p><h1>Make BuiltHere yours.</h1><p class="subtle">Your identity, training preferences, equipment, and privacy.</p></div>
 </section>
 
 <section class="card profile-details-card">
@@ -66,7 +66,7 @@
 
 <section class="card">
   <h2>Theme color</h2>
-  <p class="subtle" style="font-size:13px;">Pick the color used across your HomeFit background and controls. Saved to your profile.</p>
+  <p class="subtle" style="font-size:13px;">Pick the color used across your BuiltHere background and controls. Saved to your profile.</p>
   <div class="accent-swatches" id="accent-swatches">
     {% for label, pair in accent_palette.items() %}
     <button type="button" class="accent-swatch{{ ' is-selected' if pair[0] == accent else '' }}"
@@ -143,11 +143,11 @@
 {% endif %}
 
 <section class="card">
-  <h2>APEX memory</h2>
-  <p class="subtle" style="font-size:13px;">What your AI coach remembers about you across conversations — goals, preferences, injuries, life context. APEX updates this on its own each night, and you can tell it "remember that…" in chat. Edit it directly here anytime.</p>
+  <h2>What Coach remembers</h2>
+  <p class="subtle" style="font-size:13px;">Goals, preferences, injuries, and life context carried between conversations. Tell Coach “remember that…” in chat, or edit these notes directly.</p>
   <textarea id="apex-memory-text" rows="12"
             style="width:100%; box-sizing:border-box; font-family:inherit; font-size:13px; line-height:1.5; resize:vertical;"
-            placeholder="APEX hasn't learned anything yet — chat with it, or add notes here.">{{ apex_memory }}</textarea>
+            placeholder="Coach hasn't learned anything yet — chat with it, or add notes here.">{{ apex_memory }}</textarea>
   <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
     <button type="button" id="apex-memory-save" class="btn btn-primary">Save memory</button>
     <button type="button" id="apex-memory-clear" class="btn btn-secondary">Clear</button>
@@ -215,7 +215,7 @@
     });
   });
 
-  // APEX memory editor
+  // Coach memory editor
   (function () {
     const ta = document.getElementById('apex-memory-text');
     const saveBtn = document.getElementById('apex-memory-save');
