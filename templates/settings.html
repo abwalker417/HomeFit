@@ -77,10 +77,13 @@
   <p class="card-eyebrow">THIS IPHONE</p>
   <h2>Device connection</h2>
   <p class="subtle">These choices apply only to this iPhone—not your BuiltHere profile or anyone else in the household.</p>
-  <a class="settings-device-row" href="builthere://server">
-    <span><strong>Server address</strong><small>Choose the BuiltHere server this app connects to</small></span>
-    <span aria-hidden="true">›</span>
-  </a>
+  <form class="form native-server-form" action="builthere://server" method="get">
+    <label>Server address
+      <input type="url" name="url" required inputmode="url" autocapitalize="off" autocomplete="url" placeholder="https://app.getbuilthere.com">
+      <span class="hint">The complete address for the BuiltHere server this iPhone connects to.</span>
+    </label>
+    <button class="btn btn-secondary" type="submit">Save server address</button>
+  </form>
   <div class="settings-device-icons">
     <div>
       <strong>Home Screen icon</strong>
