@@ -3,19 +3,15 @@
 
 {% block content %}
 <section>
-  <h1>Exercise library</h1>
-  <p class="subtle">
-    Bodyweight exercises plus anything your equipment unlocks.
-    {% if profile.limitations %}
-      Exercises blocked by your limitations or missing equipment are dimmed.
-    {% endif %}
-  </p>
+  <div class="page-heading library-heading">
+    <div><p class="eyebrow">EXERCISES</p><h1>Your movement library.</h1><p class="subtle">Bodyweight moves plus everything your equipment unlocks. Unavailable choices remain visible but clearly marked.</p></div>
+  </div>
 
-  <button type="button" id="identify-btn" class="btn btn-secondary" style="width:100%; margin-bottom:12px;">📹 Identify a move from video</button>
+  <button type="button" id="identify-btn" class="btn btn-secondary library-identify">Identify a move from video</button>
   <input id="ex-video" type="file" accept="video/*" capture="environment" style="display:none;">
   <div id="identify-result" class="identify-result hidden" style="margin-bottom:14px;"></div>
 
-  <div class="filter-bar">
+  <div class="filter-bar library-filter">
     <input id="ex-search" type="text" placeholder="Search exercises…" autocomplete="off" autocorrect="off" autocapitalize="off">
     <select id="ex-filter">
       <option value="all">All</option>
