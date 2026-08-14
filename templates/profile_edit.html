@@ -20,17 +20,6 @@
       <input type="text" name="name" maxlength="40" required
              value="{{ user.name }}" autocomplete="off">
     </label>
-    <div>
-      <p style="font-size:14px;color:var(--subtle);margin:0 0 8px;">Profile photo (optional)</p>
-      <div style="display:flex;align-items:center;gap:14px;">
-        {% if user.photo %}
-        <img src="{{ url_for('static', filename='uploads/' + user.photo) }}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">
-        {% else %}
-        <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;">👤</div>
-        {% endif %}
-        <input type="file" name="photo" accept="image/*" style="font-size:14px;">
-      </div>
-    </div>
 
     <fieldset>
       <legend>PIN</legend>
