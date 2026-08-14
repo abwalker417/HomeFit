@@ -57,3 +57,40 @@ def test_unauthenticated_pages_redirect_to_profile_picker():
         response = client.get(path)
         assert response.status_code == 302
         assert response.headers["Location"].endswith("/profiles")
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("get", "/api/last_workout"),
+        ("get", "/api/recent-workouts"),
+        ("get", "/api/last_weight"),
+        ("get", "/api/panel-summary"),
+        ("get", "/api/coach/readiness"),
+        ("get", "/api/coach/plan"),
+        ("get", "/api/coach/swap-options"),
+        ("get", "/api/food/agent/today"),
+        ("get", "/api/food/agent/favorites"),
+        ("post", "/api/external-workout"),
+        ("post", "/api/sleep"),
+        ("post", "/api/health-metric"),
+        ("post", "/api/push/register-apns"),
+        ("post", "/api/coach/rest-day"),
+        ("post", "/api/coach/rest-day/clear"),
+        ("post", "/api/coach/swap"),
+        ("post", "/api/food/agent/log"),
+        ("post", "/api/food/agent/log-image"),
+        ("post", "/api/food/agent/goals"),
+        ("post", "/api/food/agent/log-favorite"),
+        ("post", "/api/away"),
+        ("post", "/api/away/end"),
+    ],
+)
+def test_token_apis_reject_missing_credentials(tmp_path, monkeypatch, method, path):
+    monkeypatch.setattr(homefit_app.database, "DB_PATH", tmp_path / "security.db")
+    homefit_app.database.init_db()
+    client = homefit_app.app.test_client()
+
+    response = getattr(client, method)(path, json={})
+
+    assert response.status_code == 401
