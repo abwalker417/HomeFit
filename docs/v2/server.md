@@ -1,6 +1,6 @@
 # HomeFit V2 server specification
 
-## Proposed placement
+## Deployed placement
 
 | Setting | Value |
 |---|---|
@@ -16,11 +16,10 @@
 | App path | `/opt/homefit` |
 | Data path | `/var/lib/homefit` |
 | Config path | `/etc/homefit/homefit.env` |
-| Service | `homefit-v2.service` |
+| Service | `homefit.service` |
 
-CT120 was previously used by the decommissioned SparkyFitness service and is
-absent from the current authoritative inventory. Confirm `pct status 120` and
-that `.20` is unused immediately before creation.
+CT120 is deployed and active. Do not run the creator again with CTID 120; use
+`/usr/local/sbin/homefit-update` inside the existing container.
 
 The weekly Proxmox backup job covers newly created containers automatically,
 but V2 should also create an application-consistent SQLite backup before schema
@@ -67,7 +66,7 @@ profiles through the authenticated application flow.
 
 1. Bind Gunicorn to loopback and proxy it through a local web server, or bind to
    the LAN only while developing.
-2. Validate `/healthz` and `/readyz` from the container.
+2. Validate `/healthz` from the container.
 3. Validate the application from the LAN at `.20`.
 4. Add an Uptime Kuma monitor.
 5. Add the Cloudflare tunnel hostname route.
@@ -75,8 +74,8 @@ profiles through the authenticated application flow.
 
 ## Data strategy
 
-V2 starts with a fresh development database. Production data is introduced only
-through an explicit snapshot workflow:
+V2 uses its own production-mode database. Any further V1 data refresh must use
+an explicit snapshot workflow:
 
 1. Create an online SQLite backup on CT115 without stopping production.
 2. Copy that backup to CT120 as a dated, read-only source artifact.
@@ -111,11 +110,13 @@ HomeFit ships two deployment entrypoints:
   `install/` directory, so that entrypoint becomes directly usable only after
   the pair exists in community-scripts/ProxmoxVE (or a maintained fork).
 
-Both layouts install `/usr/local/sbin/homefit-update`. Updates are staged as a
+Both layouts install the versioned `install/homefit-update.sh` as
+`/usr/local/sbin/homefit-update`. Updates are staged as a
 new release with a separate virtual environment, checked by importing the app,
 then activated with an atomic `current` symlink. SQLite is backed up before the
 new release is validated, and a failed HTTP health check restores the previous
-application symlink.
+application symlink. A successful release refreshes the updater and retains the
+five newest releases plus fourteen SQLite snapshots.
 
 From the Proxmox host, invoke the updater with its absolute path because
 `pct exec` does not always include `/usr/local/sbin` in `PATH`:

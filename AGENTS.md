@@ -39,30 +39,20 @@ This file gives coding agents a quick, reliable snapshot of the current HomeFit 
   - The onboarding/build-plan page still needs bigger stacked checkbox/list rows.
 
 ## Known issues
-1. Focused workout generation is still unreliable.
-   - Example seen: selecting arms still returned leg moves in some cases.
-   - Other times no exercises render at all.
-   - Root cause seems to be a mix of fallback logic and poor source metadata in `data/exercises.json`.
-
-2. Exercises tab has thrown an internal server error.
-   - Likely caused by mismatch between `all_exercises_with_status()` and `templates/exercises.html` expected fields.
-
-3. Onboarding UI still needs improvement.
-   - Current checkboxes are too small/dense.
-   - User wants larger stacked selection rows.
-
-4. Profile access should be re-verified.
-   - A route guard was adjusted to make the Profile button work, but this should still be tested after any future auth/routing changes.
+1. The intentionally session-light `/garage` wall-panel flow needs a separate
+   access-control decision before V2 is exposed beyond the trusted LAN.
+2. A temporary unlogged Upper workout/draft from V2 browser validation should
+   be cleared only with explicit user approval.
+3. Final household cutover still requires profile-by-profile data comparison
+   and disposable end-to-end workout tests for Shay and Kelsie.
 
 ## Recommended next steps
-1. Fix `/exercises` first.
-2. Add logging/debugging around `build_workout()` to inspect:
-   - selected focus
-   - filtered exercise count
-   - final chosen exercise list
-3. Tighten focus fallback behavior so it does not silently drift into the wrong body area.
-4. Refactor onboarding/build-plan checkbox markup into bigger stacked rows.
-5. Consider cleaning `data/exercises.json` so exercises have accurate `muscle_groups`.
+1. Complete the account-by-account migration verification checklist in
+   `README-homefit-notes.md`.
+2. Decide on LAN-only versus HTTPS exposure and configure secure cookies when
+   HTTPS is active.
+3. Protect or disable the garage panel routes before public exposure.
+4. Remove the temporary validation workout/draft after user approval.
 
 ## Files to inspect first
 - `app.py`
