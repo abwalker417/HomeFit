@@ -5,11 +5,23 @@
 <section class="page-heading">
   <div>
     <p class="eyebrow">SETTINGS</p>
-    <h1>Keep the house in tune.</h1>
-    <p class="subtle">Shared configuration for BuiltHere. These controls are visible only to the household owner.</p>
+    <h1>Make BuiltHere yours.</h1>
+    <p class="subtle">Your appearance follows you across BuiltHere. Household controls stay with the owner.</p>
   </div>
 </section>
 
+<section class="card settings-card">
+  <p class="card-eyebrow">APPEARANCE</p>
+  <h2>Your accent</h2>
+  <p class="subtle">A restrained color for your active states, progress, and BuiltHere mark. The rest of the app stays graphite.</p>
+  <div class="accent-swatches" role="radiogroup" aria-label="Choose your accent color">
+    {% for name, (hex_color, rgb) in accent_palette.items() %}
+    <button class="accent-swatch{{ ' is-selected' if hex_color == accent else '' }}" type="button" data-accent="{{ hex_color }}" data-rgb="{{ rgb }}" style="--sw: {{ hex_color }}" role="radio" aria-checked="{{ 'true' if hex_color == accent else 'false' }}" aria-label="{{ name.title() }}"></button>
+    {% endfor %}
+  </div>
+</section>
+
+{% if settings_owner %}
 <section class="card settings-card">
   <div class="settings-card-heading">
     <div><p class="card-eyebrow">AI PROVIDER</p><h2>OpenAI-compatible connection</h2></div>
@@ -59,6 +71,7 @@
   </ul>
   <a class="btn btn-secondary settings-add-profile" href="{{ url_for('profile_new') }}">Add profile</a>
 </section>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -87,6 +100,31 @@
     } catch (error) { status.textContent = error.message || 'Could not connect.'; }
     finally { test.disabled = false; }
   });
+})();
+
+(() => {
+  const swatches = document.querySelectorAll('.accent-swatch');
+  if (!swatches.length) return;
+  swatches.forEach((swatch) => swatch.addEventListener('click', async () => {
+    const color = swatch.dataset.accent;
+    try {
+      const response = await fetch('/api/accent', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({color})
+      });
+      if (!response.ok) throw new Error('Could not save accent');
+      document.documentElement.style.setProperty('--accent', color);
+      document.documentElement.style.setProperty('--accent-rgb', swatch.dataset.rgb);
+      swatches.forEach((item) => {
+        const selected = item === swatch;
+        item.classList.toggle('is-selected', selected);
+        item.setAttribute('aria-checked', selected ? 'true' : 'false');
+      });
+      window.webkit?.messageHandlers?.homefitNative?.postMessage({type: 'accent', accent: color});
+    } catch (_) {
+      // Keep the current selection visible if the save did not complete.
+    }
+  }));
 })();
 </script>
 {% endblock %}

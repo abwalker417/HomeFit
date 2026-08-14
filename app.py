@@ -320,16 +320,13 @@ def require_profile():
     return None
 
 
-# Per-profile accent palette: label -> (hex, "r, g, b"). The hex is stored on
-# the profile; both values are injected as CSS vars so the whole app re-tints.
+# Per-profile accents are intentionally curated so the graphite shell remains
+# restrained and every selection meets the same contrast expectations.
 ACCENT_PALETTE = {
-    "orange": ("#f97316", "249, 115, 22"),
-    "ice":    ("#22d3ee", "34, 211, 238"),
-    "blue":   ("#3b82f6", "59, 130, 246"),
-    "green":  ("#22c55e", "34, 197, 94"),
-    "violet": ("#a855f7", "168, 85, 247"),
-    "red":    ("#ef4444", "239, 68, 68"),
-    "pink":   ("#ec4899", "236, 72, 153"),
+    "azure":   ("#3b82f6", "59, 130, 246"),
+    "rose":    ("#ec4899", "236, 72, 153"),
+    "violet":  ("#a855f7", "168, 85, 247"),
+    "emerald": ("#22c55e", "34, 197, 94"),
 }
 DEFAULT_ACCENT = "#3b82f6"  # Azure blue, shared across the app shell
 
@@ -347,10 +344,10 @@ def _accent_rgb(hex_color):
 def inject_globals():
     uid = session.get("user_id")
     user = database.get_user(uid) if uid else None
-    # Legacy per-profile accent values stay in SQLite for compatibility, but the
-    # redesigned shell intentionally uses one restrained palette.
-    accent = DEFAULT_ACCENT
-    accent_name = next((n for n, (hex_, _) in ACCENT_PALETTE.items() if hex_ == accent), "ice")
+    saved_accent = database.get_accent_color(uid) if uid else None
+    valid_accents = {hex_ for hex_, _ in ACCENT_PALETTE.values()}
+    accent = saved_accent if saved_accent in valid_accents else DEFAULT_ACCENT
+    accent_name = next((n for n, (hex_, _) in ACCENT_PALETTE.items() if hex_ == accent), "azure")
     return {
         "current_user": user,
         "can_manage_profiles": can_manage_profiles(),
@@ -392,11 +389,12 @@ def _ai_settings_from_request(payload):
 
 @app.route("/settings", methods=["GET", "POST"])
 def settings():
-    if not can_manage_profiles():
-        abort(403)
+    is_owner = can_manage_profiles()
     error = None
     notice = None
     if request.method == "POST":
+        if not is_owner:
+            abort(403)
         submitted = _ai_settings_from_request(request.form)
         try:
             ai_provider.validate_settings(submitted)
@@ -406,11 +404,12 @@ def settings():
             error = str(exc)
     return render_template(
         "settings.html",
-        ai_settings=database.get_ai_provider_settings(),
-        key_configured=database.ai_provider_key_is_saved(),
+        ai_settings=database.get_ai_provider_settings() if is_owner else None,
+        key_configured=database.ai_provider_key_is_saved() if is_owner else False,
         error=error,
         notice=notice,
-        all_users=database.list_users(),
+        all_users=database.list_users() if is_owner else [],
+        settings_owner=is_owner,
     )
 
 
@@ -1564,8 +1563,10 @@ def _garage_library(uid):
 def _accent_ctx(uid):
     """Accent hex/rgb/name for a garage user (the panel has no logged-in session,
     so we resolve it from the picked garage_user, mirroring inject_globals)."""
-    accent = DEFAULT_ACCENT
-    accent_name = next((n for n, (hex_, _) in ACCENT_PALETTE.items() if hex_ == accent), "ice")
+    saved_accent = database.get_accent_color(uid) if uid else None
+    valid_accents = {hex_ for hex_, _ in ACCENT_PALETTE.values()}
+    accent = saved_accent if saved_accent in valid_accents else DEFAULT_ACCENT
+    accent_name = next((n for n, (hex_, _) in ACCENT_PALETTE.items() if hex_ == accent), "azure")
     return {"accent": accent, "accent_rgb": _accent_rgb(accent), "accent_name": accent_name}
 
 
