@@ -794,6 +794,25 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 }
 .native-icon-heading { margin-top: 24px; }
 .native-icon-swatches { margin-bottom: 4px; }
+.settings-device-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 15px 16px;
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-raised);
+}
+.settings-device-row:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.settings-device-row small,
+.settings-device-icons small { display: block; margin-top: 3px; color: var(--muted); }
+.settings-device-row > span:last-child { color: var(--muted); font-size: 28px; line-height: .7; }
+.settings-device-icons { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; }
+.settings-device-icons .native-icon-swatches { margin: 0; flex-wrap: nowrap; }
 
 /* ---------- Settings ---------- */
 .settings-card { max-width:760px; }

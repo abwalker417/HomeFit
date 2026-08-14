@@ -11,21 +11,6 @@
 </section>
 
 <section class="card settings-card">
-  <div id="native-device-settings" hidden>
-    <p class="card-eyebrow">THIS DEVICE</p>
-    <h2>Server address</h2>
-    <p class="subtle">Choose the BuiltHere server used by this iPhone. This does not change the server for anyone else.</p>
-    <button type="button" class="btn btn-secondary" data-native-action="server">Change server address</button>
-    <h2 class="native-icon-heading">Home Screen icon</h2>
-    <p class="subtle">Choose the BuiltHere mark used on this iPhone. It is independent of your in-app accent.</p>
-    <div class="accent-swatches native-icon-swatches" role="group" aria-label="Choose the BuiltHere Home Screen icon">
-      <button class="accent-swatch" type="button" data-native-action="icon" data-app-icon="azure" style="--sw:#3b82f6" aria-label="Azure icon"></button>
-      <button class="accent-swatch" type="button" data-native-action="icon" data-app-icon="rose" style="--sw:#ec4899" aria-label="Rose icon"></button>
-      <button class="accent-swatch" type="button" data-native-action="icon" data-app-icon="violet" style="--sw:#a855f7" aria-label="Violet icon"></button>
-      <button class="accent-swatch" type="button" data-native-action="icon" data-app-icon="emerald" style="--sw:#22c55e" aria-label="Emerald icon"></button>
-    </div>
-  </div>
-
   <p class="card-eyebrow">APPEARANCE</p>
   <h2>Your accent</h2>
   <p class="subtle">A restrained color for your active states, progress, and BuiltHere mark. The rest of the app stays graphite.</p>
@@ -87,6 +72,28 @@
   <a class="btn btn-secondary settings-add-profile" href="{{ url_for('profile_new') }}">Add profile</a>
 </section>
 {% endif %}
+
+<section class="card settings-card" id="native-device-settings" hidden>
+  <p class="card-eyebrow">THIS IPHONE</p>
+  <h2>Device connection</h2>
+  <p class="subtle">These choices apply only to this iPhone—not your BuiltHere profile or anyone else in the household.</p>
+  <a class="settings-device-row" href="builthere://server">
+    <span><strong>Server address</strong><small>Choose the BuiltHere server this app connects to</small></span>
+    <span aria-hidden="true">›</span>
+  </a>
+  <div class="settings-device-icons">
+    <div>
+      <strong>Home Screen icon</strong>
+      <small>Choose the BuiltHere mark on this iPhone</small>
+    </div>
+    <div class="accent-swatches native-icon-swatches" role="group" aria-label="Choose the BuiltHere Home Screen icon">
+      <a class="accent-swatch" href="builthere://icon?name=azure" style="--sw:#3b82f6" aria-label="Azure icon"></a>
+      <a class="accent-swatch" href="builthere://icon?name=rose" style="--sw:#ec4899" aria-label="Rose icon"></a>
+      <a class="accent-swatch" href="builthere://icon?name=violet" style="--sw:#a855f7" aria-label="Violet icon"></a>
+      <a class="accent-swatch" href="builthere://icon?name=emerald" style="--sw:#22c55e" aria-label="Emerald icon"></a>
+    </div>
+  </div>
+</section>
 {% endblock %}
 
 {% block scripts %}
@@ -126,7 +133,7 @@
 })();
 
 (() => {
-  const swatches = document.querySelectorAll('.accent-swatch');
+  const swatches = document.querySelectorAll('.accent-swatch[data-accent]');
   if (!swatches.length) return;
   swatches.forEach((swatch) => swatch.addEventListener('click', async () => {
     const color = swatch.dataset.accent;
