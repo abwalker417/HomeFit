@@ -1,17 +1,18 @@
 """AI coaching for HomeFit — routed through PeakAI (OpenAI-compatible)."""
 
 import json
+import os
 import requests
 
 import database
 
-PEAKAI_URL = "http://192.168.68.33:4000"
-PEAKAI_API_KEY = "peak-homefit-key"  # dedicated key -> HomeFit's spend is tagged 'homefit' in PeakAI (was the shared 'peak-homelab-key', which hid it)
-PEAKAI_MODEL = "claude-sonnet"  # Sonnet 4.6 — Haiku was unreliable at relative-date / plan-edit commands; local (ornith/mistral/qwen) tested 2026-07-11: too slow (50-70s) or hallucinated exercise IDs
+PEAKAI_URL = os.environ.get("PEAKAI_URL", "http://192.168.68.33:4000").rstrip("/")
+PEAKAI_API_KEY = os.environ.get("PEAKAI_API_KEY", "peak-homefit-key")
+PEAKAI_MODEL = os.environ.get("PEAKAI_MODEL", "claude-sonnet")
 # Only the STRUCTURED/interactive work (workout generation, coach chat/plan-edits) needs
 # Sonnet. The high-volume prose (post-workout insights, brief, digest, nudges) goes to a
 # cheap model — "only fire Sonnet when it's needed."
-MODEL_CHEAP = "gpt-4o-mini"
+MODEL_CHEAP = os.environ.get("PEAKAI_CHEAP_MODEL", "gpt-4o-mini")
 
 SYSTEM_PROMPT = """You are APEX, a personal AI fitness coach embedded in HomeFit.
 You have access to the user's complete fitness profile and workout history.

@@ -431,8 +431,11 @@ def profiles():
 
 @app.route("/profiles/new", methods=["GET", "POST"])
 def profile_new():
-    # Profile creation disabled for now — re-enable by removing this redirect.
-    return redirect(url_for("profiles"))
+    # Public deployments should keep bootstrap closed after their household is
+    # configured. A fresh Helper-Scripts install explicitly enables this flag;
+    # the owner/profile permission check below still protects later additions.
+    if os.environ.get("HOMEFIT_ALLOW_PROFILE_CREATION", "0") != "1":
+        return redirect(url_for("profiles"))
     if not can_manage_profiles():
         return render_template("blocked.html"), 403
     error = None

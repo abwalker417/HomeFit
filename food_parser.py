@@ -5,14 +5,19 @@ No tool loop — just parse-once. Text uses a cheap model; photos use a vision
 model (gpt-4o) for accuracy. Either way it's a single call (~a fraction of a cent).
 """
 import json
+import os
 import re
 
 import requests
 
-PEAKAI_URL = "http://192.168.68.33:4000/v1/chat/completions"
-PEAKAI_KEY = "peak-homelab-key"
-TEXT_MODEL = "gpt-4o-mini"      # text parsing is easy + cheap
-IMAGE_MODEL = "gpt-4o"          # vision accuracy matters for plated meals
+PEAKAI_URL = os.environ.get(
+    "PEAKAI_CHAT_URL",
+    os.environ.get("PEAKAI_URL", "http://192.168.68.33:4000").rstrip("/")
+    + "/v1/chat/completions",
+)
+PEAKAI_KEY = os.environ.get("PEAKAI_API_KEY", "peak-homelab-key")
+TEXT_MODEL = os.environ.get("PEAKAI_CHEAP_MODEL", "gpt-4o-mini")
+IMAGE_MODEL = os.environ.get("PEAKAI_VISION_MODEL", "gpt-4o")
 
 # price per 1M tokens (in / out)
 _PRICE = {"gpt-4o-mini": (0.15, 0.60), "gpt-4o": (2.50, 10.00)}

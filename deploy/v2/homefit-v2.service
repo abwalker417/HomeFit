@@ -1,0 +1,22 @@
+[Unit]
+Description=HomeFit V2
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=homefit
+Group=homefit
+WorkingDirectory=/opt/homefit/current
+EnvironmentFile=/etc/homefit/homefit.env
+ExecStart=/opt/homefit/venv/bin/gunicorn --workers 2 --threads 2 --timeout 180 --bind 127.0.0.1:5000 app:app
+Restart=on-failure
+RestartSec=5
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/homefit
+
+[Install]
+WantedBy=multi-user.target

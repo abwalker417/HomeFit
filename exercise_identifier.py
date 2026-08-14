@@ -16,10 +16,14 @@ import tempfile
 
 import requests
 
-PEAKAI_URL = "http://192.168.68.33:4000/v1/chat/completions"
-PEAKAI_KEY = "peak-homelab-key"
-VISION_MODEL = "gpt-4o"        # vision: identify the movement
-TEXT_MODEL = "gpt-4o-mini"     # cheap: validate the DB match
+PEAKAI_URL = os.environ.get(
+    "PEAKAI_CHAT_URL",
+    os.environ.get("PEAKAI_URL", "http://192.168.68.33:4000").rstrip("/")
+    + "/v1/chat/completions",
+)
+PEAKAI_KEY = os.environ.get("PEAKAI_API_KEY", "peak-homelab-key")
+VISION_MODEL = os.environ.get("PEAKAI_VISION_MODEL", "gpt-4o")
+TEXT_MODEL = os.environ.get("PEAKAI_CHEAP_MODEL", "gpt-4o-mini")
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 FEDB_PATH = os.path.join(DATA_DIR, "free_exercise_db.json")
