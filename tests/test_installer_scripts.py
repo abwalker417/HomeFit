@@ -23,3 +23,11 @@ def test_release_activation_replaces_a_broken_destination_symlink():
 
     assert 'ln -sfnT "$release_dir" /opt/homefit/current' in installer
     assert 'ln -sfnT "$previous" /opt/homefit/current' in installer
+
+
+def test_virtualenv_is_not_moved_after_creation():
+    installer = (ROOT / "install" / "homefit-install.sh").read_text()
+
+    assert 'release_tmp="$release_dir"' in installer
+    assert 'mv "$release_tmp" "$release_dir"' not in installer
+    assert 'release_tmp=""' in installer

@@ -41,8 +41,10 @@ if [[ "$current_commit" == "$remote_commit" ]]; then
 fi
 
 timestamp="$(date +%Y%m%d-%H%M%S)"
-release_tmp="/opt/homefit/releases/.staging-${short_commit}-${timestamp}"
 release_dir="/opt/homefit/releases/${short_commit}-${timestamp}"
+# Python venv launchers contain absolute shebang paths. Build directly in the
+# final, inactive release directory so activation does not invalidate them.
+release_tmp="$release_dir"
 previous=""
 if [[ -L /opt/homefit/current ]]; then
   resolved_previous="$(readlink -f /opt/homefit/current 2>/dev/null || true)"
@@ -81,7 +83,6 @@ rm -rf -- "$release_tmp/static/uploads"
 ln -s /var/lib/homefit/uploads "$release_tmp/static/uploads"
 printf '%s\n' "$actual_commit" >"$release_tmp/.homefit-version"
 chown -R homefit:homefit "$release_tmp"
-mv "$release_tmp" "$release_dir"
 
 echo "Validating the new release"
 set -a
@@ -111,6 +112,7 @@ if [[ "$healthy" != "1" ]]; then
   exit 1
 fi
 
+release_tmp=""
 echo "HomeFit updated successfully to ${short_commit}."
 UPDATER
 chmod 0755 /usr/local/sbin/homefit-update
