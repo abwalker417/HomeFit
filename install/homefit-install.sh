@@ -43,7 +43,13 @@ fi
 timestamp="$(date +%Y%m%d-%H%M%S)"
 release_tmp="/opt/homefit/releases/.staging-${short_commit}-${timestamp}"
 release_dir="/opt/homefit/releases/${short_commit}-${timestamp}"
-previous="$(readlink -f /opt/homefit/current 2>/dev/null || true)"
+previous=""
+if [[ -L /opt/homefit/current ]]; then
+  resolved_previous="$(readlink -f /opt/homefit/current 2>/dev/null || true)"
+  if [[ -n "$resolved_previous" && -d "$resolved_previous" && "$resolved_previous" != "/opt/homefit/current" ]]; then
+    previous="$resolved_previous"
+  fi
+fi
 
 cleanup() { [[ -d "$release_tmp" ]] && rm -rf -- "$release_tmp"; }
 trap cleanup EXIT
@@ -85,11 +91,22 @@ runuser -u homefit -- "$release_dir/.venv/bin/python" -c "import sys; sys.path.i
 
 ln -sfn "$release_dir" /opt/homefit/current
 systemctl restart homefit
-if ! curl -fsS --max-time 15 "http://127.0.0.1:${HOMEFIT_PORT}/profiles" >/dev/null; then
+healthy=0
+for _ in $(seq 1 30); do
+  if curl -fsS --max-time 3 "http://127.0.0.1:${HOMEFIT_PORT}/profiles" >/dev/null; then
+    healthy=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$healthy" != "1" ]]; then
   echo "Health check failed; rolling back the application symlink." >&2
   if [[ -n "$previous" && -d "$previous" ]]; then
     ln -sfn "$previous" /opt/homefit/current
     systemctl restart homefit
+  else
+    rm -f -- /opt/homefit/current
+    systemctl stop homefit
   fi
   exit 1
 fi
