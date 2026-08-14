@@ -921,6 +921,18 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 #weight-chart, #strength-chart { width: 100%; height: auto; }
 
 /* ---------- Profiles ---------- */
+body:has(.app-main--profiles) {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.app-main--profiles { flex: 1; display: flex; }
+.profiles-page {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  justify-content: center;
+}
 .profiles-page h1 { text-align: center; margin-top: 24px; }
 .profiles-page > p { text-align: center; }
 
