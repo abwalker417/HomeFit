@@ -61,6 +61,7 @@ def no_cache(response):
     return response
 
 PUBLIC_ENDPOINTS = {
+    "healthz",
     "profiles", "profile_new", "profile_switch", "profile_unlock",
     "profile_switch_out", "manifest", "service_worker", "static",
     "api_last_workout", "api_recent_workouts", "api_last_weight", "api_external_workout", "api_sleep",
@@ -292,6 +293,18 @@ def _weight_chart_points(history):
         {"date": item["logged_at"][:10], "weight": item["weight"]}
         for item in history
     ]
+
+
+@app.get("/healthz")
+def healthz():
+    """Readiness probe used by the LXC installer and service monitoring."""
+    try:
+        with database.get_connection() as conn:
+            conn.execute("SELECT 1").fetchone()
+    except Exception:
+        app.logger.exception("Health check failed")
+        return jsonify(status="unhealthy"), 503
+    return jsonify(status="ok", version=STATIC_VERSION)
 
 
 @app.before_request

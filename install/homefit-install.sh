@@ -94,7 +94,7 @@ ln -sfnT "$release_dir" /opt/homefit/current
 systemctl restart homefit
 healthy=0
 for _ in $(seq 1 30); do
-  if curl -fsS --max-time 3 "http://127.0.0.1:${HOMEFIT_PORT}/profiles" >/dev/null; then
+  if curl -fsS --max-time 3 "http://127.0.0.1:${HOMEFIT_PORT}/healthz" >/dev/null; then
     healthy=1
     break
   fi
@@ -179,6 +179,6 @@ homefit-update
 
 echo "[7/7] Verifying HomeFit"
 systemctl is-active --quiet homefit
-curl -fsS --max-time 15 "http://127.0.0.1:${HOMEFIT_PORT}/profiles" >/dev/null
+curl -fsS --max-time 15 "http://127.0.0.1:${HOMEFIT_PORT}/healthz" >/dev/null
 rm -f /root/homefit-install.sh
 echo "HomeFit installation completed."

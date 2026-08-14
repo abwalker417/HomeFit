@@ -157,8 +157,8 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
 .profile-details-card > h2 { margin-top:0; }
 .library-identify { width:100%; margin-bottom:12px; }
 .library-filter { padding:10px; border:1px solid var(--hairline); border-radius:16px; background:rgba(13,18,25,.62); }
-.health-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
-@media (min-width:720px) { .health-stats { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+.stat-row.health-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+@media (min-width:720px) { .stat-row.health-stats { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 
 /* ---------- Weekly plan ---------- */
 .plan-week { display:grid; grid-template-columns:1fr; gap:12px; }

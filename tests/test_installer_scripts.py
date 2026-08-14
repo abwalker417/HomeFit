@@ -9,6 +9,8 @@ def test_updater_waits_for_gunicorn_before_declaring_failure():
 
     assert "for _ in $(seq 1 30)" in installer
     assert 'if [[ "$healthy" != "1" ]]' in installer
+    assert '"http://127.0.0.1:${HOMEFIT_PORT}/healthz"' in installer
+    assert '"http://127.0.0.1:${HOMEFIT_PORT}/profiles"' not in installer
 
 
 def test_first_install_does_not_rollback_to_current_itself():
