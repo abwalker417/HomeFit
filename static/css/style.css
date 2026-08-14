@@ -1220,7 +1220,7 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 .coach-page-head { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin:12px 2px 20px; }
 .coach-page-head h1 { margin:5px 0 2px; font-size:clamp(32px, 6vw, 48px); letter-spacing:-.045em; line-height:1; }
 .coach-page-head p:last-child { margin:9px 0 0; }
-.coach-shell { min-height:clamp(520px, 70vh, 720px); display:flex; flex-direction:column; overflow:hidden; border:1px solid rgba(var(--accent-rgb),.25); border-radius:26px; background:rgba(12,17,24,.82); box-shadow:var(--shadow-lg); backdrop-filter:blur(22px); }
+.coach-shell { height:clamp(520px, 70vh, 720px); display:flex; flex-direction:column; overflow:hidden; border:1px solid rgba(var(--accent-rgb),.25); border-radius:26px; background:rgba(12,17,24,.82); box-shadow:var(--shadow-lg); backdrop-filter:blur(22px); }
 .coach-shell-header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--hairline); background:rgba(255,255,255,.025); }
 .coach-identity { display:flex; align-items:center; gap:11px; }
 .coach-identity div { display:flex; flex-direction:column; }
@@ -1234,7 +1234,7 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 .coach-input-row .btn { align-self:flex-end; border-radius:15px; padding:13px 20px; }
 @media (max-width: 560px) {
   .coach-page-head { align-items:flex-start; flex-direction:column; }
-  .coach-shell { min-height:calc(100dvh - 245px); border-radius:22px; }
+  .coach-shell { height:max(520px, calc(100dvh - 245px)); border-radius:22px; }
   .coach-messages { min-height:280px; }
 }
 
