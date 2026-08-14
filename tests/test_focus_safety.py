@@ -145,3 +145,21 @@ def test_loading_saved_plan_replaces_off_focus_exercises(monkeypatch):
     assert len(exercises) == 3
     assert "barbell_deadlift" not in {item["id"] for item in exercises}
     assert all("core" in item["muscles"] for item in exercises)
+
+
+def test_onboarding_only_collects_the_agreed_essential_fields():
+    with homefit_app.app.test_request_context("/onboarding"):
+        rendered = homefit_app.render_template(
+            "onboarding.html",
+            error=None,
+            profile={},
+            valid_limitations=workout_logic.VALID_LIMITATIONS,
+            valid_equipment=workout_logic.VALID_EQUIPMENT,
+            valid_muscles=workout_logic.VALID_MUSCLE_GROUPS,
+            onboarding_mode=True,
+        )
+
+    for field in ("current_weight", "goal_weight", "fitness_level", "days_per_week", "limitations", "equipment"):
+        assert f'name="{field}"' in rendered
+    for field in ("cardio_days_per_week", "fitness_goal", "workout_duration_target", "target_muscles"):
+        assert f'name="{field}"' not in rendered

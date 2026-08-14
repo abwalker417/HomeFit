@@ -2,13 +2,17 @@
 {% block title %}Setup — HomeFit{% endblock %}
 
 {% block content %}
-<section class="card">
-  <h1>Build your plan</h1>
-  <p class="subtle">Takes about 20 seconds. You can update these anytime.</p>
+<section class="setup-page">
+  <div class="setup-heading">
+    <p class="eyebrow">WELCOME TO HOMEFIT</p>
+    <h1>Set up your training.</h1>
+    <p class="subtle">A few essentials now. Choose what to train when you start each workout.</p>
+  </div>
 
-  <form method="post" class="form">
+  <form method="post" class="form card setup-card setup-options">
+    {% if error %}<p class="warn">{{ error }}</p>{% endif %}
     {% include "profile_form_fields.html" %}
-    <button type="submit" class="btn btn-primary">Save and build plan</button>
+    <button type="submit" class="btn btn-primary setup-submit">Finish setup</button>
   </form>
 </section>
 {% endblock %}

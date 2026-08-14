@@ -1173,6 +1173,7 @@ def onboarding():
         valid_limitations=VALID_LIMITATIONS,
         valid_equipment=VALID_EQUIPMENT,
         valid_muscles=VALID_MUSCLE_GROUPS,
+        onboarding_mode=True,
     )
 
 

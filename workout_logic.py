@@ -65,7 +65,7 @@ CATEGORY_TO_MUSCLES = {
 }
 
 _MUSCLE_RULES = (
-    (re.compile(r"crunch|plank|dead.?bug|bird.?dog|pallof|rotation|twist|oblique|knee.?raise|suitcase|figure.?eight|crossbody"), {"core"}),
+    (re.compile(r"crunch|plank|dead.?bug|bird.?dog|pallof|rotation|twist|oblique|knee.?raise|suitcase|figure.?eight|crossbody|superman"), {"core"}),
     (re.compile(r"glute|hip.?thrust|kickback|clamshell"), {"glutes"}),
     (re.compile(r"squat|lunge|step.?up|calf|wall.?sit|deadlift|romanian|\brdl\b|good.?morning"), {"legs", "glutes"}),
     (re.compile(r"bicep|hammer.?curl|barbell.?curl|tricep|skull.?crusher|\bdip\b"), {"arms"}),
@@ -178,14 +178,13 @@ def _exercise_targets_selected_muscles(exercise, target_muscles):
     if "full body" in normalized_targets:
         return True
     ex_muscles = set(_exercise_muscles(exercise))
-    if ex_muscles & normalized_targets:
-        return True
     category = (exercise.get("category") or "").strip().lower()
     mapped = CATEGORY_TO_MUSCLES.get(category, set())
-    # Category fallback is only safe for a broad target such as Upper Body or
-    # Lower Body. It must not turn every generic upper exercise into an arm,
-    # chest, shoulder, or back exercise when a precise area was requested.
-    return bool(mapped and mapped.issubset(normalized_targets))
+    if mapped and ex_muscles == mapped and not mapped.issubset(normalized_targets):
+        return False
+    if ex_muscles & normalized_targets:
+        return True
+    return False
 
 
 def filter_exercises(exercises, profile, selected_muscles=None, preferred_equipment=None):

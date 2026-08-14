@@ -22,6 +22,7 @@
       {% endfor %}
     </select>
   </label>
+  {% if not onboarding_mode %}
   <label>Cardio days per week
     <select name="cardio_days_per_week">
       {% for days in [3,4,5,6,7] %}
@@ -29,7 +30,9 @@
       {% endfor %}
     </select>
   </label>
+  {% endif %}
 </div>
+{% if not onboarding_mode %}
 <fieldset>
   <legend>Fitness goal</legend>
   <div class="pill-grid">
@@ -52,6 +55,7 @@
     {% endfor %}
   </div>
 </fieldset>
+{% endif %}
 <fieldset>
   <legend>Limitations</legend>
   <div class="pill-grid">

@@ -135,6 +135,54 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
   margin: 14px 0;
 }
 
+/* ---------- Shared V2 page structure ---------- */
+.page-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin:12px 2px 24px; }
+.page-heading h1 { margin:5px 0 4px; font-size:clamp(32px, 6vw, 48px); line-height:1; letter-spacing:-.045em; }
+.page-heading p:last-child { margin:8px 0 0; }
+.empty-state { display:flex; min-height:360px; flex-direction:column; align-items:center; justify-content:center; padding:42px 24px; text-align:center; border:1px solid var(--hairline); border-radius:28px; background:rgba(13,18,25,.72); box-shadow:var(--shadow-lg); }
+.empty-state h2 { margin:12px 0 6px; font-size:28px; letter-spacing:-.035em; }
+.empty-state > p:not(.eyebrow) { max-width:520px; margin:0 0 22px; color:var(--subtle); }
+
+/* ---------- Setup / onboarding ---------- */
+.setup-page { max-width:720px; margin:0 auto; }
+.setup-heading { margin:16px 2px 22px; }
+.setup-heading h1 { margin:6px 0 8px; font-size:clamp(34px, 7vw, 52px); line-height:1; letter-spacing:-.05em; }
+.setup-heading p:last-child { max-width:570px; margin:0; }
+.setup-card { padding:clamp(18px, 4vw, 28px); }
+.setup-options .pill-grid { grid-template-columns:1fr; }
+.setup-options .pill-option { min-height:58px; padding:15px 17px; border-radius:15px; background:rgba(255,255,255,.025); }
+.setup-options .pill-option span { font-size:16px; font-weight:600; }
+.setup-submit { margin-top:8px; width:100%; }
+
+/* ---------- Weekly plan ---------- */
+.plan-week { display:grid; grid-template-columns:1fr; gap:12px; }
+.plan-day-card { position:relative; overflow:hidden; padding:20px; border:1px solid var(--hairline); border-radius:22px; background:rgba(13,18,25,.76); }
+.plan-day-card.is-today { border-color:rgba(var(--accent-rgb),.68); box-shadow:0 18px 48px rgba(0,0,0,.24), inset 0 1px rgba(var(--accent-rgb),.18); background:linear-gradient(145deg, rgba(var(--accent-rgb),.12), rgba(13,18,25,.88) 46%); }
+.plan-day-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.plan-day-top h2 { margin:5px 0 0; font-size:19px; }
+.plan-day-top p { margin:5px 0 0; color:var(--subtle); font-size:12px; }
+.plan-day-count { flex:0 0 auto; padding:6px 10px; color:var(--subtle); font-size:11px; font-weight:700; border:1px solid var(--hairline); border-radius:999px; background:rgba(255,255,255,.035); }
+.plan-day-card.is-today .day-label { color:var(--accent); }
+.plan-exercises { display:flex; flex-direction:column; gap:0; margin:16px 0 0; padding:0; list-style:none; counter-reset:plan-move; }
+.plan-exercises li { counter-increment:plan-move; display:grid; grid-template-columns:24px 1fr auto; align-items:baseline; gap:7px; padding:8px 0; border-top:1px solid rgba(255,255,255,.055); font-size:13px; }
+.plan-exercises li::before { content:counter(plan-move, decimal-leading-zero); color:var(--subtle); font-size:10px; font-weight:700; }
+.plan-exercises small { color:var(--subtle); font-size:11px; }
+.load-day-btn { display:none; width:100%; align-items:center; justify-content:space-between; margin-top:16px; }
+.plan-day-card.is-today .load-day-btn { display:flex; }
+.plan-day-card--rest { min-height:150px; background:rgba(255,255,255,.02); }
+.plan-rest-copy { max-width:300px; margin-top:22px; color:var(--subtle); font-size:13px; }
+.plan-footer { display:flex; align-items:center; justify-content:space-between; gap:20px; margin:20px 0 0; padding:20px 2px; border-top:1px solid var(--hairline); }
+.plan-footer p { margin:4px 0 0; color:var(--subtle); font-size:13px; }
+.plan-footer .btn { flex:0 0 auto; }
+@media (min-width:720px) {
+  .plan-week { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .plan-day-card.is-today { grid-column:span 2; }
+}
+@media (max-width:560px) {
+  .page-heading { align-items:flex-start; flex-direction:column; }
+  .plan-footer { align-items:stretch; flex-direction:column; }
+}
+
 /* ---------- V2 Today dashboard ---------- */
 .today-intro { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin:10px 2px 18px; }
 .today-intro h1 { margin:5px 0 0; font-size:clamp(30px, 6vw, 48px); line-height:1.02; letter-spacing:-.045em; }
