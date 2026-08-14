@@ -15,14 +15,14 @@
     <p class="card-eyebrow">THIS DEVICE</p>
     <h2>Server address</h2>
     <p class="subtle">Choose the BuiltHere server used by this iPhone. This does not change the server for anyone else.</p>
-    <button type="button" class="btn btn-secondary" id="native-server-settings-button">Change server address</button>
+    <button type="button" class="btn btn-secondary" data-native-action="server">Change server address</button>
     <h2 class="native-icon-heading">Home Screen icon</h2>
     <p class="subtle">Choose the BuiltHere mark used on this iPhone. It is independent of your in-app accent.</p>
     <div class="accent-swatches native-icon-swatches" role="group" aria-label="Choose the BuiltHere Home Screen icon">
-      <button class="accent-swatch" type="button" data-app-icon="azure" style="--sw:#3b82f6" aria-label="Azure icon"></button>
-      <button class="accent-swatch" type="button" data-app-icon="rose" style="--sw:#ec4899" aria-label="Rose icon"></button>
-      <button class="accent-swatch" type="button" data-app-icon="violet" style="--sw:#a855f7" aria-label="Violet icon"></button>
-      <button class="accent-swatch" type="button" data-app-icon="emerald" style="--sw:#22c55e" aria-label="Emerald icon"></button>
+      <button class="accent-swatch" type="button" data-native-action="icon" data-app-icon="azure" style="--sw:#3b82f6" aria-label="Azure icon"></button>
+      <button class="accent-swatch" type="button" data-native-action="icon" data-app-icon="rose" style="--sw:#ec4899" aria-label="Rose icon"></button>
+      <button class="accent-swatch" type="button" data-native-action="icon" data-app-icon="violet" style="--sw:#a855f7" aria-label="Violet icon"></button>
+      <button class="accent-swatch" type="button" data-native-action="icon" data-app-icon="emerald" style="--sw:#22c55e" aria-label="Emerald icon"></button>
     </div>
   </div>
 
@@ -119,18 +119,9 @@
 
 (() => {
   const nativeSettings = document.getElementById('native-device-settings');
-  const nativeButton = document.getElementById('native-server-settings-button');
   const native = window.webkit?.messageHandlers?.homefitNative;
-  if (native && nativeSettings && nativeButton) {
+  if (native && nativeSettings) {
     nativeSettings.hidden = false;
-    nativeButton.addEventListener('click', () => {
-      native.postMessage({type: 'openServerSettings'});
-      window.location.href = 'builthere://server';
-    });
-    document.querySelectorAll('[data-app-icon]').forEach((button) => button.addEventListener('click', () => {
-      const name = button.dataset.appIcon;
-      window.location.href = `builthere://icon?name=${encodeURIComponent(name)}`;
-    }));
   }
 })();
 
