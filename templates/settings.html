@@ -77,12 +77,13 @@
   <p class="card-eyebrow">THIS IPHONE</p>
   <h2>Device connection</h2>
   <p class="subtle">These choices apply only to this iPhone—not your BuiltHere profile or anyone else in the household.</p>
-  <form class="form native-server-form" action="builthere://server" method="get">
+  <form class="form native-server-form" id="native-server-form">
     <label>Server address
       <input type="url" name="url" required inputmode="url" autocapitalize="off" autocomplete="url" placeholder="https://app.getbuilthere.com">
       <span class="hint">The complete address for the BuiltHere server this iPhone connects to.</span>
     </label>
     <button class="btn btn-secondary" type="submit">Save server address</button>
+    <span class="subtle" id="native-server-status" role="status"></span>
   </form>
   <div class="settings-device-icons">
     <div>
@@ -90,10 +91,10 @@
       <small>Choose the BuiltHere mark on this iPhone</small>
     </div>
     <div class="accent-swatches native-icon-swatches" role="group" aria-label="Choose the BuiltHere Home Screen icon">
-      <a class="accent-swatch" href="builthere://icon?name=azure" style="--sw:#3b82f6" aria-label="Azure icon"></a>
-      <a class="accent-swatch" href="builthere://icon?name=rose" style="--sw:#ec4899" aria-label="Rose icon"></a>
-      <a class="accent-swatch" href="builthere://icon?name=violet" style="--sw:#a855f7" aria-label="Violet icon"></a>
-      <a class="accent-swatch" href="builthere://icon?name=emerald" style="--sw:#22c55e" aria-label="Emerald icon"></a>
+      <button class="accent-swatch" type="button" data-native-icon="azure" style="--sw:#3b82f6" aria-label="Azure icon"></button>
+      <button class="accent-swatch" type="button" data-native-icon="rose" style="--sw:#ec4899" aria-label="Rose icon"></button>
+      <button class="accent-swatch" type="button" data-native-icon="violet" style="--sw:#a855f7" aria-label="Violet icon"></button>
+      <button class="accent-swatch" type="button" data-native-icon="emerald" style="--sw:#22c55e" aria-label="Emerald icon"></button>
     </div>
   </div>
 </section>
@@ -132,6 +133,20 @@
   const native = window.webkit?.messageHandlers?.homefitNative;
   if (native && nativeSettings) {
     nativeSettings.hidden = false;
+    const form = document.getElementById('native-server-form');
+    const field = form?.querySelector('input[name="url"]');
+    const status = document.getElementById('native-server-status');
+    form?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!field?.checkValidity()) { field?.reportValidity(); return; }
+      localStorage.setItem('builthere_native_server_request', JSON.stringify({value: field.value.trim(), nonce: Date.now()}));
+      if (status) status.textContent = 'Saving on this iPhone…';
+    });
+    nativeSettings.querySelectorAll('[data-native-icon]').forEach((button) => {
+      button.addEventListener('click', () => {
+        localStorage.setItem('builthere_native_icon_request', JSON.stringify({value: button.dataset.nativeIcon, nonce: Date.now()}));
+      });
+    });
   }
 })();
 
