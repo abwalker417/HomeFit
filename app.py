@@ -858,6 +858,56 @@ def _lib_index():
     return {e["id"]: e for e in load_exercises()}
 
 
+def _safe_plan_day_exercises(uid, day):
+    """Return a stable, fully-enriched, focus-safe session for a saved plan day.
+
+    This intentionally does not rewrite the saved weekly plan. It keeps older
+    V1/copied plans usable after metadata, equipment, limitations, or ignored
+    exercises change, while rendering and loading the same corrected session.
+    """
+    from workout_logic import (
+        determine_difficulty_cap,
+        filter_exercises,
+        focus_muscles_from_label,
+        is_recovery_exercise,
+    )
+    profile = database.get_profile(uid) or {}
+    raw_library = list(_lib_index().values())
+    focus_label = day.get("focus") or day.get("name")
+    focus_muscles = focus_muscles_from_label(focus_label)
+    eligible = filter_exercises(raw_library, profile, focus_muscles)
+    if "recovery" in str(focus_label or "").lower():
+        eligible = [ex for ex in eligible if is_recovery_exercise(ex)]
+    eligible_by_id = {ex["id"]: ex for ex in eligible}
+    original = day.get("exercises") or []
+    target_count = max(3, min(len(original) or 6, 10))
+    safe = []
+    used_ids = set()
+
+    def append_slot(ex_id, slot=None):
+        if ex_id not in eligible_by_id or ex_id in used_ids:
+            return
+        enriched = get_exercise_by_id(ex_id)
+        if not enriched:
+            return
+        slot = slot or {}
+        enriched["sets"] = slot.get("sets", enriched["sets"])
+        enriched["reps"] = slot.get("reps", enriched["reps"])
+        safe.append(enriched)
+        used_ids.add(ex_id)
+
+    for slot in original:
+        append_slot(slot.get("id"), slot)
+
+    difficulty_cap = determine_difficulty_cap(profile.get("fitness_level"))
+    preferred = [ex for ex in eligible if int(ex.get("difficulty") or 1) in difficulty_cap]
+    for raw in preferred + eligible:
+        if len(safe) >= target_count:
+            break
+        append_slot(raw.get("id"))
+    return safe
+
+
 def _swapped_slot(slot, new_id, lib):
     """Build a plan/session exercise slot for new_id, keeping the old set count but
     adopting the new move's natural reps/unit (a plank is seconds, a swing is reps).
@@ -1138,7 +1188,8 @@ def index():
             or database.is_rest_override(uid, database.user_today_iso(uid))
         )
         if not plan_rest_today and plan_day.get("exercises"):
-            planned_today = plan_day
+            planned_today = dict(plan_day)
+            planned_today["exercises"] = _safe_plan_day_exercises(uid, plan_day)
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats,
                            cardio=_cardio_display(uid, days=14)[:3],
                            last_sleep=sleep[0] if sleep else None,
@@ -1984,10 +2035,15 @@ def apex_plan_page():
     if not uid:
         return redirect(url_for("profiles"))
     plan_data = database.get_apex_plan(uid)
+    plan = plan_data["plan"] if plan_data else None
+    if plan:
+        for day in plan:
+            if not day.get("rest"):
+                day["exercises"] = _safe_plan_day_exercises(uid, day)
     today_index = database.user_now(uid).weekday()  # 0=Monday
     return render_template(
         "apex_plan.html",
-        plan=plan_data["plan"] if plan_data else None,
+        plan=plan,
         created_at=plan_data["created_at"] if plan_data else "",
         today_index=today_index,
     )
@@ -2107,39 +2163,9 @@ def load_plan_today():
         lib = _lib_index()
         exercises = [_swapped_slot(ex, swaps[ex["id"]], lib) if ex.get("id") in swaps else ex
                      for ex in exercises]
-    # Saved plans can predate profile/equipment changes. Build today's session
-    # from valid same-focus slots only, replacing anything stale or off-focus
-    # without rewriting the weekly plan behind the user's back.
-    from workout_logic import filter_exercises, focus_muscles_from_label
-    profile = database.get_profile(uid) or {}
-    raw_library = list(_lib_index().values())
-    focus_muscles = focus_muscles_from_label(day.get("focus") or day.get("name"))
-    eligible_ids = {e["id"] for e in filter_exercises(raw_library, profile, focus_muscles)}
-    target_count = max(3, min(len(exercises) or 6, 10))
-    safe_exercises = []
-    used_ids = set()
-    for ex in exercises:
-        if ex.get("id") in eligible_ids and ex.get("id") not in used_ids:
-            enriched = get_exercise_by_id(ex["id"])
-            if not enriched:
-                continue
-            enriched["sets"] = ex.get("sets", enriched["sets"])
-            enriched["reps"] = ex.get("reps", enriched["reps"])
-            safe_exercises.append(enriched)
-            used_ids.add(ex.get("id"))
-    fallback = build_workout(
-        profile,
-        day.get("name") or "Today's Workout",
-        focus_muscles,
-        [],
-        target_count=target_count,
-    )
-    for ex in fallback["exercises"]:
-        if len(safe_exercises) >= target_count:
-            break
-        if ex["id"] in eligible_ids and ex["id"] not in used_ids:
-            safe_exercises.append(ex)
-            used_ids.add(ex["id"])
+    day_for_session = dict(day)
+    day_for_session["exercises"] = exercises
+    safe_exercises = _safe_plan_day_exercises(uid, day_for_session)
     if not safe_exercises:
         return jsonify({"error": "no eligible exercises for today's focus"}), 409
     session["today_workout"] = {
