@@ -792,6 +792,8 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
   background: #fff;
   mix-blend-mode: difference;
 }
+.native-icon-heading { margin-top: 24px; }
+.native-icon-swatches { margin-bottom: 4px; }
 
 /* ---------- Settings ---------- */
 .settings-card { max-width:760px; }

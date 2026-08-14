@@ -11,11 +11,19 @@
 </section>
 
 <section class="card settings-card">
-  <div id="native-server-settings" hidden>
+  <div id="native-device-settings" hidden>
     <p class="card-eyebrow">THIS DEVICE</p>
     <h2>Server address</h2>
     <p class="subtle">Choose the BuiltHere server used by this iPhone. This does not change the server for anyone else.</p>
     <button type="button" class="btn btn-secondary" id="native-server-settings-button">Change server address</button>
+    <h2 class="native-icon-heading">Home Screen icon</h2>
+    <p class="subtle">Choose the BuiltHere mark used on this iPhone. It is independent of your in-app accent.</p>
+    <div class="accent-swatches native-icon-swatches" role="group" aria-label="Choose the BuiltHere Home Screen icon">
+      <button class="accent-swatch" type="button" data-app-icon="azure" style="--sw:#3b82f6" aria-label="Azure icon"></button>
+      <button class="accent-swatch" type="button" data-app-icon="rose" style="--sw:#ec4899" aria-label="Rose icon"></button>
+      <button class="accent-swatch" type="button" data-app-icon="violet" style="--sw:#a855f7" aria-label="Violet icon"></button>
+      <button class="accent-swatch" type="button" data-app-icon="emerald" style="--sw:#22c55e" aria-label="Emerald icon"></button>
+    </div>
   </div>
 
   <p class="card-eyebrow">APPEARANCE</p>
@@ -110,12 +118,19 @@
 })();
 
 (() => {
-  const nativeSettings = document.getElementById('native-server-settings');
+  const nativeSettings = document.getElementById('native-device-settings');
   const nativeButton = document.getElementById('native-server-settings-button');
   const native = window.webkit?.messageHandlers?.homefitNative;
   if (native && nativeSettings && nativeButton) {
     nativeSettings.hidden = false;
-    nativeButton.addEventListener('click', () => native.postMessage({type: 'openServerSettings'}));
+    nativeButton.addEventListener('click', () => {
+      native.postMessage({type: 'openServerSettings'});
+      window.location.href = 'builthere://server';
+    });
+    document.querySelectorAll('[data-app-icon]').forEach((button) => button.addEventListener('click', () => {
+      const name = button.dataset.appIcon;
+      window.location.href = `builthere://icon?name=${encodeURIComponent(name)}`;
+    }));
   }
 })();
 
@@ -137,11 +152,6 @@
         item.classList.toggle('is-selected', selected);
         item.setAttribute('aria-checked', selected ? 'true' : 'false');
       });
-      const native = window.webkit?.messageHandlers?.homefitNative;
-      native?.postMessage({type: 'accent', accent: color});
-      // WKScriptMessage timing can vary during a live style update. The custom
-      // scheme is a native navigation fallback; Safari simply ignores it.
-      if (native) window.location.href = `builthere://accent?value=${encodeURIComponent(color)}`;
     } catch (_) {
       // Keep the current selection visible if the save did not complete.
     }
