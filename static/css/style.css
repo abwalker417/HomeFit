@@ -1234,7 +1234,7 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 .coach-input-row .btn { align-self:flex-end; border-radius:15px; padding:13px 20px; }
 @media (max-width: 560px) {
   .coach-page-head { align-items:flex-start; flex-direction:column; }
-  .coach-shell { height:max(520px, calc(100dvh - 245px)); border-radius:22px; }
+  .coach-shell { height:max(460px, calc(100dvh - 300px)); border-radius:22px; }
   .coach-messages { min-height:280px; }
 }
 
