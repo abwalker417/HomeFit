@@ -12,10 +12,7 @@
   <style id="accent-vars">:root { --accent: {{ accent }}; --accent-rgb: {{ accent_rgb }}; }</style>
 </head>
 <body>
-  <div class="room-bg" aria-hidden="true">
-    <div class="scene" style="background-image:url('{{ url_for('static', filename='icons/redesign/scene/' + accent_name + '.png') }}?v={{ static_version }}');"></div>
-    <div class="scene-dim"></div>
-  </div>
+  <div class="app-background" aria-hidden="true"></div>
   <header class="app-header">
     <a class="brand" href="{{ url_for('index') }}">
       <img class="brand-mark" src="{{ url_for('static', filename='icons/redesign/brand/' + accent_name + '.png') }}?v={{ static_version }}" alt="HomeFit">
@@ -33,12 +30,12 @@
     </a>
     {% if current_user %}
     <nav class="top-nav">
-      <a href="{{ url_for('index') }}">Today</a>
-      <a href="{{ url_for('apex_plan_page') }}">Train</a>
-      <a href="{{ url_for('progress') }}">Health</a>
-      <a href="{{ url_for('log_food_page') }}">Food</a>
-      <a href="{{ url_for('coach_page') }}">Coach</a>
-      <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
+      <a class="{{ 'is-active' if request.endpoint == 'index' else '' }}" href="{{ url_for('index') }}">Today</a>
+      <a class="{{ 'is-active' if request.endpoint in ('apex_plan_page', 'today_workout', 'start_workout', 'exercises') else '' }}" href="{{ url_for('apex_plan_page') }}">Train</a>
+      <a class="{{ 'is-active' if request.endpoint == 'progress' else '' }}" href="{{ url_for('progress') }}">Health</a>
+      <a class="{{ 'is-active' if request.endpoint == 'log_food_page' else '' }}" href="{{ url_for('log_food_page') }}">Food</a>
+      <a class="{{ 'is-active' if request.endpoint == 'coach_page' else '' }}" href="{{ url_for('coach_page') }}">Coach</a>
+      <a class="{{ 'is-active' if request.endpoint == 'profile_edit' else '' }}" href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
     </nav>
     <span class="header-slogan" aria-hidden="true">No Mirror.<br>No Membership.<br>No Days Off.</span>
     <button id="hamburger-btn" class="hamburger-btn" aria-label="Menu">
@@ -64,36 +61,6 @@
   <main class="app-main">
     {% block content %}{% endblock %}
   </main>
-
-  {% if current_user %}
-  <button id="apex-fab" class="apex-fab" title="APEX AI Coach" aria-label="Open APEX coach">
-    <img src="{{ url_for('static', filename='icons/redesign/apex/' + accent_name + '.png') }}?v={{ static_version }}" alt="APEX">
-  </button>
-
-  <div id="apex-panel" class="apex-panel" aria-hidden="true">
-    <div class="apex-panel-header">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <img src="{{ url_for('static', filename='icons/redesign/apex/' + accent_name + '.png') }}?v={{ static_version }}" style="width:32px; height:32px; border-radius:8px; object-fit:cover;">
-        <div>
-          <div style="font-weight:700; font-size:15px;">AI Coach</div>
-          <div style="font-size:12px; color:var(--subtle);">Powered by PeakAI</div>
-        </div>
-      </div>
-      <div style="display:flex; gap:6px; align-items:center;">
-        <a href="/apex-plan" class="pill" style="background:var(--surface-2); padding:5px 10px; text-decoration:none; color:var(--text);">My Plan</a>
-        <button id="apex-clear-btn" class="pill" style="cursor:pointer; border:none; background:var(--surface-2); padding:5px 10px;" title="Clear chat">Clear</button>
-        <button id="apex-close" style="background:none; border:none; color:var(--subtle); font-size:22px; cursor:pointer; padding:4px 8px; line-height:1;">✕</button>
-      </div>
-    </div>
-    <div id="apex-messages" class="apex-messages">
-      <div class="msg msg-apex">Hey! I'm your APEX AI Coach. Ask me anything — workouts, form, nutrition, or say "create my weekly plan" and I'll build one for you.</div>
-    </div>
-    <div class="apex-input-row">
-      <textarea id="apex-input" placeholder="Ask APEX anything…" autocomplete="off" rows="1"></textarea>
-      <button id="apex-send" class="btn btn-primary" style="border-radius:20px; padding:10px 18px; white-space:nowrap; align-self:flex-end;">Send</button>
-    </div>
-  </div>
-  {% endif %}
 
   <script src="{{ url_for('static', filename='js/app.js') }}?v={{ static_version }}"></script>
   {% if current_user and api_token %}

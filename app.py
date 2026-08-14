@@ -1127,6 +1127,18 @@ def index():
         stats["weight_progress_pct"] = 0
     sleep = _sleep_display(uid, days=3)
     rhr = database.get_latest_metric(uid, "resting_hr")
+    plan_data = database.get_apex_plan(uid)
+    weekly_plan = (plan_data or {}).get("plan") or []
+    planned_today = None
+    plan_rest_today = False
+    if weekly_plan:
+        plan_day = weekly_plan[database.user_now(uid).weekday() % len(weekly_plan)]
+        plan_rest_today = bool(
+            plan_day.get("rest")
+            or database.is_rest_override(uid, database.user_today_iso(uid))
+        )
+        if not plan_rest_today and plan_day.get("exercises"):
+            planned_today = plan_day
     return render_template("dashboard.html", profile=profile, plan=plan, stats=stats,
                            cardio=_cardio_display(uid, days=14)[:3],
                            last_sleep=sleep[0] if sleep else None,
@@ -1136,6 +1148,9 @@ def index():
                            steps=_dashboard_steps(uid),
                            has_active_workout=bool(session.get("today_workout")),
                            today_iso=database.user_today_iso(uid),
+                           has_weekly_plan=bool(weekly_plan),
+                           planned_today=planned_today,
+                           plan_rest_today=plan_rest_today,
                            ai_online=coach.is_available())
 
 
@@ -2339,8 +2354,15 @@ def api_health_metric():
 @app.route("/coach")
 @app.route("/apex")
 def coach_page():
-    # Legacy full-page chat removed — the APEX panel on the dashboard replaces it.
-    return redirect(url_for("index", apex=1))
+    uid = session.get("user_id")
+    if not uid:
+        return redirect(url_for("profiles"))
+    plan_data = database.get_apex_plan(uid)
+    return render_template(
+        "coach.html",
+        ai_online=coach.is_available(),
+        has_plan=bool((plan_data or {}).get("plan")),
+    )
 
 
 @app.route("/api/coach", methods=["POST"])

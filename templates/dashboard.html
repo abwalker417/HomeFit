@@ -16,12 +16,20 @@
     <a href="{{ url_for('today_workout') }}" class="btn today-primary">Resume workout <span>→</span></a>
     <form method="post" action="{{ url_for('cancel_workout') }}" class="today-cancel"><button type="submit">Cancel workout</button></form>
   {% else %}
-    <div class="today-action-copy"><span class="today-status">Recommended</span><h2>{% if readiness and readiness.level == 'low' %}Move, recover, reset.{% else %}Train with purpose today.{% endif %}</h2><p>{% if readiness %}{{ readiness.label }} · {{ readiness.reason }}{% else %}Built around your plan, equipment, and recent training.{% endif %}</p></div>
-    {% if ai_online %}<button class="btn today-primary" id="apex-workout-btn">Build today’s workout <span>→</span></button>{% else %}<a href="{{ url_for('build_day', label='Upper body') }}" class="btn today-primary">Start a workout <span>→</span></a>{% endif %}
+    {% if planned_today %}
+      <div class="today-action-copy"><span class="today-status">On your plan</span><h2>{{ planned_today.name or "Today’s workout" }}</h2><p>{{ planned_today.exercises|length }} exercises, ready when you are.</p></div>
+      <button class="btn today-primary" id="load-plan-workout-btn">Start planned workout <span>→</span></button>
+      <p class="today-action-error" id="plan-workout-status" role="status"></p>
+    {% elif plan_rest_today %}
+      <div class="today-action-copy"><span class="today-status">Recovery day</span><h2>Your plan says rest today.</h2><p>Take the recovery, or choose a lighter session below if you want to move.</p></div>
+    {% else %}
+      <div class="today-action-copy"><span class="today-status">Choose your session</span><h2>What do you want to train?</h2><p>{% if has_weekly_plan %}Nothing is scheduled for today, so choose a focus below.{% else %}There isn’t a weekly plan yet. Pick a focus now or ask Coach to build one.{% endif %}</p></div>
+      {% if ai_online %}<a href="{{ url_for('coach_page') }}" class="btn today-primary">Ask Coach to build a plan <span>→</span></a>{% endif %}
+    {% endif %}
   {% endif %}
 </section>
 
-{% if not stats.today_workout and not has_active_workout %}
+{% if not stats.today_workout and not has_active_workout and not planned_today %}
 <section class="quick-train" aria-label="Choose a workout focus">
   <a href="{{ url_for('build_day', label='Upper body') }}"><span>Upper</span><small>Push + pull</small></a>
   <a href="{{ url_for('build_day', label='Lower body') }}"><span>Lower</span><small>Legs + glutes</small></a>

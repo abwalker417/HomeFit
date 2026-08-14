@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Coach — HomeFit{% endblock %}
+
+{% block content %}
+<section class="coach-page-head">
+  <div>
+    <p class="eyebrow">APEX COACH</p>
+    <h1>Train with a plan.</h1>
+    <p class="subtle">Ask about today’s workout, form, recovery, or nutrition.</p>
+  </div>
+  <a href="{{ url_for('apex_plan_page') }}" class="btn btn-secondary">{% if has_plan %}View my plan{% else %}Weekly plan{% endif %}</a>
+</section>
+
+<section id="apex-panel" class="coach-shell" aria-label="Chat with APEX Coach">
+  <div class="coach-shell-header">
+    <div class="coach-identity">
+      <span class="coach-orb" aria-hidden="true"></span>
+      <div><strong>APEX</strong><span>{% if ai_online %}Online · Powered by PeakAI{% else %}Offline{% endif %}</span></div>
+    </div>
+    <button id="apex-clear-btn" class="pill coach-clear" type="button">Clear chat</button>
+  </div>
+  <div id="apex-messages" class="apex-messages coach-messages">
+    <div class="msg msg-apex">Hey! I’m your APEX Coach. Ask me anything, or say “create my weekly plan” and I’ll build one around your goals and equipment.</div>
+  </div>
+  <div class="apex-input-row coach-input-row">
+    <textarea id="apex-input" placeholder="Ask APEX anything…" autocomplete="off" rows="1" {% if not ai_online %}disabled{% endif %}></textarea>
+    <button id="apex-send" class="btn btn-primary" type="button" {% if not ai_online %}disabled{% endif %}>Send</button>
+  </div>
+</section>
+{% endblock %}

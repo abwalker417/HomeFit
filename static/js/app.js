@@ -30,7 +30,7 @@ if ('serviceWorker' in navigator) {
   backdrop.addEventListener('click', close);
 })();
 
-/* ---------- APEX floating coach panel ---------- */
+/* ---------- APEX coach ---------- */
 (function () {
   const fab = document.getElementById('apex-fab');
   const panel = document.getElementById('apex-panel');
@@ -40,10 +40,11 @@ if ('serviceWorker' in navigator) {
   const input = document.getElementById('apex-input');
   const sendBtn = document.getElementById('apex-send');
   const messages = document.getElementById('apex-messages');
-  if (!fab || !panel) return;
+  if (!panel || !input || !sendBtn || !messages) return;
 
   let history = [];
   let panelOpen = false;
+  const isFloatingPanel = Boolean(fab);
 
   // Auto-expand textarea
   if (input) {
@@ -66,6 +67,7 @@ if ('serviceWorker' in navigator) {
   }
 
   function togglePanel() {
+    if (!isFloatingPanel) return;
     panelOpen = !panelOpen;
     panel.classList.toggle('open', panelOpen);
     fab.style.opacity = panelOpen ? '0.7' : '1';
@@ -85,13 +87,15 @@ if ('serviceWorker' in navigator) {
     togglePanel();
   }
 
-  fab.addEventListener('click', safeToggle);
-  fab.addEventListener('touchend', safeToggle);
-  closeBtn && closeBtn.addEventListener('click', safeToggle);
-  closeBtn && closeBtn.addEventListener('touchend', safeToggle);
+  if (fab) {
+    fab.addEventListener('click', safeToggle);
+    fab.addEventListener('touchend', safeToggle);
+    closeBtn && closeBtn.addEventListener('click', safeToggle);
+    closeBtn && closeBtn.addEventListener('touchend', safeToggle);
+  }
 
   // ?apex=1 opens the panel on load (used by the /apex and /coach redirects)
-  if (new URLSearchParams(window.location.search).get('apex') === '1') {
+  if (isFloatingPanel && new URLSearchParams(window.location.search).get('apex') === '1') {
     togglePanel();
     window.history.replaceState({}, '', window.location.pathname);
   }
@@ -222,6 +226,7 @@ if ('serviceWorker' in navigator) {
   input && input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   });
+  if (!isFloatingPanel) loadHistory();
 })();
 
 /* ---------- Apex form cues ---------- */
@@ -507,44 +512,29 @@ function loadEnergyBalance() {
     .catch(() => {});
 }
 
-/* ---------- APEX dashboard icon — plan or generate ---------- */
-const apexWorkoutBtn = document.getElementById('apex-workout-btn');
-if (apexWorkoutBtn) {
-  async function handleApexIcon(e) {
+/* ---------- Load today's planned workout ---------- */
+const planWorkoutBtn = document.getElementById('load-plan-workout-btn');
+if (planWorkoutBtn) {
+  async function loadPlannedWorkout(e) {
     e.preventDefault();
-    apexWorkoutBtn.style.opacity = '0.5';
-    apexWorkoutBtn.disabled = true;
+    const status = document.getElementById('plan-workout-status');
+    planWorkoutBtn.style.opacity = '0.6';
+    planWorkoutBtn.disabled = true;
+    planWorkoutBtn.firstChild.textContent = 'Loading planned workout ';
     try {
-      // Try loading today's plan first
       const localWeekday = (new Date().getDay() + 6) % 7;
       const planResp = await fetch('/api/apex-plan/today', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({weekday: localWeekday}) });
-      if (planResp.ok) {
-        const data = await planResp.json();
-        if (data.rest) {
-          // Rest day — fall through to generate a light workout instead
-        } else if (data.ok) {
-          window.location.href = '/today-workout';
-          return;
-        }
-      }
-      // No plan or rest day — build an AI-generated workout
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = '/start-workout';
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'focus_mode';
-      input.value = 'ai';
-      form.appendChild(input);
-      document.body.appendChild(form);
-      form.submit();
+      const data = await planResp.json();
+      if (!planResp.ok || !data.ok) throw new Error(data.error || 'The planned workout could not be loaded.');
+      window.location.href = '/today-workout';
     } catch {
-      apexWorkoutBtn.style.opacity = '1';
-      apexWorkoutBtn.disabled = false;
+      planWorkoutBtn.style.opacity = '1';
+      planWorkoutBtn.disabled = false;
+      planWorkoutBtn.firstChild.textContent = 'Start planned workout ';
+      if (status) status.textContent = 'That plan could not be loaded. Refresh the page or choose another workout.';
     }
   }
-  apexWorkoutBtn.addEventListener('click', handleApexIcon);
-  apexWorkoutBtn.addEventListener('touchend', (e) => { e.preventDefault(); handleApexIcon(e); });
+  planWorkoutBtn.addEventListener('click', loadPlannedWorkout);
 }
 
 /* ---------- Regenerate workout ---------- */

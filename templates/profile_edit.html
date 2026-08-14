@@ -62,8 +62,8 @@
 </section>
 
 <section class="card">
-  <h2>Accent color</h2>
-  <p class="subtle" style="font-size:13px;">Pick the color that tints your HomeFit. Saved to your profile.</p>
+  <h2>Theme color</h2>
+  <p class="subtle" style="font-size:13px;">Pick the color used across your HomeFit background and controls. Saved to your profile.</p>
   <div class="accent-swatches" id="accent-swatches">
     {% for label, pair in accent_palette.items() %}
     <button type="button" class="accent-swatch{{ ' is-selected' if pair[0] == accent else '' }}"
