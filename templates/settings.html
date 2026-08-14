@@ -11,6 +11,13 @@
 </section>
 
 <section class="card settings-card">
+  <div id="native-server-settings" hidden>
+    <p class="card-eyebrow">THIS DEVICE</p>
+    <h2>Server address</h2>
+    <p class="subtle">Choose the BuiltHere server used by this iPhone. This does not change the server for anyone else.</p>
+    <button type="button" class="btn btn-secondary" id="native-server-settings-button">Change server address</button>
+  </div>
+
   <p class="card-eyebrow">APPEARANCE</p>
   <h2>Your accent</h2>
   <p class="subtle">A restrained color for your active states, progress, and BuiltHere mark. The rest of the app stays graphite.</p>
@@ -100,6 +107,16 @@
     } catch (error) { status.textContent = error.message || 'Could not connect.'; }
     finally { test.disabled = false; }
   });
+})();
+
+(() => {
+  const nativeSettings = document.getElementById('native-server-settings');
+  const nativeButton = document.getElementById('native-server-settings-button');
+  const native = window.webkit?.messageHandlers?.homefitNative;
+  if (native && nativeSettings && nativeButton) {
+    nativeSettings.hidden = false;
+    nativeButton.addEventListener('click', () => native.postMessage({type: 'openServerSettings'}));
+  }
 })();
 
 (() => {
