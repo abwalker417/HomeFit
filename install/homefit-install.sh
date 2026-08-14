@@ -89,7 +89,7 @@ source /etc/homefit/homefit.env
 set +a
 runuser -u homefit -- "$release_dir/.venv/bin/python" -c "import sys; sys.path.insert(0, '$release_dir'); import app"
 
-ln -sfn "$release_dir" /opt/homefit/current
+ln -sfnT "$release_dir" /opt/homefit/current
 systemctl restart homefit
 healthy=0
 for _ in $(seq 1 30); do
@@ -102,7 +102,7 @@ done
 if [[ "$healthy" != "1" ]]; then
   echo "Health check failed; rolling back the application symlink." >&2
   if [[ -n "$previous" && -d "$previous" ]]; then
-    ln -sfn "$previous" /opt/homefit/current
+    ln -sfnT "$previous" /opt/homefit/current
     systemctl restart homefit
   else
     rm -f -- /opt/homefit/current

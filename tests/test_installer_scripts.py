@@ -16,3 +16,10 @@ def test_first_install_does_not_rollback_to_current_itself():
 
     assert 'resolved_previous" != "/opt/homefit/current"' in installer
     assert "systemctl stop homefit" in installer
+
+
+def test_release_activation_replaces_a_broken_destination_symlink():
+    installer = (ROOT / "install" / "homefit-install.sh").read_text()
+
+    assert 'ln -sfnT "$release_dir" /opt/homefit/current' in installer
+    assert 'ln -sfnT "$previous" /opt/homefit/current' in installer
