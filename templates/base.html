@@ -33,13 +33,12 @@
     </a>
     {% if current_user %}
     <nav class="top-nav">
-      <a href="{{ url_for('index') }}">Dashboard</a>
-      <a href="{{ url_for('apex_plan_page') }}">My Plan</a>
-      <a href="{{ url_for('exercises') }}">Exercises</a>
-      <a href="{{ url_for('progress') }}">Progress</a>
-      <a href="{{ url_for('log_food_page') }}">Nutrition</a>
+      <a href="{{ url_for('index') }}">Today</a>
+      <a href="{{ url_for('apex_plan_page') }}">Train</a>
+      <a href="{{ url_for('progress') }}">Health</a>
+      <a href="{{ url_for('log_food_page') }}">Food</a>
+      <a href="{{ url_for('coach_page') }}">Coach</a>
       <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
-      <a href="{{ url_for('profile_switch_out') }}">Switch</a>
     </nav>
     <span class="header-slogan" aria-hidden="true">No Mirror.<br>No Membership.<br>No Days Off.</span>
     <button id="hamburger-btn" class="hamburger-btn" aria-label="Menu">
@@ -50,11 +49,12 @@
 
   {% if current_user %}
   <div id="mobile-menu" class="mobile-menu" aria-hidden="true">
-    <a href="{{ url_for('index') }}">Home</a>
-    <a href="{{ url_for('apex_plan_page') }}">My Plan</a>
-    <a href="{{ url_for('exercises') }}">Exercises</a>
-    <a href="{{ url_for('progress') }}">Progress</a>
-    <a href="{{ url_for('log_food_page') }}">Nutrition</a>
+    <a href="{{ url_for('index') }}">Today</a>
+    <a href="{{ url_for('apex_plan_page') }}">Train</a>
+    <a href="{{ url_for('exercises') }}">Exercise library</a>
+    <a href="{{ url_for('progress') }}">Health</a>
+    <a href="{{ url_for('log_food_page') }}">Food</a>
+    <a href="{{ url_for('coach_page') }}">Coach</a>
     <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
     <a href="{{ url_for('profile_switch_out') }}">Switch user</a>
   </div>

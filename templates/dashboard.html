@@ -1,226 +1,84 @@
 {% extends "base.html" %}
-{% block title %}Home — HomeFit{% endblock %}
+{% block title %}Today — HomeFit{% endblock %}
 
 {% block content %}
+<section class="today-intro">
+  <div><p class="eyebrow">Today · {{ today_iso }}</p><h1>{% if stats.today_workout %}Recovery starts now.{% elif has_active_workout %}Keep your momentum.{% else %}Your next move.{% endif %}</h1></div>
+  {% if stats.week_streak >= 2 %}<span class="streak-badge">{{ stats.week_streak }} week streak</span>{% endif %}
+</section>
+
+<section class="today-action {% if stats.today_workout %}today-action--complete{% endif %}">
+  {% if stats.today_workout %}
+    <div class="today-action-copy"><span class="today-status">Complete</span><h2>{{ stats.today_workout.name }}</h2><p>{{ stats.today_workout.duration_min }} minutes · {{ stats.today_workout.kcal }} kcal</p></div>
+    <div class="today-check" aria-hidden="true">✓</div>
+  {% elif has_active_workout %}
+    <div class="today-action-copy"><span class="today-status">In progress</span><h2>Finish what you started.</h2><p>Your workout is saved and ready to resume.</p></div>
+    <a href="{{ url_for('today_workout') }}" class="btn today-primary">Resume workout <span>→</span></a>
+    <form method="post" action="{{ url_for('cancel_workout') }}" class="today-cancel"><button type="submit">Cancel workout</button></form>
+  {% else %}
+    <div class="today-action-copy"><span class="today-status">Recommended</span><h2>{% if readiness and readiness.level == 'low' %}Move, recover, reset.{% else %}Train with purpose today.{% endif %}</h2><p>{% if readiness %}{{ readiness.label }} · {{ readiness.reason }}{% else %}Built around your plan, equipment, and recent training.{% endif %}</p></div>
+    {% if ai_online %}<button class="btn today-primary" id="apex-workout-btn">Build today’s workout <span>→</span></button>{% else %}<a href="{{ url_for('build_day', label='Upper body') }}" class="btn today-primary">Start a workout <span>→</span></a>{% endif %}
+  {% endif %}
+</section>
+
+{% if not stats.today_workout and not has_active_workout %}
+<section class="quick-train" aria-label="Choose a workout focus">
+  <a href="{{ url_for('build_day', label='Upper body') }}"><span>Upper</span><small>Push + pull</small></a>
+  <a href="{{ url_for('build_day', label='Lower body') }}"><span>Lower</span><small>Legs + glutes</small></a>
+  <a href="{{ url_for('build_day', label='Core & Cardio') }}"><span>Core</span><small>Stability</small></a>
+  <a href="{{ url_for('build_day', label='Recovery') }}"><span>Recover</span><small>Move easy</small></a>
+</section>
+{% endif %}
+
 {% if readiness or rings.move.current is not none %}
-<section class="card rings-card">
-  <div class="rings-row">
-    {% if readiness %}
-    <div class="ring-wrap">
-      <div class="dring dring--{{ readiness.level }}" style="--p:{{ [readiness.score, 100]|min }}%"><span>{{ readiness.score }}</span></div>
-      <div class="dring-k">Readiness</div>
-    </div>
-    {% endif %}
-    {% set rm = rings.move %}
-    {% set pm = ([(rm.current / rm.goal * 100)|round, 100]|min) if (rm.goal and rm.current is not none) else 0 %}
-    <div class="ring-wrap">
-      <div class="dring dring-move" style="--p:{{ pm }}%"><span>{{ rm.current if rm.current is not none else '–' }}<small>cal</small></span></div>
-      <div class="dring-k">Move</div>
-    </div>
-    {% set re = rings.exercise %}
-    {% set pe = ([(re.current / re.goal * 100)|round, 100]|min) if (re.goal and re.current is not none) else 0 %}
-    <div class="ring-wrap">
-      <div class="dring dring-ex" style="--p:{{ pe }}%"><span>{{ re.current if re.current is not none else '–' }}<small>min</small></span></div>
-      <div class="dring-k">Exercise</div>
-    </div>
-    {% set rs = rings.stand %}
-    {% set ps = ([(rs.current / rs.goal * 100)|round, 100]|min) if (rs.goal and rs.current is not none) else 0 %}
-    <div class="ring-wrap">
-      <div class="dring dring-stand" style="--p:{{ ps }}%"><span>{{ rs.current if rs.current is not none else '–' }}<small>hr</small></span></div>
-      <div class="dring-k">Stand</div>
-    </div>
-    {% set pst = ([(steps.current / steps.goal * 100)|round, 100]|min) if (steps.goal and steps.current is not none) else 0 %}
-    <div class="ring-wrap">
-      <div class="dring dring-steps" style="--p:{{ pst }}%"><span>{{ steps.display }}</span></div>
-      <div class="dring-k">Steps</div>
-    </div>
+<section class="card today-readiness">
+  <div class="section-heading"><div><p class="card-eyebrow">DAILY SIGNALS</p><h2>Your body today</h2></div>{% if readiness %}<strong class="readiness-score readiness-score--{{ readiness.level }}">{{ readiness.score }}</strong>{% endif %}</div>
+  <div class="signal-grid">
+    {% set rm = rings.move %}{% set re = rings.exercise %}{% set rs = rings.stand %}
+    <div><strong>{{ rm.current if rm.current is not none else '–' }}</strong><span>Move cal</span></div>
+    <div><strong>{{ re.current if re.current is not none else '–' }}</strong><span>Exercise min</span></div>
+    <div><strong>{{ rs.current if rs.current is not none else '–' }}</strong><span>Stand hr</span></div>
+    <div><strong>{{ steps.display }}</strong><span>Steps</span></div>
   </div>
-  {% if readiness %}<p class="rings-reason subtle">{{ readiness.label }} · {{ readiness.reason }}</p>{% endif %}
 </section>
 {% endif %}
 
-<section class="hero">
-  <div class="hero-top">
-    <div>
-      <p class="eyebrow">Your plan</p>
-    </div>
-    <div class="hero-badges">
-      {% if stats.away %}
-      <span class="away-badge">Away · {{ stats.away.reason }}{% if stats.away.end_date %} thru {{ stats.away.end_date[5:] }}{% endif %}</span>
-      {% endif %}
-      {% if stats.week_streak >= 2 %}
-      <span class="streak-badge">{{ stats.week_streak }}-week streak</span>
-      {% elif stats.streak >= 2 %}
-      <span class="streak-badge">{{ stats.streak }}-day streak</span>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="hero-stats">
-    <div>
-      <strong>{{ stats.starting_weight or profile.current_weight }}</strong>
-      <span>starting</span>
-    </div>
-    <div>
-      <strong>{{ profile.current_weight }}</strong>
-      <span>current</span>
-    </div>
-    <div>
-      <strong>{{ profile.goal_weight }}</strong>
-      <span>goal</span>
-    </div>
-  </div>
-
-  <div class="progress-bar-wrap">
-    <div class="progress-bar-fill" style="width: {{ stats.weight_progress_pct }}%"></div>
-  </div>
-  <p class="progress-label">
-    {{ stats.weight_progress_pct }}% to goal
-    {% if stats.weight_change %} · {{ "+" if stats.weight_change > 0 else "" }}{{ stats.weight_change }} lbs total{% endif %}
-  </p>
-  {% if stats.away %}
-  <p class="progress-label away-note">Away mode is on — streaks and weekly goals are paused. Get well / travel safe.</p>
-  {% elif stats.must_train_today %}
-  <p class="streak-nudge">Train today to hit your {{ stats.target_days_week }}-day week{% if stats.week_streak >= 2 %} — your {{ stats.week_streak }}-week streak is on the line{% endif %}</p>
-  {% elif stats.week_workouts and stats.week_workouts < stats.target_days_week %}
-  <p class="progress-label">{{ stats.week_workouts }} of {{ stats.target_days_week }} workouts this week</p>
-  {% endif %}
-  {% if not stats.away and stats.cardio_goal_week %}
-  <p class="progress-label">{{ stats.cardio_days }} of {{ stats.cardio_goal_week }} cardio days this week</p>
-  {% endif %}
+<section class="today-grid">
+  <article class="card progress-glance">
+    <div class="section-heading compact"><div><p class="card-eyebrow">PROGRESS</p><h2>{{ profile.current_weight }} <small>lb</small></h2></div><span>{{ stats.weight_progress_pct }}%</span></div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width: {{ stats.weight_progress_pct }}%"></div></div>
+    <p>Goal {{ profile.goal_weight }} lb{% if stats.weight_change %} · {{ stats.weight_change }} lb total{% endif %}</p>
+  </article>
+  <article class="card week-glance"><p class="card-eyebrow">THIS WEEK</p><div class="week-count"><strong>{{ stats.week_workouts }}</strong><span>of {{ stats.target_days_week }} workouts</span></div><p>{{ stats.cardio_days }} of {{ stats.cardio_goal_week }} cardio days</p></article>
 </section>
 
-<section class="card">
-  <h2>Log today's weight</h2>
-  <form id="weight-form" class="inline-form" autocomplete="off">
-    <input type="number" name="weight" step="0.1" min="60" max="600"
-           placeholder="{{ profile.current_weight }}" required>
-    <button type="submit" class="btn btn-secondary">Log</button>
-  </form>
-  <p class="subtle" style="margin-top: 6px; font-size: 13px;">Last logged: {{ profile.current_weight }} lbs</p>
+<details class="card quick-log">
+  <summary><div><p class="card-eyebrow">QUICK LOG</p><strong>Today’s weight</strong></div><span>{{ profile.current_weight }} lb <b>+</b></span></summary>
+  <form id="weight-form" class="inline-form" autocomplete="off"><input type="number" name="weight" step="0.1" min="60" max="600" placeholder="{{ profile.current_weight }}" required><button type="submit" class="btn btn-secondary">Save</button></form>
   <p id="weight-status" class="subtle"></p>
-</section>
+</details>
 
-{% if has_active_workout %}
-<a href="{{ url_for('today_workout') }}" class="card" style="display:block; text-align:center; background:var(--accent); color:#fff; text-decoration:none; padding:16px; border-radius:var(--radius);">
-  <strong>Workout in progress — tap to resume →</strong>
-</a>
-<form method="post" action="{{ url_for('cancel_workout') }}" style="text-align:center; margin-top:8px;">
-  <button type="submit" class="btn btn-secondary" style="font-size:13px; padding:6px 16px;">Cancel workout</button>
-</form>
-{% endif %}
-
-<section class="workout-icon-section">
-  <p class="strip-label">Train</p>
-  <div class="train-strip">
-    {% if ai_online %}
-    <button class="cat-tile cat-apex" id="apex-workout-btn" title="APEX: load today's plan or build a workout">
-      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/apex/' + accent_name + '.png') }}?v={{ static_version }}" alt="APEX"></span>
-      <span class="cat-name">APEX</span>
-    </button>
-    {% endif %}
-    <a class="cat-tile" href="{{ url_for('build_day', label='Upper body') }}">
-      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/upper/' + accent_name + '.png') }}?v={{ static_version }}" alt="Upper Body"></span>
-      <span class="cat-name">Upper</span>
-    </a>
-    <a class="cat-tile" href="{{ url_for('build_day', label='Lower body') }}">
-      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/lower/' + accent_name + '.png') }}?v={{ static_version }}" alt="Lower Body"></span>
-      <span class="cat-name">Lower</span>
-    </a>
-    <a class="cat-tile" href="{{ url_for('build_day', label='Core & Cardio') }}">
-      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/core/' + accent_name + '.png') }}?v={{ static_version }}" alt="Core"></span>
-      <span class="cat-name">Core</span>
-    </a>
-    <a class="cat-tile" href="{{ url_for('build_day', label='Recovery') }}">
-      <span class="cat-art"><img src="{{ url_for('static', filename='icons/redesign/rest/' + accent_name + '.png') }}?v={{ static_version }}" alt="Recovery"></span>
-      <span class="cat-name">Rest</span>
-    </a>
-  </div>
-</section>
-
-{% if stats.today_workout %}
-<section class="card" style="border-color:var(--accent);">
-  <p class="card-eyebrow">WORKOUT COMPLETE</p>
-  <div style="margin-bottom:8px;">
-    <strong>{{ stats.today_workout.name }}</strong>
-    <span class="subtle" style="font-size:13px;"> · {{ stats.today_workout.duration_min }} min · {{ stats.today_workout.kcal }} kcal</span>
-  </div>
-  <p class="subtle" style="margin:0;font-size:13px;">Workout complete for today — great work!</p>
+{% if last_sleep or cardio %}
+<section class="today-grid health-glance">
+  {% if last_sleep %}<article class="card"><p class="card-eyebrow">LAST NIGHT</p><div class="health-big">{{ last_sleep.hm }}</div><p>Sleep{% if resting_hr %} · {{ resting_hr }} resting HR{% endif %}</p></article>{% endif %}
+  {% if cardio %}<article class="card"><p class="card-eyebrow">RECENT CARDIO</p><div class="health-big">{{ cardio[0].duration_minutes }} <small>min</small></div><p>{{ cardio[0].workout_type }} · {{ cardio[0].when }}</p></article>{% endif %}
 </section>
 {% endif %}
 
-{% if last_sleep %}
-<section class="card">
-  <p class="card-eyebrow">LAST NIGHT</p>
-  <div class="sleep-stats">
-    <div><strong>{{ last_sleep.hm }}</strong><span>Asleep</span></div>
-    {% if last_sleep.deep_fmt %}<div><strong>{{ last_sleep.deep_fmt }}</strong><span>Deep</span></div>{% endif %}
-    {% if last_sleep.rem_fmt %}<div><strong>{{ last_sleep.rem_fmt }}</strong><span>REM</span></div>{% endif %}
-    {% if resting_hr %}<div><strong>{{ resting_hr }}</strong><span>Rest HR</span></div>{% endif %}
-  </div>
-  {% if last_sleep.bedtime_fmt %}
-  <p class="subtle" style="margin:12px 0 0; font-size:13px;">{{ last_sleep.bedtime_fmt }} → {{ last_sleep.wake_time_fmt }}</p>
-  {% endif %}
-</section>
-{% endif %}
-
-{% if cardio %}
-<section class="card">
-  <p class="card-eyebrow">RECENT CARDIO</p>
-  {% for c in cardio %}
-  <div class="cardio-row">
-    <div class="cardio-main">
-      <strong>{{ c.workout_type }}</strong>
-      <span class="subtle"> · {{ c.duration_minutes }} min</span>
-    </div>
-    <div class="cardio-meta">{{ c.when }}{% if c.detail %} · {{ c.detail }}{% endif %}</div>
-  </div>
-  {% endfor %}
-</section>
-{% endif %}
-
-{% if ai_online %}
-<section id="daily-brief-card" class="card" style="display:none;">
-  <p class="card-eyebrow">APEX TODAY</p>
-  <div id="daily-brief-body" style="font-size:14px; line-height:1.65; color:var(--text);"></div>
-</section>
-{% endif %}
-
-{% if stats.total_workouts %}
-<section class="card">
-  <h2>You've got this</h2>
-  <p class="subtle">
-    {{ stats.total_workouts }} workouts · {{ stats.last_7_days }} this week · {{ stats.total_minutes }} min
-    {% if stats.days_since_workout == 1 %} · last workout yesterday
-    {% elif stats.days_since_workout %} · last workout {{ stats.days_since_workout }} days ago
-    {% endif %}
-  </p>
-</section>
-{% endif %}
+{% if ai_online %}<section id="daily-brief-card" class="card coach-brief" style="display:none;"><p class="card-eyebrow">APEX TODAY</p><div id="daily-brief-body"></div></section>{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-  setupWeightForm();
-  loadDailyBrief();
-
-  // The native app keeps the dashboard loaded between sessions, so readiness /
-  // sleep / brief would show stale data when reopened. Reload when the page
-  // becomes visible again on a NEW day, or after a long background (≥20 min)
-  // — that's when last night's sleep has synced and readiness has changed.
+  setupWeightForm(); loadDailyBrief();
   (function () {
-    const RENDERED_DATE = "{{ today_iso }}";
-    let hiddenAt = 0;
-    function localDate() { return new Date().toLocaleDateString('en-CA'); } // YYYY-MM-DD
+    const RENDERED_DATE = "{{ today_iso }}"; let hiddenAt = 0;
+    function localDate() { return new Date().toLocaleDateString('en-CA'); }
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
-      const newDay = RENDERED_DATE && localDate() !== RENDERED_DATE;
-      const longBg = hiddenAt && (Date.now() - hiddenAt > 20 * 60 * 1000);
-      if (newDay || longBg) location.reload();
+      if ((RENDERED_DATE && localDate() !== RENDERED_DATE) || (hiddenAt && Date.now() - hiddenAt > 20 * 60 * 1000)) location.reload();
     });
-    window.addEventListener('pageshow', (e) => {
-      if (e.persisted && RENDERED_DATE && localDate() !== RENDERED_DATE) location.reload();
-    });
+    window.addEventListener('pageshow', (e) => { if (e.persisted && RENDERED_DATE && localDate() !== RENDERED_DATE) location.reload(); });
   })();
 </script>
 {% endblock %}
