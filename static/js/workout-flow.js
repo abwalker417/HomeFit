@@ -76,13 +76,16 @@ window.startWorkout = function () {
   }
   let cur = state.cur;
   localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  const PENDING_KEY = `homefit_pending_completion_${userId}`;
 
   let autosaveTimer = null;
   function save() {
     state.cur = cur; state.t = Date.now();
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    if (!navigator.onLine) setSyncStatus('Offline — saved on this device.');
     clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(() => {
+      if (!navigator.onLine) return;
       fetch('/api/workout/autosave', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ day_name: dayName, state }),
@@ -91,6 +94,35 @@ window.startWorkout = function () {
   }
 
   const $ = (id) => document.getElementById(id);
+  const syncStatus = $('wk-sync-status');
+  function setSyncStatus(message) {
+    if (syncStatus) syncStatus.textContent = message;
+  }
+  function pendingCompletion() {
+    try { return JSON.parse(localStorage.getItem(PENDING_KEY)); } catch (_) { return null; }
+  }
+  async function sendCompletion(payload) {
+    const resp = await fetch('/api/complete_workout', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    if (!resp.ok) throw new Error('server');
+    return resp.json();
+  }
+  async function syncPendingCompletion() {
+    const pending = pendingCompletion();
+    if (!pending || !pending.payload || !navigator.onLine) return;
+    try {
+      await sendCompletion(pending.payload);
+      localStorage.removeItem(PENDING_KEY);
+      setSyncStatus('Workout synced.');
+    } catch (_) {
+      setSyncStatus('Saved on this device — will sync when the connection returns.');
+    }
+  }
+  window.addEventListener('online', syncPendingCompletion);
+  if (!navigator.onLine) setSyncStatus('Offline — saved on this device.');
+  else syncPendingCompletion();
+
   const exAt = (i) => exs[i];
   const stOf = (e) => state.ex[e.id] || (state.ex[e.id] = { logged: [], workW: defaultW(e), workR: e.reps });
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -307,11 +339,7 @@ window.startWorkout = function () {
     const payload = { day_number: dayNumber, day_name: dayName, duration_seconds: duration, exercises: items };
     finishBtn.disabled = true; finishBtn.textContent = 'Saving…';
     try {
-      const resp = await fetch('/api/complete_workout', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-      });
-      if (!resp.ok) throw new Error('server');
-      const data = await resp.json();
+      const data = await sendCompletion(payload);
       localStorage.removeItem(STORE_KEY);
       if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.healthKit) {
         window.webkit.messageHandlers.healthKit.postMessage({
@@ -324,11 +352,14 @@ window.startWorkout = function () {
       }
       showCompletionScreen(duration, data.kcal, data.exercises_completed, dayName);
     } catch (err) {
-      finishBtn.disabled = false; finishBtn.textContent = 'Retry finish';
+      localStorage.setItem(PENDING_KEY, JSON.stringify({ payload, queuedAt: Date.now() }));
+      localStorage.removeItem(STORE_KEY);
+      setSyncStatus('Workout saved on this device. It will sync automatically when you reconnect.');
+      showCompletionScreen(duration, null, items.filter((item) => item.completed).length, dayName, true);
     }
   }
 
-  function showCompletionScreen(durationSecs, kcal, exerciseCount, dName) {
+  function showCompletionScreen(durationSecs, kcal, exerciseCount, dName, pending = false) {
     const wcSection = document.getElementById('workout-complete');
     if (!wcSection) return;
     const mins = Math.floor(durationSecs / 60), secs = durationSecs % 60;
@@ -342,6 +373,12 @@ window.startWorkout = function () {
     if (nameEl) nameEl.textContent = dName || 'Workout';
     document.getElementById('workout-body').style.display = 'none';
     wcSection.classList.remove('hidden');
+
+    if (pending) {
+      const body = document.getElementById('apex-summary-body');
+      if (body) body.innerHTML = '<p style="color:var(--subtle);font-size:14px;margin:0;">Saved on this device. Your workout will sync automatically when the connection returns.</p>';
+      return;
+    }
 
     const exercisesForInsight = exs
       .filter((e) => stOf(e).logged.length > 0)
