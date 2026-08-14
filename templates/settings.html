@@ -137,7 +137,11 @@
         item.classList.toggle('is-selected', selected);
         item.setAttribute('aria-checked', selected ? 'true' : 'false');
       });
-      window.webkit?.messageHandlers?.homefitNative?.postMessage({type: 'accent', accent: color});
+      const native = window.webkit?.messageHandlers?.homefitNative;
+      native?.postMessage({type: 'accent', accent: color});
+      // WKScriptMessage timing can vary during a live style update. The custom
+      // scheme is a native navigation fallback; Safari simply ignores it.
+      if (native) window.location.href = `builthere://accent?value=${encodeURIComponent(color)}`;
     } catch (_) {
       // Keep the current selection visible if the save did not complete.
     }
