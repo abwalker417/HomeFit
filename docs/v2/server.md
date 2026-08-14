@@ -44,7 +44,7 @@ created until the service is healthy on the LAN.
 ## Required environment
 
 ```dotenv
-HOMEFIT_ENV=development
+HOMEFIT_ENV=production
 HOMEFIT_HOST=127.0.0.1
 HOMEFIT_PORT=5000
 HOMEFIT_DATA_DIR=/var/lib/homefit

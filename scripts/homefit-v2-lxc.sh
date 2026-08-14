@@ -6,6 +6,7 @@ set -Eeuo pipefail
 APP_REPO="${APP_REPO:-https://github.com/abwalker417/HomeFit.git}"
 APP_BRANCH="${APP_BRANCH:-codex/v2-foundation}"
 INSTALLER_URL="${INSTALLER_URL:-https://raw.githubusercontent.com/abwalker417/HomeFit/refs/heads/${APP_BRANCH}/install/homefit-install.sh}"
+UPDATER_URL="${UPDATER_URL:-https://raw.githubusercontent.com/abwalker417/HomeFit/refs/heads/${APP_BRANCH}/install/homefit-update.sh}"
 
 CTID="${CTID:-120}"
 CT_HOSTNAME="${CT_HOSTNAME:-homefit-v2}"
@@ -56,9 +57,13 @@ ok "Template ready: ${template_ref}"
 
 info "Downloading the HomeFit container installer"
 installer_tmp="$(mktemp /tmp/homefit-install.XXXXXX.sh)"
+updater_tmp="$(mktemp /tmp/homefit-update.XXXXXX.sh)"
 curl -fsSL "$INSTALLER_URL" -o "$installer_tmp"
+curl -fsSL "$UPDATER_URL" -o "$updater_tmp"
 grep -q 'HOMEFIT_INSTALLER_V2=1' "$installer_tmp" || die "Downloaded installer failed its identity check."
+grep -q 'HOMEFIT_UPDATER_V2=1' "$updater_tmp" || die "Downloaded updater failed its identity check."
 chmod 0755 "$installer_tmp"
+chmod 0755 "$updater_tmp"
 ok "Installer verified"
 
 info "Creating CT ${CTID}"
@@ -86,12 +91,14 @@ ok "Container network is ready"
 
 info "Installing HomeFit inside CT ${CTID}"
 pct push "$CTID" "$installer_tmp" /root/homefit-install.sh -perms 0755
+pct push "$CTID" "$updater_tmp" /root/homefit-update.sh -perms 0755
 pct exec "$CTID" -- env \
   HOMEFIT_REPO="$APP_REPO" \
   HOMEFIT_BRANCH="$APP_BRANCH" \
   HOMEFIT_PORT="$APP_PORT" \
   bash /root/homefit-install.sh
 rm -f "$installer_tmp"
+rm -f "$updater_tmp"
 
 ip_without_prefix="${CT_IP%/*}"
 ok "HomeFit V2 is installed"

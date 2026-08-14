@@ -1,31 +1,8 @@
 #!/usr/bin/env bash
-# HOMEFIT_INSTALLER_V2=1
-# HomeFit V2 in-container installer. Normally invoked by homefit-v2-lxc.sh.
+# HOMEFIT_UPDATER_V2=1
+# Atomic, self-refreshing updater for an installed HomeFit V2 container.
 set -Eeuo pipefail
 
-HOMEFIT_REPO="${HOMEFIT_REPO:-https://github.com/abwalker417/HomeFit.git}"
-HOMEFIT_BRANCH="${HOMEFIT_BRANCH:-main}"
-HOMEFIT_PORT="${HOMEFIT_PORT:-5000}"
-
-[[ ${EUID} -eq 0 ]] || { echo "Run as root inside the LXC." >&2; exit 1; }
-export DEBIAN_FRONTEND=noninteractive
-
-echo "[1/7] Installing dependencies"
-apt-get update -qq
-apt-get install -y -qq \
-  ca-certificates curl ffmpeg git openssl python3 python3-pip python3-venv sqlite3
-
-echo "[2/7] Creating service account and persistent paths"
-id homefit >/dev/null 2>&1 || useradd --system --create-home --home-dir /var/lib/homefit --shell /usr/sbin/nologin homefit
-install -d -o homefit -g homefit -m 0750 \
-  /opt/homefit/releases /var/lib/homefit /var/lib/homefit/backups \
-  /var/lib/homefit/catalog /var/lib/homefit/uploads
-install -d -o root -g homefit -m 0750 /etc/homefit
-
-echo "[3/7] Installing the atomic updater"
-cat >/usr/local/sbin/homefit-update <<'UPDATER'
-#!/usr/bin/env bash
-set -Eeuo pipefail
 [[ ${EUID} -eq 0 ]] || { echo "Run homefit-update as root." >&2; exit 1; }
 exec 9>/run/lock/homefit-update.lock
 flock -n 9 || { echo "Another HomeFit update is already running." >&2; exit 1; }
@@ -42,8 +19,6 @@ fi
 
 timestamp="$(date +%Y%m%d-%H%M%S)"
 release_dir="/opt/homefit/releases/${short_commit}-${timestamp}"
-# Python venv launchers contain absolute shebang paths. Build directly in the
-# final, inactive release directory so activation does not invalidate them.
 release_tmp="$release_dir"
 previous=""
 if [[ -L /opt/homefit/current ]]; then
@@ -114,9 +89,13 @@ fi
 
 release_tmp=""
 
-# Keep enough local history for quick rollbacks without allowing every update
-# to consume another full virtualenv. Pruning only happens after readiness has
-# passed, so a failed deployment never removes a recovery point.
+# Upgrade the updater only from a release that has passed validation/readiness.
+if [[ -f "$release_dir/install/homefit-update.sh" ]] && \
+   grep -q 'HOMEFIT_UPDATER_V2=1' "$release_dir/install/homefit-update.sh"; then
+  install -o root -g root -m 0755 "$release_dir/install/homefit-update.sh" /usr/local/sbin/homefit-update
+fi
+
+# Retain five releases and fourteen database snapshots for local rollback.
 mapfile -t stale_releases < <(
   find /opt/homefit/releases -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
     | sort -nr | awk 'NR > 5 {sub(/^[^ ]+ /, ""); print}'
@@ -134,75 +113,3 @@ for stale_backup in "${stale_backups[@]}"; do
 done
 
 echo "HomeFit updated successfully to ${short_commit}."
-UPDATER
-chmod 0755 /usr/local/sbin/homefit-update
-if [[ -f /root/homefit-update.sh ]] && grep -q 'HOMEFIT_UPDATER_V2=1' /root/homefit-update.sh; then
-  install -o root -g root -m 0755 /root/homefit-update.sh /usr/local/sbin/homefit-update
-fi
-
-echo "[4/7] Writing configuration"
-cat >/etc/homefit/release.conf <<EOF
-HOMEFIT_REPO=${HOMEFIT_REPO}
-HOMEFIT_BRANCH=${HOMEFIT_BRANCH}
-HOMEFIT_PORT=${HOMEFIT_PORT}
-EOF
-chmod 0644 /etc/homefit/release.conf
-
-if [[ ! -f /etc/homefit/homefit.env ]]; then
-  session_key="$(openssl rand -hex 48)"
-  printf '%s' "$session_key" >/etc/homefit/session.key
-  chown root:homefit /etc/homefit/session.key
-  chmod 0640 /etc/homefit/session.key
-  cat >/etc/homefit/homefit.env <<EOF
-HOMEFIT_ENV=production
-HOMEFIT_DB=/var/lib/homefit/workout.db
-HOMEFIT_SECRET_KEY_FILE=/etc/homefit/session.key
-HOMEFIT_SESSION_SECURE=0
-HOMEFIT_ALLOW_PROFILE_CREATION=1
-PEAKAI_URL=http://192.168.68.33:4000
-PEAKAI_API_KEY=
-PEAKAI_MODEL=claude-sonnet
-PEAKAI_CHEAP_MODEL=gpt-4o-mini
-PEAKAI_VISION_MODEL=gpt-4o
-EOF
-  chown root:homefit /etc/homefit/homefit.env
-  chmod 0640 /etc/homefit/homefit.env
-fi
-
-echo "[5/7] Writing systemd service"
-cat >/etc/systemd/system/homefit.service <<EOF
-[Unit]
-Description=HomeFit self-hosted fitness platform
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=homefit
-Group=homefit
-WorkingDirectory=/opt/homefit/current
-EnvironmentFile=/etc/homefit/homefit.env
-ExecStart=/opt/homefit/current/.venv/bin/gunicorn --workers 2 --threads 2 --timeout 180 --bind 0.0.0.0:${HOMEFIT_PORT} app:app
-Restart=on-failure
-RestartSec=5
-PrivateTmp=true
-NoNewPrivileges=true
-ProtectSystem=full
-ProtectHome=true
-ReadWritePaths=/var/lib/homefit /opt/homefit
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl daemon-reload
-systemctl enable homefit >/dev/null
-
-echo "[6/7] Installing the initial release"
-homefit-update
-
-echo "[7/7] Verifying HomeFit"
-systemctl is-active --quiet homefit
-curl -fsS --max-time 15 "http://127.0.0.1:${HOMEFIT_PORT}/healthz" >/dev/null
-rm -f /root/homefit-install.sh
-rm -f /root/homefit-update.sh
-echo "HomeFit installation completed."
