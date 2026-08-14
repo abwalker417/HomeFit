@@ -4,7 +4,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-selec
   background: #000; color: #e8eef5;
   font-family: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 .g-body { display: flex; align-items: center; justify-content: center; }
-:root { --accent: #22d3ee; --accent-rgb: 34, 211, 238; --good: #3ddc97; }
+:root { --accent: #3b82f6; --accent-rgb: 59, 130, 246; --good: #3ddc97; }
 .hidden { display: none !important; }
 
 /* Fixed 1920x440 stage, scaled to fit any display by garage-fit.js */

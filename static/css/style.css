@@ -8,8 +8,8 @@
   --border: #454545;
   --text: #f3f3f3;
   --subtle: #b4b4b4;
-  --accent: #10a37f;
-  --accent-rgb: 16, 163, 127;
+  --accent: #3b82f6;
+  --accent-rgb: 59, 130, 246;
   /* lighter shade derived from the accent so per-profile colors carry through */
   --accent-2: color-mix(in srgb, var(--accent) 78%, white);
   --success: #34d399;

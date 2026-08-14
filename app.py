@@ -331,7 +331,7 @@ ACCENT_PALETTE = {
     "red":    ("#ef4444", "239, 68, 68"),
     "pink":   ("#ec4899", "236, 72, 153"),
 }
-DEFAULT_ACCENT = "#10a37f"  # restrained emerald, shared across the app shell
+DEFAULT_ACCENT = "#3b82f6"  # Azure blue, shared across the app shell
 
 
 def _accent_rgb(hex_color):
@@ -1564,7 +1564,7 @@ def _garage_library(uid):
 def _accent_ctx(uid):
     """Accent hex/rgb/name for a garage user (the panel has no logged-in session,
     so we resolve it from the picked garage_user, mirroring inject_globals)."""
-    accent = (database.get_accent_color(uid) if uid else None) or DEFAULT_ACCENT
+    accent = DEFAULT_ACCENT
     accent_name = next((n for n, (hex_, _) in ACCENT_PALETTE.items() if hex_ == accent), "ice")
     return {"accent": accent, "accent_rgb": _accent_rgb(accent), "accent_name": accent_name}
 

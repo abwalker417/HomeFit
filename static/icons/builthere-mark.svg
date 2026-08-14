@@ -3,16 +3,16 @@
   <desc id="desc">A geometric letter B assembled from structural forms.</desc>
   <defs>
     <linearGradient id="signal" x1="112" y1="88" x2="408" y2="430" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#67E8F9"/>
-      <stop offset="1" stop-color="#2DD4BF"/>
+      <stop stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#3B82F6"/>
     </linearGradient>
     <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="14" result="blur"/>
-      <feColorMatrix in="blur" values="0 0 0 0 0.18 0 0 0 0 0.83 0 0 0 0 0.75 0 0 0 .28 0"/>
+      <feColorMatrix in="blur" values="0 0 0 0 0.23 0 0 0 0 0.51 0 0 0 0 0.96 0 0 0 .24 0"/>
       <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <rect width="512" height="512" rx="112" fill="#080B10"/>
+  <rect width="512" height="512" rx="112" fill="#212121"/>
   <rect x="1" y="1" width="510" height="510" rx="111" fill="none" stroke="#FFFFFF" stroke-opacity=".08" stroke-width="2"/>
   <path d="M122 92h76v328h-76z" fill="#F7F8F5"/>
   <path d="M184 92h104c76 0 121 35 121 94 0 42-22 72-58 87 46 13 72 47 72 95 0 66-49 102-135 102H184v-72h101c40 0 61-15 61-44 0-28-21-43-61-43h-101v-68h94c36 0 55-14 55-40 0-27-19-40-55-40h-94z" fill="url(#signal)" filter="url(#glow)"/>

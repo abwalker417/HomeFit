@@ -13,6 +13,15 @@ def test_pwa_uses_builthere_identity():
     assert manifest["description"] == "Training built around what you have."
 
 
+def test_azure_is_the_shared_product_accent():
+    app_source = (ROOT / "app.py").read_text()
+    stylesheet = (ROOT / "static" / "css" / "style.css").read_text()
+
+    assert 'DEFAULT_ACCENT = "#3b82f6"' in app_source
+    assert "--accent: #3b82f6;" in stylesheet
+    assert "--accent-rgb: 59, 130, 246;" in stylesheet
+
+
 def test_user_facing_templates_do_not_show_retired_names():
     templates = "\n".join(
         path.read_text()

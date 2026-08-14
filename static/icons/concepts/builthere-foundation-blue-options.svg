@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="330" viewBox="0 0 1100 330" role="img" aria-labelledby="title desc">
+  <title id="title">BuiltHere Foundation mark blue accent options</title>
+  <desc id="desc">Four blue variations of the BuiltHere Foundation logo mark: Azure, Sky, Cobalt, and Electric Blue.</desc>
+  <rect width="1100" height="330" fill="#212121"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#f3f3f3">
+    <text x="55" y="48" font-size="24" font-weight="700">Foundation mark / blue accent options</text>
+    <text x="55" y="76" font-size="14" fill="#b4b4b4">Same structural B, tuned from quiet and premium to brighter and more energetic.</text>
+  </g>
+  <g transform="translate(55 112)">
+    <g>
+      <rect width="220" height="165" rx="22" fill="#2b2b2b" stroke="#454545"/>
+      <rect x="26" y="24" width="82" height="82" rx="21" fill="#303030"/>
+      <path d="M45 39h14v52H45z" fill="#f3f3f3"/><path d="M58 39h22c15 0 23 7 23 18 0 8-4 13-11 15 8 2 12 7 12 15 0 12-9 20-25 20H58V93h21c7 0 11-3 11-8s-4-8-11-8H58V64h18c7 0 10-2 10-6s-3-6-10-6H58z" fill="#3b82f6"/><path d="M41 113h67" stroke="#f3f3f3" stroke-width="5" stroke-linecap="round"/>
+      <text x="26" y="136" fill="#f3f3f3" font-family="Arial" font-size="16" font-weight="700">01 / Azure</text><text x="26" y="154" fill="#b4b4b4" font-family="Arial" font-size="12">#3B82F6 · balanced</text>
+    </g>
+    <g transform="translate(245)">
+      <rect width="220" height="165" rx="22" fill="#2b2b2b" stroke="#454545"/>
+      <rect x="26" y="24" width="82" height="82" rx="21" fill="#303030"/>
+      <path d="M45 39h14v52H45z" fill="#f3f3f3"/><path d="M58 39h22c15 0 23 7 23 18 0 8-4 13-11 15 8 2 12 7 12 15 0 12-9 20-25 20H58V93h21c7 0 11-3 11-8s-4-8-11-8H58V64h18c7 0 10-2 10-6s-3-6-10-6H58z" fill="#38bdf8"/><path d="M41 113h67" stroke="#f3f3f3" stroke-width="5" stroke-linecap="round"/>
+      <text x="26" y="136" fill="#f3f3f3" font-family="Arial" font-size="16" font-weight="700">02 / Sky</text><text x="26" y="154" fill="#b4b4b4" font-family="Arial" font-size="12">#38BDF8 · open, friendly</text>
+    </g>
+    <g transform="translate(490)">
+      <rect width="220" height="165" rx="22" fill="#2b2b2b" stroke="#454545"/>
+      <rect x="26" y="24" width="82" height="82" rx="21" fill="#303030"/>
+      <path d="M45 39h14v52H45z" fill="#f3f3f3"/><path d="M58 39h22c15 0 23 7 23 18 0 8-4 13-11 15 8 2 12 7 12 15 0 12-9 20-25 20H58V93h21c7 0 11-3 11-8s-4-8-11-8H58V64h18c7 0 10-2 10-6s-3-6-10-6H58z" fill="#2563eb"/><path d="M41 113h67" stroke="#f3f3f3" stroke-width="5" stroke-linecap="round"/>
+      <text x="26" y="136" fill="#f3f3f3" font-family="Arial" font-size="16" font-weight="700">03 / Cobalt</text><text x="26" y="154" fill="#b4b4b4" font-family="Arial" font-size="12">#2563EB · confident, strong</text>
+    </g>
+    <g transform="translate(735)">
+      <rect width="220" height="165" rx="22" fill="#2b2b2b" stroke="#454545"/>
+      <rect x="26" y="24" width="82" height="82" rx="21" fill="#303030"/>
+      <path d="M45 39h14v52H45z" fill="#f3f3f3"/><path d="M58 39h22c15 0 23 7 23 18 0 8-4 13-11 15 8 2 12 7 12 15 0 12-9 20-25 20H58V93h21c7 0 11-3 11-8s-4-8-11-8H58V64h18c7 0 10-2 10-6s-3-6-10-6H58z" fill="#60a5fa"/><path d="M41 113h67" stroke="#f3f3f3" stroke-width="5" stroke-linecap="round"/>
+      <text x="26" y="136" fill="#f3f3f3" font-family="Arial" font-size="16" font-weight="700">04 / Electric</text><text x="26" y="154" fill="#b4b4b4" font-family="Arial" font-size="12">#60A5FA · brighter, active</text>
+    </g>
+  </g>
+</svg>
