@@ -13,7 +13,7 @@
 <section class="card settings-card">
   <p class="card-eyebrow">APPEARANCE</p>
   <h2>Your accent</h2>
-  <p class="subtle">A restrained color for your active states, progress, and BuiltHere mark. The rest of the app stays graphite.</p>
+  <p class="subtle">A restrained color for your active states, progress, BuiltHere mark, and—on iPhone—your Home Screen icon. The rest of the app stays graphite.</p>
   <div class="accent-swatches" role="radiogroup" aria-label="Choose your accent color">
     {% for name, (hex_color, rgb) in accent_palette.items() %}
     <button class="accent-swatch{{ ' is-selected' if hex_color == accent else '' }}" type="button" data-accent="{{ hex_color }}" data-rgb="{{ rgb }}" style="--sw: {{ hex_color }}" role="radio" aria-checked="{{ 'true' if hex_color == accent else 'false' }}" aria-label="{{ name.title() }}"></button>
@@ -85,18 +85,6 @@
     <button class="btn btn-secondary" type="submit">Save server address</button>
     <span class="subtle" id="native-server-status" role="status"></span>
   </form>
-  <div class="settings-device-icons">
-    <div>
-      <strong>Home Screen icon</strong>
-      <small>Choose the BuiltHere mark on this iPhone</small>
-    </div>
-    <div class="accent-swatches native-icon-swatches" role="group" aria-label="Choose the BuiltHere Home Screen icon">
-      <button class="accent-swatch" type="button" data-native-icon="azure" style="--sw:#3b82f6" aria-label="Azure icon"></button>
-      <button class="accent-swatch" type="button" data-native-icon="rose" style="--sw:#ec4899" aria-label="Rose icon"></button>
-      <button class="accent-swatch" type="button" data-native-icon="violet" style="--sw:#a855f7" aria-label="Violet icon"></button>
-      <button class="accent-swatch" type="button" data-native-icon="emerald" style="--sw:#22c55e" aria-label="Emerald icon"></button>
-    </div>
-  </div>
 </section>
 {% endblock %}
 
@@ -142,11 +130,6 @@
       localStorage.setItem('builthere_native_server_request', JSON.stringify({value: field.value.trim(), nonce: Date.now()}));
       if (status) status.textContent = 'Saving on this iPhone…';
     });
-    nativeSettings.querySelectorAll('[data-native-icon]').forEach((button) => {
-      button.addEventListener('click', () => {
-        localStorage.setItem('builthere_native_icon_request', JSON.stringify({value: button.dataset.nativeIcon, nonce: Date.now()}));
-      });
-    });
   }
 })();
 
@@ -163,6 +146,10 @@
       if (!response.ok) throw new Error('Could not save accent');
       document.documentElement.style.setProperty('--accent', color);
       document.documentElement.style.setProperty('--accent-rgb', swatch.dataset.rgb);
+      const nativeNames = {'#3b82f6': 'azure', '#ec4899': 'rose', '#a855f7': 'violet', '#22c55e': 'emerald'};
+      if (window.webkit?.messageHandlers?.homefitNative && nativeNames[color]) {
+        localStorage.setItem('builthere_native_icon_request', JSON.stringify({value: nativeNames[color], nonce: Date.now()}));
+      }
       swatches.forEach((item) => {
         const selected = item === swatch;
         item.classList.toggle('is-selected', selected);
