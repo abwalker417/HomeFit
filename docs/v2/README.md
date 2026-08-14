@@ -1,20 +1,22 @@
-# HomeFit V2
+# BuiltHere
 
-HomeFit V2 is an incremental evolution of the production application, not a
-clean-room rewrite. Production HomeFit remains on CT115 and the `develop`
-branch while V2 is built and verified independently.
+BuiltHere is an incremental evolution of the legacy HomeFit application, not a
+clean-room rewrite. Legacy V1 remains on CT115 while BuiltHere is built and
+verified independently on CT120.
 
 ## Product thesis
 
-HomeFit tells the user what their body is ready for, gives them today's
-workout, and makes logging it effortless.
+BuiltHere creates training around the user's space, equipment, ability, and
+day—then makes completing and logging today's workout effortless.
+
+**Promise:** Training built around what you have.
 
 The default experience is organized around four destinations:
 
 1. **Today** — readiness, one recommended workout, and the primary Start action.
 2. **Train** — weekly plan, workout builder, history, library, and garage mode.
 3. **Health** — weight, sleep, activity, cardio, nutrition, and trends.
-4. **Coach** — APEX conversation, recommendations, memory, and plan changes.
+4. **Coach** — conversation, recommendations, memory, and plan changes.
 
 Top navigation remains the primary navigation pattern. Workout focus stays out
 of onboarding and is selected when starting or changing a workout.
@@ -66,7 +68,7 @@ of onboarding and is selected when starting or changing a workout.
 
 - Move analytics out of Today into Health.
 - Version Apple Health/device endpoints and migrate away from query tokens.
-- Give APEX a first-class Coach workspace with explicit plan-change approval.
+- Give Coach a first-class workspace with explicit plan-change approval.
 
 ### 5. Cutover
 

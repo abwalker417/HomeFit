@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# HomeFit V2 — standalone Proxmox VE Helper-style LXC creator.
+# BuiltHere — standalone Proxmox VE Helper-style LXC creator.
 # Run as root on a Proxmox VE host. No existing containers are modified.
 set -Eeuo pipefail
 
@@ -37,7 +37,7 @@ if pct status "$CTID" >/dev/null 2>&1; then
   die "CT ${CTID} already exists. Choose another CTID; this script will never overwrite it."
 fi
 
-printf '\n%bHomeFit V2 LXC%b\n\n' "$YW" "$CL"
+printf '\n%bBuiltHere LXC%b\n\n' "$YW" "$CL"
 printf ' CT:       %s (%s)\n' "$CTID" "$CT_HOSTNAME"
 printf ' Network:  %s via %s\n' "$CT_IP" "$CT_GATEWAY"
 printf ' Resources:%s cores, %s MiB RAM, %s GiB disk\n' "$CT_CORES" "$CT_RAM" "$CT_DISK"
@@ -55,7 +55,7 @@ if ! pveam list "$CT_TEMPLATE_STORAGE" | awk '{print $1}' | grep -Fxq "$template
 fi
 ok "Template ready: ${template_ref}"
 
-info "Downloading the HomeFit container installer"
+info "Downloading the BuiltHere container installer"
 installer_tmp="$(mktemp /tmp/homefit-install.XXXXXX.sh)"
 updater_tmp="$(mktemp /tmp/homefit-update.XXXXXX.sh)"
 curl -fsSL "$INSTALLER_URL" -o "$installer_tmp"
@@ -78,7 +78,7 @@ pct create "$CTID" "$template_ref" \
   --features nesting=1,keyctl=1 \
   --onboot 1 \
   --start 1 \
-  --description "HomeFit V2 self-hosted fitness platform"
+  --description "BuiltHere self-hosted fitness platform"
 ok "CT ${CTID} created"
 
 info "Waiting for network and DNS"
@@ -89,7 +89,7 @@ done
 pct exec "$CTID" -- getent hosts github.com >/dev/null 2>&1 || die "The container has no working network/DNS."
 ok "Container network is ready"
 
-info "Installing HomeFit inside CT ${CTID}"
+info "Installing BuiltHere inside CT ${CTID}"
 pct push "$CTID" "$installer_tmp" /root/homefit-install.sh -perms 0755
 pct push "$CTID" "$updater_tmp" /root/homefit-update.sh -perms 0755
 pct exec "$CTID" -- env \
@@ -101,7 +101,7 @@ rm -f "$installer_tmp"
 rm -f "$updater_tmp"
 
 ip_without_prefix="${CT_IP%/*}"
-ok "HomeFit V2 is installed"
+ok "BuiltHere is installed"
 printf '\n URL:       http://%s:%s\n' "$ip_without_prefix" "$APP_PORT"
 printf ' Logs:      pct exec %s -- journalctl -u homefit -f\n' "$CTID"
 printf ' Update:    pct exec %s -- /usr/local/sbin/homefit-update\n' "$CTID"

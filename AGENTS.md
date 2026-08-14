@@ -1,7 +1,7 @@
-# AGENTS.md — HomeFit Handoff Context
+# AGENTS.md — BuiltHere Handoff Context
 
 ## Purpose
-This file gives coding agents a quick, reliable snapshot of the current HomeFit project state before they make more changes.
+This file gives coding agents a quick, reliable snapshot of the current BuiltHere project state before they make more changes. Internal paths and compatibility identifiers may still use `homefit`.
 
 ## Product direction
 - Onboarding should only collect:

@@ -162,6 +162,7 @@ if ('serviceWorker' in navigator) {
   function renderMarkdown(text) {
     return text
       .replace(/\bAPEX\b/gi, 'Coach')
+      .replace(/\bHomeFit\b/gi, 'BuiltHere')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/^### (.+)$/gm, '<strong>$1</strong>')

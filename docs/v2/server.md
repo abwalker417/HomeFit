@@ -1,4 +1,4 @@
-# HomeFit V2 server specification
+# BuiltHere server specification
 
 ## Deployed placement
 
@@ -36,9 +36,9 @@ migrations and cutovers.
 
 ## Suggested hostname
 
-Use `homefit-v2.hidethechaos.com` during development. A shorter beta hostname
-such as `beta-homefit.hidethechaos.com` is also reasonable, but should not be
-created until the service is healthy on the LAN.
+Use a private LAN address during household testing. The purchased public domain
+is `getbuilthere.com`; do not attach it to the service until HTTPS, access
+control, and the cutover checklist are complete.
 
 ## Required environment
 
@@ -58,7 +58,7 @@ Secrets must be installed directly on the container with owner-only
 permissions. They do not belong in Git or in the Cloudflare hostname config.
 
 The installer initially sets `HOMEFIT_ALLOW_PROFILE_CREATION=1` so the first
-owner can be created over the LAN. Set it to `0` and restart HomeFit before
+owner can be created over the LAN. Set it to `0` and restart BuiltHere before
 adding the Cloudflare hostname. Existing owners can still manage household
 profiles through the authenticated application flow.
 
@@ -99,11 +99,12 @@ Before running it, confirm:
 
 ## Installer paths
 
-HomeFit ships two deployment entrypoints:
+BuiltHere ships two deployment entrypoints. Compatibility filenames and paths
+retain the existing `homefit` name:
 
 - `scripts/homefit-v2-lxc.sh` is the immediately usable, standalone creator for
-  the HomeFit repository. It follows the Helper-Scripts interaction model but
-  does not depend on HomeFit already being accepted upstream.
+  the repository. It follows the Helper-Scripts interaction model but does not
+  depend on BuiltHere already being accepted upstream.
 - `ct/homefit.sh` plus `install/homefit-install.sh` follow the current
   community-scripts repository layout and are intended for a future upstream
   contribution. The official build framework downloads installers from its own

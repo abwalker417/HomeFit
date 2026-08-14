@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # HOMEFIT_UPDATER_V2=1
-# Atomic, self-refreshing updater for an installed HomeFit V2 container.
+# Atomic, self-refreshing updater for an installed BuiltHere container.
 set -Eeuo pipefail
 
 [[ ${EUID} -eq 0 ]] || { echo "Run homefit-update as root." >&2; exit 1; }
 exec 9>/run/lock/homefit-update.lock
-flock -n 9 || { echo "Another HomeFit update is already running." >&2; exit 1; }
+flock -n 9 || { echo "Another BuiltHere update is already running." >&2; exit 1; }
 
 source /etc/homefit/release.conf
 remote_commit="$(git ls-remote "$HOMEFIT_REPO" "refs/heads/$HOMEFIT_BRANCH" | awk '{print $1}')"
@@ -13,7 +13,7 @@ remote_commit="$(git ls-remote "$HOMEFIT_REPO" "refs/heads/$HOMEFIT_BRANCH" | aw
 short_commit="${remote_commit:0:12}"
 current_commit="$(cat /opt/homefit/current/.homefit-version 2>/dev/null || true)"
 if [[ "$current_commit" == "$remote_commit" ]]; then
-  echo "HomeFit is already current (${short_commit})."
+  echo "BuiltHere is already current (${short_commit})."
   exit 0
 fi
 
@@ -112,4 +112,4 @@ for stale_backup in "${stale_backups[@]}"; do
   rm -f -- "$stale_backup"
 done
 
-echo "HomeFit updated successfully to ${short_commit}."
+echo "BuiltHere updated successfully to ${short_commit}."

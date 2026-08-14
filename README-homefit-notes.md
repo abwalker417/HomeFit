@@ -1,15 +1,16 @@
-# HomeFit V2 — Current State (August 2026)
+# BuiltHere — Current State (August 2026)
 
-Multi-profile, mobile-first Flask fitness PWA with SQLite persistence and APEX
-coaching through PeakAI. V2 is deployed independently from V1 and is being
+Multi-profile, mobile-first Flask fitness PWA with SQLite persistence and Coach
+features powered through PeakAI. BuiltHere is deployed independently from the
+legacy V1 application and is being
 stabilized before Shay and Kelsie move over.
 
 ## Current infrastructure
 
 | Service | Location | Address |
 |---|---|---|
-| HomeFit V1 | CT115 | `192.168.68.15:5000` (read-only migration source) |
-| HomeFit V2 | CT120 (`homefit-v2`) | `192.168.68.20:5000` |
+| Legacy V1 | CT115 | `192.168.68.15:5000` (read-only migration source) |
+| BuiltHere | CT120 (`homefit-v2`) | `192.168.68.20:5000` |
 | PeakAI | `192.168.68.33` | OpenAI-compatible `/v1` API |
 
 V2 runs as `homefit:homefit` under `homefit.service`. Code releases live under
@@ -35,7 +36,7 @@ itself from the validated release.
 - The dashboard prioritizes **Start today's workout**.
 - If today's saved plan has a workout, Start loads that plan. If there is no
   planned workout, the user chooses Upper, Lower, Core, or Recover.
-- Coach/APEX is a normal top navigation tab and full page, not a floating button.
+- Coach is a normal top navigation tab and full page, not a floating button.
 - Navigation is top-only. The main app uses theme-driven color and gradients,
   without a photo background.
 - Accent themes are selected in Profile.
@@ -56,7 +57,7 @@ and when loaded, without rewriting the stored plan.
 | `/start-workout` | Focus picker when no planned workout applies |
 | `/today-workout` | Active workout logger |
 | `/apex-plan` | Weekly training plan |
-| `/coach` | APEX coaching tab |
+| `/coach` | Coach workspace |
 | `/progress` | Health, activity, and workout history |
 | `/log-food` | Nutrition log |
 | `/exercises` | Exercise library and availability |
@@ -65,7 +66,7 @@ and when loaded, without rewriting the stored plan.
 
 ## Validation status
 
-- Automated suite: 62 tests passing as of 2026-08-14.
+- Automated suite: 66 tests passing as of 2026-08-14.
 - Coverage includes focus-safe generation, saved-plan sanitation, installer
   rollback/retention, primary authenticated page rendering, and missing-token
   rejection across external APIs.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # HOMEFIT_INSTALLER_V2=1
-# HomeFit V2 in-container installer. Normally invoked by homefit-v2-lxc.sh.
+# BuiltHere in-container installer. Normally invoked by homefit-v2-lxc.sh.
 set -Eeuo pipefail
 
 HOMEFIT_REPO="${HOMEFIT_REPO:-https://github.com/abwalker417/HomeFit.git}"
@@ -28,7 +28,7 @@ cat >/usr/local/sbin/homefit-update <<'UPDATER'
 set -Eeuo pipefail
 [[ ${EUID} -eq 0 ]] || { echo "Run homefit-update as root." >&2; exit 1; }
 exec 9>/run/lock/homefit-update.lock
-flock -n 9 || { echo "Another HomeFit update is already running." >&2; exit 1; }
+flock -n 9 || { echo "Another BuiltHere update is already running." >&2; exit 1; }
 
 source /etc/homefit/release.conf
 remote_commit="$(git ls-remote "$HOMEFIT_REPO" "refs/heads/$HOMEFIT_BRANCH" | awk '{print $1}')"
@@ -36,7 +36,7 @@ remote_commit="$(git ls-remote "$HOMEFIT_REPO" "refs/heads/$HOMEFIT_BRANCH" | aw
 short_commit="${remote_commit:0:12}"
 current_commit="$(cat /opt/homefit/current/.homefit-version 2>/dev/null || true)"
 if [[ "$current_commit" == "$remote_commit" ]]; then
-  echo "HomeFit is already current (${short_commit})."
+  echo "BuiltHere is already current (${short_commit})."
   exit 0
 fi
 
@@ -133,7 +133,7 @@ for stale_backup in "${stale_backups[@]}"; do
   rm -f -- "$stale_backup"
 done
 
-echo "HomeFit updated successfully to ${short_commit}."
+echo "BuiltHere updated successfully to ${short_commit}."
 UPDATER
 chmod 0755 /usr/local/sbin/homefit-update
 if [[ -f /root/homefit-update.sh ]] && grep -q 'HOMEFIT_UPDATER_V2=1' /root/homefit-update.sh; then
@@ -172,7 +172,7 @@ fi
 echo "[5/7] Writing systemd service"
 cat >/etc/systemd/system/homefit.service <<EOF
 [Unit]
-Description=HomeFit self-hosted fitness platform
+Description=BuiltHere self-hosted fitness platform
 After=network-online.target
 Wants=network-online.target
 
@@ -200,9 +200,9 @@ systemctl enable homefit >/dev/null
 echo "[6/7] Installing the initial release"
 homefit-update
 
-echo "[7/7] Verifying HomeFit"
+echo "[7/7] Verifying BuiltHere"
 systemctl is-active --quiet homefit
 curl -fsS --max-time 15 "http://127.0.0.1:${HOMEFIT_PORT}/healthz" >/dev/null
 rm -f /root/homefit-install.sh
 rm -f /root/homefit-update.sh
-echo "HomeFit installation completed."
+echo "BuiltHere installation completed."

@@ -259,7 +259,7 @@ h2 { font-size: 18px; margin: 20px 0 8px; }
   .today-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
-/* Small uppercase label at the top of feature cards (APEX WEEKLY DIGEST, etc.) */
+/* Small uppercase label at the top of feature cards (COACH NOTE, etc.) */
 .card-eyebrow {
   font-size: 12px;
   font-weight: 600;
@@ -1301,7 +1301,7 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
   .coach-messages { min-height:280px; }
 }
 
-/* Apex slide-up panel */
+/* Legacy Coach panel styles */
 .apex-panel {
   position: fixed;
   bottom: 0;
@@ -1364,7 +1364,7 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
   font-family: inherit;
   line-height: 1.4;
 }
-/* APEX and user message colours */
+/* Coach and user message colours */
 .msg { max-width:86%; padding:11px 13px; border-radius:15px; line-height:1.48; overflow-wrap:anywhere; }
 .msg-apex {
   background: #0f2d4a;
@@ -1591,7 +1591,7 @@ details.collapsible[open] > summary .collapse-latest::after { transform: rotate(
 .food-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .food-toast.hidden { display: none; }
 
-/* APEX one-line coaching note on a parsed meal */
+/* Coach one-line note on a parsed meal */
 .coach-note {
   margin-top: 12px; padding: 10px 12px; border-radius: 10px;
   background: rgba(var(--accent-rgb), .12);

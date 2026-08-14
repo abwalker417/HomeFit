@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# HomeFit — Proxmox LXC installer
-# Creates a Debian 12 unprivileged LXC, installs HomeFit, and starts it as
+# BuiltHere — legacy Proxmox LXC installer
+# Creates a Debian 12 unprivileged LXC, installs BuiltHere, and starts it as
 # a systemd service. Inspired by community-scripts.org.
 #
 # Usage (run on your Proxmox host, as root):
@@ -62,14 +62,14 @@ IP_DEFAULT="dhcp"
 # ---------- prompts ---------------------------------------------------------
 ask_input() {
   # $1 title, $2 prompt, $3 default — returns echoed value
-  whiptail --title "HomeFit Installer" --inputbox "$2" 10 70 "$3" 3>&1 1>&2 2>&3
+  whiptail --title "BuiltHere Installer" --inputbox "$2" 10 70 "$3" 3>&1 1>&2 2>&3
 }
 ask_password() {
-  whiptail --title "HomeFit Installer" --passwordbox "$1" 10 70 3>&1 1>&2 2>&3
+  whiptail --title "BuiltHere Installer" --passwordbox "$1" 10 70 3>&1 1>&2 2>&3
 }
 
-whiptail --title "HomeFit LXC Installer" \
-  --yesno "This will create a new Debian 12 LXC and install HomeFit.\n\nContinue?" \
+whiptail --title "BuiltHere LXC Installer" \
+  --yesno "This will create a new Debian 12 LXC and install BuiltHere.\n\nContinue?" \
   12 70 || die "Aborted."
 
 CTID=$(ask_input "Container ID" "Container ID (pick a free one):" "$CTID")
@@ -87,25 +87,25 @@ if [[ "$IP" != "dhcp" ]]; then
   GATEWAY=$(ask_input "Gateway" "Default gateway:" "$(echo "$IP" | awk -F. '{print $1"."$2"."$3".1"}' | cut -d/ -f1)")
 fi
 
-REPO=$(ask_input "Git repo" "Git URL of your HomeFit repo:" "$APP_REPO")
+REPO=$(ask_input "Git repo" "Git URL of your BuiltHere repo:" "$APP_REPO")
 BRANCH=$(ask_input "Branch" "Git branch:" "$APP_BRANCH")
-PORT=$(ask_input "App port" "Port HomeFit will listen on:" "$APP_PORT")
+PORT=$(ask_input "App port" "Port BuiltHere will listen on:" "$APP_PORT")
 
 # -- security: LAN gate for profile creation ---------------------------------
 TRUSTED_NETS_DEFAULT="${HOMEFIT_TRUSTED_NETS:-192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,127.0.0.0/8}"
 TRUSTED_NETS=$(ask_input "Trusted LAN CIDRs" \
-  "Comma-separated CIDRs allowed to CREATE new profiles. Everyone else can still log in. Lock this to your home subnet (e.g. 192.168.68.0/24) when exposing HomeFit through a reverse proxy:" \
+  "Comma-separated CIDRs allowed to CREATE new profiles. Everyone else can still log in. Lock this to your home subnet (e.g. 192.168.68.0/24) when exposing BuiltHere through a reverse proxy:" \
   "$TRUSTED_NETS_DEFAULT")
 
 TRUSTED_PROXIES_DEFAULT="${HOMEFIT_TRUSTED_PROXIES:-}"
 TRUSTED_PROXIES=$(ask_input "Reverse-proxy IPs" \
-  "Comma-separated IPs/CIDRs of trusted reverse proxies (e.g. NGINX Proxy Manager). HomeFit will read X-Forwarded-For only from these. Leave blank if no proxy:" \
+  "Comma-separated IPs/CIDRs of trusted reverse proxies (e.g. NGINX Proxy Manager). BuiltHere will read X-Forwarded-For only from these. Leave blank if no proxy:" \
   "$TRUSTED_PROXIES_DEFAULT")
 
 SESSION_SECURE_DEFAULT="0"
 if [[ -n "$TRUSTED_PROXIES" ]]; then SESSION_SECURE_DEFAULT="1"; fi
 if whiptail --title "Session cookie" \
-    --yesno "Mark the session cookie 'Secure' (HTTPS only)?\n\nTurn this ON when your reverse proxy serves HTTPS.\nTurn it OFF if you'll hit HomeFit over plain HTTP." \
+    --yesno "Mark the session cookie 'Secure' (HTTPS only)?\n\nTurn this ON when your reverse proxy serves HTTPS.\nTurn it OFF if you'll hit BuiltHere over plain HTTP." \
     12 70 \
     $( [[ "$SESSION_SECURE_DEFAULT" == "1" ]] || echo --defaultno ); then
   SESSION_SECURE="1"
@@ -156,7 +156,7 @@ pct create "$CTID" "$TEMPLATE_PATH_CHECK" \
   --unprivileged 1 \
   --onboot 1 \
   --password "$ROOT_PW" \
-  --description "HomeFit self-hosted workout app" >/dev/null
+  --description "BuiltHere self-hosted workout app" >/dev/null
 msg_ok "LXC $CTID created"
 
 msg_info "Starting LXC"
@@ -236,7 +236,7 @@ chmod 0644 /etc/homefit/homefit.env
 
 cat > /etc/systemd/system/${APP_NAME}.service <<EOF
 [Unit]
-Description=HomeFit
+Description=BuiltHere
 After=network.target
 
 [Service]
@@ -266,7 +266,7 @@ else
 fi
 
 echo
-msg_ok "HomeFit is up and running."
+msg_ok "BuiltHere is up and running."
 echo
 echo "   LXC ID:   $CTID"
 echo "   Hostname: $CT_HOST"

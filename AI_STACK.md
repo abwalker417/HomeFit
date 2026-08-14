@@ -24,22 +24,23 @@
 
 ---
 
-### Ollama (Local — MacBook Air M4, 192.168.68.56:11434)
+### BuiltHere Coach (PeakAI)
 | App | Model | Purpose | Trigger |
 |-----|-------|---------|---------|
-| HomeFit Apex | llama3.1:8b | AI workout generation — personalised based on history, goal, duration | Any workout tile tap |
-| HomeFit Apex | llama3.1:8b | Coach chat — form tips, progression advice, Q&A | Apex floating panel |
-| HomeFit Apex | llama3.1:8b | Post-workout insights + progressive overload suggestions | Workout completion |
+| BuiltHere Coach | claude-sonnet | Workout generation, plan edits, and interactive coaching | Workout creation or Coach conversation |
+| BuiltHere Coach | gpt-4o-mini | Briefs, digests, nudges, and post-workout insights | Background/high-volume prose |
 
-**Cost:** $0 — runs locally on the M4. Private — no user data leaves the network.
+PeakAI provides the OpenAI-compatible gateway and a V2-specific scoped key. The
+provider name is an implementation detail; the product UI calls this feature
+simply **Coach**.
 
 ---
 
-## Ollama Migration Status
+## Local-model migration status
 
 | Current Usage | Migrated to Ollama? | Notes |
 |--------------|---------------------|-------|
-| HomeFit Apex coach | ✅ Done | llama3.1:8b, fully local |
+| BuiltHere Coach | Gateway-managed | Routed through PeakAI with a V2-scoped key; model routing is owned by PeakAI |
 | Sparky AI coach (Claude) | ❌ Pending | Sparky supports custom base URL — can point to Ollama |
 | RecipeForge recipe parsing (GPT-4o text) | ❌ Pending | Simple code change in app.py |
 | RecipeForge/Mealie audio transcription (Whisper) | ❌ No path | Whisper is a specialized audio model — keep OpenAI for this only |
@@ -59,7 +60,7 @@
 
 ---
 
-## HomeFit Apex Coach — Architecture
+## BuiltHere Coach — Architecture
 
 ```
 User taps workout icon
@@ -68,7 +69,7 @@ app.py build_day() → coach.is_available()?
         ↓ yes                    ↓ no
 coach.generate_workout()    build_workout() (rule-based)
         ↓
-  Ollama llama3.1:8b
+  PeakAI model gateway
   (profile + history + exercise library as context)
         ↓
   Structured JSON workout
@@ -78,7 +79,7 @@ coach.generate_workout()    build_workout() (rule-based)
   Saved to session → workout screen
 ```
 
-**Context injected into every Apex call:**
+**Context injected into every Coach call:**
 - Fitness level, goal (weight loss/muscle/toning/general), target duration
 - Current & goal weight, weight trend
 - Equipment, limitations, ignored exercises

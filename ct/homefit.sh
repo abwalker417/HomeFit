@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Copyright (c) 2026 HomeFit contributors
+# Copyright (c) 2026 BuiltHere contributors
 # License: MIT
 # Source: https://github.com/abwalker417/HomeFit
 #
 # Community-Scripts-compatible entrypoint. This file is ready for a future
 # contribution to community-scripts/ProxmoxVE. Until it is accepted there, use
-# scripts/homefit-v2-lxc.sh from the HomeFit repository instead.
+# scripts/homefit-v2-lxc.sh from the BuiltHere repository instead.
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 
-APP="HomeFit"
+APP="BuiltHere"
 var_tags="${var_tags:-fitness;health}"
 var_disk="${var_disk:-12}"
 var_cpu="${var_cpu:-2}"

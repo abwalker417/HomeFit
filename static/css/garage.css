@@ -1,4 +1,4 @@
-/* HomeFit garage kiosk — 1920x440 wall panel, big touch targets, lean for a Pi. */
+/* BuiltHere garage kiosk — 1920x440 wall panel, big touch targets, lean for a Pi. */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-select: none;
   background: #000; color: #e8eef5;
@@ -36,7 +36,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-selec
 .g-user:active { transform: scale(.95); }
 .g-user-name { font-size: 22px; font-weight: 700; }
 
-/* ---- workout chooser (APEX / Upper / Lower / Core / Recovery) ---- */
+/* ---- workout chooser (Coach / Upper / Lower / Core / Recovery) ---- */
 .g-choose { height: 100%; display: flex; flex-direction: column; padding: 20px 26px; gap: 16px; }
 .g-choose-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .g-choices { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
@@ -159,7 +159,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; user-selec
    ============================================================ */
 html.g-tablet .g-stage { width: 100vw; height: 100vh; height: 100dvh; transform: none !important; }
 
-/* chooser: big 2-across tiles, APEX full-width on top */
+/* chooser: big 2-across tiles, Coach full-width on top */
 html.g-tablet .g-choose { padding: 16px; gap: 12px; }
 html.g-tablet .g-choose-head { flex-wrap: wrap; }
 html.g-tablet .g-choose-head .g-pick-title { font-size: 24px; }

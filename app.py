@@ -803,7 +803,7 @@ def api_food_agent_log_favorite():
                     "today": _food_day_total(uid), "goal": database.get_nutrition_goal(uid)})
 
 
-# ── Agent coach API (scoped 'coach' key; lets NyX/APEX read readiness + adjust days) ──
+# ── Agent coach API (scoped 'coach' key; lets trusted agents adjust days) ──
 def _coach_uid():
     token = (request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
              or request.args.get("token", "").strip())
@@ -1665,7 +1665,7 @@ def garage_complete():
     profile = database.get_profile(uid)
     kcal = _calc_kcal(enriched, (profile or {}).get("current_weight") or 0, duration)
 
-    # APEX post-workout feedback for the panel's completion card. Best-effort:
+    # Coach post-workout feedback for the completion card. Best-effort:
     # never let a coach hiccup block logging the workout.
     insight, overload = None, []
     if coach.is_available():
@@ -2160,7 +2160,7 @@ def load_plan_today():
     plan = plan_data["plan"]
     day_index = day_of_week % len(plan)
     day = plan[day_index]
-    # Per-date recovery override (e.g. APEX marked today a rest day for low
+    # Per-date recovery override (e.g. Coach marked today a rest day for low
     # readiness) — a one-day thing that never rewrites the weekly plan.
     if database.is_rest_override(uid, (body.get("date") or database.user_today_iso(uid))):
         return jsonify({"rest": True, "name": "Rest Day (recovery)"})
@@ -2168,7 +2168,7 @@ def load_plan_today():
         return jsonify({"rest": True, "name": day.get("name", "Rest Day")})
     if not day.get("exercises"):
         return jsonify({"error": "no exercises for today"}), 404
-    # Apply any one-day exercise swaps for today (APEX "just today" swap) — the
+    # Apply any one-day exercise swaps for today (Coach "just today" swap) — the
     # weekly plan template above is untouched; we only reshape today's session.
     exercises = day["exercises"]
     swaps = database.get_day_swaps(uid, (body.get("date") or database.user_today_iso(uid)))
@@ -2525,7 +2525,7 @@ def coach_chat():
         return jsonify({"error": "Coach is temporarily offline. Try again shortly."}), 503
     try:
         import logging
-        logging.warning(f"APEX chat: local_date={local_date!r} local_day={local_day!r}")
+        logging.warning(f"Coach chat: local_date={local_date!r} local_day={local_day!r}")
         coaching_data = database.get_coaching_context(uid)
         if local_date:
             coaching_data["local_date"] = local_date
@@ -2620,7 +2620,7 @@ def coach_chat():
         ]
         database.save_apex_chat(uid, all_messages)
 
-        # If the user explicitly asked APEX to remember something, distil it into
+        # If the user explicitly asked Coach to remember something, distil it into
         # the persistent memory now (the nightly job handles passive updates).
         if coach.wants_to_remember(message):
             try:

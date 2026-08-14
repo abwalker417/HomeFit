@@ -1,6 +1,6 @@
-# Garage HomeFit Kiosk — Pi 4 setup
+# Garage BuiltHere Kiosk — Pi 4 setup
 
-Drop-in kit for driving the garage strip panel as a HomeFit workout kiosk.
+Drop-in kit for driving the garage strip panel as a BuiltHere workout kiosk.
 Target: **Raspberry Pi 4 (4GB)** + Raspberry Pi OS **Lite (64-bit, Bookworm)**.
 
 **Panel: GeeekPi EP-0189** — 11.26" IPS letterbox LCD, **1920×440**, glossy,
@@ -114,14 +114,14 @@ Reboot. It should come up in the garage picker, fullscreen, cursor hidden.
 - Log a set → rest timer counts down.
 - Play something on `media_player.garage` → the now-playing bar populates
   (title/artist/art) and the transport buttons control it.
-- Finish → posts to HomeFit + Sparky, returns to picker.
+- Finish → posts to BuiltHere + Sparky, returns to picker.
 
 ---
 
 ## Notes
 - **URL:** LAN IP `192.168.68.15:5000` is used directly (faster, skips the
   Cloudflare Zero Trust hop the external URL goes through). The garage routes are
-  in HomeFit's `PUBLIC_ENDPOINTS`, so no login is needed on the panel.
+  in BuiltHere's `PUBLIC_ENDPOINTS`, so no login is needed on the panel.
 - **Screen blanking:** `consoleblank=0` is set via config; Chromium kiosk keeps
   the display awake. If it ever blanks, that's the first thing to check.
 - **Crash recovery:** the launcher wraps cage in a `while` loop, so a Chromium

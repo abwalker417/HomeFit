@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Garage HomeFit kiosk launcher.
+# Garage BuiltHere kiosk launcher.
 # Runs Chromium fullscreen under cage (single-app Wayland compositor).
 # Installed to /usr/local/bin/garage-kiosk and exec'd from ~/.bash_profile on tty1.
 

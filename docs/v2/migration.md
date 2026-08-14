@@ -1,4 +1,4 @@
-# HomeFit V1 → V2 household migration
+# Legacy HomeFit → BuiltHere household migration
 
 This is a one-time cutover, not a two-way synchronization design. V1 (CT115)
 and V2 (CT120) must never write to the same SQLite database.
@@ -32,7 +32,7 @@ The comparison used SQLite read-only connections.
 | Kelsie | sleep entries | 0 | 0 | 0 |
 | Kelsie | weekly plans | 0 | 0 | 0 |
 
-Global counts also match for chat, APEX memory/plans/digests, API keys, APNs
+Global counts also match for chat, Coach memory/plans/digests, API keys, APNs
 tokens, nutrition goals, readiness, rest overrides, and pauses. V1 is ahead only
 for the nine Shay records above.
 

@@ -1,4 +1,4 @@
-# --- Garage HomeFit kiosk: GeeekPi EP-0189 (11.26", 1920x440) --------------
+# --- Garage BuiltHere kiosk: GeeekPi EP-0189 (11.26", 1920x440) --------------
 # Append to /boot/firmware/config.txt
 #
 # RESOLUTION is NOT hard-coded here on purpose: read the panel's real timing

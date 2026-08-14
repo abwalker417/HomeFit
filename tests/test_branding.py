@@ -30,6 +30,14 @@ def test_coach_identity_is_product_role_not_named_ai_persona():
     assert "embedded in HomeFit" not in coach_source
     assert "You are APEX" not in coach_source
     assert "Users know you simply as “Coach”" in coach_source
+    assert "peak-homefit-key" not in coach_source
+
+
+def test_legacy_chat_brand_names_are_rewritten_for_display():
+    app_js = (ROOT / "static" / "js" / "app.js").read_text()
+
+    assert ".replace(/\\bAPEX\\b/gi, 'Coach')" in app_js
+    assert ".replace(/\\bHomeFit\\b/gi, 'BuiltHere')" in app_js
 
 
 def test_builthere_icons_exist_and_are_nonempty():

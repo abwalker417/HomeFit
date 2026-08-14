@@ -1,23 +1,26 @@
-# HomeFit
+# BuiltHere
 
-A self-hosted home-fitness PWA. Built for iPhone use — install it to your home screen, let APEX (the AI coach) build your weekly plan, track your workouts, and sync nutrition from SparkyFitness.
+A self-hosted, multi-profile fitness PWA that builds training around the space,
+equipment, ability, and time you have available.
+
+**Training built around what you have.**
 
 ## What it does
 
 - **Multiple profiles** — each person in the household has their own plan, weight log, workout history, and optional PIN.
-- **APEX AI coach** — conversational AI that builds weekly workout plans, adjusts for your limitations and equipment, and coaches you through progressive overload. Backed by an OpenAI-compatible LLM (PeakAI or any compatible endpoint).
-- **SparkyFitness sync** — each user connects their own Sparky account. APEX sees your last 7 days of calories, protein, carbs, fat, and hydration automatically, along with your current nutrition goals.
-- **Goal updates from chat** — APEX can propose updated calorie/macro targets and push them directly to Sparky when you confirm. Just say "update my goals".
+- **Coach** — conversational guidance that builds weekly workout plans, adjusts for limitations and equipment, and supports progressive overload. Backed by an OpenAI-compatible LLM such as PeakAI.
+- **SparkyFitness sync** — each user connects their own Sparky account. Coach can use recent nutrition, hydration, and goal data when helping that person.
+- **Goal updates from chat** — Coach can propose updated calorie/macro targets and push them to Sparky only after confirmation.
 - **Workout generation** — rule-based fallback if AI is offline. Filters exercises by fitness level, available equipment, and physical limitations.
 - **Weight & workout logging** — tracks over time; weight syncs back to Sparky automatically.
-- **Exercise library** — 86+ exercises with form tips via APEX on demand.
+- **Exercise library** — 100+ exercises with form guidance from Coach on demand.
 - **PWA** — installable on iPhone/Android as a standalone full-screen app.
 
 ## Requirements
 
 - Python 3.10+
 - A machine to host it (laptop, Raspberry Pi, LXC container)
-- Optional: an [OpenAI-compatible LLM endpoint](https://github.com/BerriAI/litellm) for APEX
+- Optional: an [OpenAI-compatible LLM endpoint](https://github.com/BerriAI/litellm) for Coach
 - Optional: a [SparkyFitness](https://github.com/codewithcj/sparkyfitness) instance for nutrition sync
 
 ## Install & run
@@ -37,9 +40,9 @@ The app starts on `http://0.0.0.0:5000`. From your phone (same Wi-Fi), open `htt
 2. Tap **Share** → **Add to Home Screen**.
 3. Launch from the home screen — runs full-screen like a native app.
 
-## AI — APEX Coach
+## Coach
 
-APEX uses an OpenAI-compatible API. Set these in `data/peakai_config.json` or via the Settings page:
+Coach uses an OpenAI-compatible API. In production, configure it with environment variables:
 
 | Variable | Example |
 |---|---|
@@ -47,19 +50,19 @@ APEX uses an OpenAI-compatible API. Set these in `data/peakai_config.json` or vi
 | `PEAKAI_API_KEY` | `your-key` |
 | `PEAKAI_MODEL` | `claude-haiku` |
 
-Any LiteLLM proxy, Ollama, or OpenAI-compatible endpoint works. APEX keeps a persistent chat history per user (last 100 messages, shared across devices).
+Any LiteLLM proxy, Ollama, or OpenAI-compatible endpoint works. Coach keeps a persistent chat history per user (last 100 messages, shared across devices).
 
 ## SparkyFitness Integration
 
-Each HomeFit user connects their **own** Sparky account — so multiple family members each see their own nutrition data in APEX.
+Each BuiltHere user connects their **own** Sparky account so household profiles keep separate nutrition data.
 
 **Setup per user:**
-1. Log into HomeFit under your profile.
+1. Log into BuiltHere under your profile.
 2. Go to **Settings → SparkyFitness Sync**.
 3. Enter the shared Sparky URL and **your personal API key** (from your Sparky account settings).
-4. Hit Save — APEX will now see your last 7 days of food diary, hydration, and current nutrition goals.
+4. Save — Coach can now use the recent food diary, hydration, and current nutrition goals.
 
-**What APEX can do with Sparky:**
+**What Coach can do with Sparky:**
 - Read your food diary and hydration (last 7 days)
 - Read your current calorie/macro targets
 - Propose updated nutrition goals and push them to Sparky when you say "update my goals"
@@ -67,28 +70,26 @@ Each HomeFit user connects their **own** Sparky account — so multiple family m
 
 ## Proxmox LXC — one-liner installer
 
-`scripts/homefit-lxc.sh` creates a Debian 12 unprivileged LXC, clones this repo, installs Python deps, and registers a gunicorn systemd service.
+`scripts/homefit-v2-lxc.sh` creates a Debian 13 unprivileged LXC and installs BuiltHere with atomic, health-checked updates.
 
 ```bash
-bash -c "$(wget -qLO - https://raw.githubusercontent.com/YOUR_USER/homefit/main/scripts/homefit-lxc.sh)"
+bash -c "$(wget -qLO - https://raw.githubusercontent.com/abwalker417/HomeFit/main/scripts/homefit-v2-lxc.sh)"
 ```
 
-You'll be prompted for container ID, hostname, network, Git repo URL, and port.
+You'll be prompted for container ID, hostname, storage, network, and resources.
 
 ### Updating
 
 ```bash
-# From Proxmox host:
-pct exec <CTID> -- runuser -u homefit -- bash -c \
-  'cd ~/workout-app && git pull && .venv/bin/pip install -r requirements.txt'
-pct exec <CTID> -- systemctl restart homefit
+# From the Proxmox host:
+pct exec <CTID> -- /usr/local/sbin/homefit-update
 ```
 
 ## Running permanently (systemd)
 
 ```ini
 [Unit]
-Description=HomeFit
+Description=BuiltHere
 After=network.target
 
 [Service]
@@ -108,7 +109,7 @@ Everything in `data/`:
 
 | File | Purpose |
 |---|---|
-| `workout.db` | SQLite — users, profiles, weight log, workout log, APEX plans, chat history |
+| `workout.db` | SQLite — users, profiles, weight log, workout log, Coach plans, chat history |
 | `exercises.json` | Exercise library — edit to add custom moves |
 | `sparky_config.json` | Sparky base URL (shared); each user's API key is in their DB profile |
 

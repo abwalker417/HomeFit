@@ -7,7 +7,7 @@ import requests
 import database
 
 PEAKAI_URL = os.environ.get("PEAKAI_URL", "http://192.168.68.33:4000").rstrip("/")
-PEAKAI_API_KEY = os.environ.get("PEAKAI_API_KEY", "peak-homefit-key")
+PEAKAI_API_KEY = os.environ.get("PEAKAI_API_KEY", "")
 PEAKAI_MODEL = os.environ.get("PEAKAI_MODEL", "claude-sonnet")
 # Only the STRUCTURED/interactive work (workout generation, coach chat/plan-edits) needs
 # Sonnet. The high-volume prose (post-workout insights, brief, digest, nudges) goes to a
@@ -26,6 +26,8 @@ IMPORTANT: You cannot save plans yourself. When you propose a plan change, alway
 
 
 def _peakai_call(messages, max_tokens=1024, timeout=90, model=None):
+    if not PEAKAI_API_KEY:
+        raise RuntimeError("PEAKAI_API_KEY is not configured")
     resp = requests.post(
         f"{PEAKAI_URL}/v1/chat/completions",
         headers={
@@ -77,6 +79,8 @@ def _generate(prompt, json_mode=False, system=None, max_tokens=1024, timeout=90,
 
 
 def is_available():
+    if not PEAKAI_API_KEY:
+        return False
     try:
         resp = requests.get(f"{PEAKAI_URL}/v1/models", timeout=3)
         return resp.ok
