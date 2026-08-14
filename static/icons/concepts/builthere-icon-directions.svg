@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="330" viewBox="0 0 1100 330" role="img" aria-labelledby="title desc">
+  <title id="title">BuiltHere icon directions</title>
+  <desc id="desc">Four compact logo directions for BuiltHere: Foundation, Frame, Signal, and Form.</desc>
+  <rect width="1100" height="330" fill="#212121"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#f3f3f3">
+    <text x="55" y="48" font-size="24" font-weight="700">BuiltHere icon directions</text>
+    <text x="55" y="76" font-size="14" fill="#b4b4b4">Clean, structural marks with one restrained emerald accent.</text>
+  </g>
+  <g transform="translate(55 112)">
+    <g>
+      <rect width="220" height="165" rx="22" fill="#2b2b2b" stroke="#454545"/>
+      <rect x="26" y="24" width="82" height="82" rx="21" fill="#303030"/>
+      <path d="M45 39h14v52H45z" fill="#f3f3f3"/><path d="M58 39h22c15 0 23 7 23 18 0 8-4 13-11 15 8 2 12 7 12 15 0 12-9 20-25 20H58V93h21c7 0 11-3 11-8s-4-8-11-8H58V64h18c7 0 10-2 10-6s-3-6-10-6H58z" fill="#10a37f"/><path d="M41 113h67" stroke="#f3f3f3" stroke-width="5" stroke-linecap="round"/>
+      <text x="26" y="136" fill="#f3f3f3" font-family="Arial" font-size="16" font-weight="700">01 / Foundation</text><text x="26" y="154" fill="#b4b4b4" font-family="Arial" font-size="12">Current mark, refined</text>
+    </g>
+    <g transform="translate(245)">
+      <rect width="220" height="165" rx="22" fill="#2b2b2b" stroke="#454545"/>
+      <rect x="26" y="24" width="82" height="82" rx="21" fill="#303030"/>
+      <path d="M47 94V42h40v12H60v12h21v12H60v16z" fill="#f3f3f3"/><path d="M87 42v52H70V82h11V54H70V42z" fill="#10a37f"/><path d="M42 98h52" stroke="#10a37f" stroke-width="5" stroke-linecap="round"/>
+      <text x="26" y="136" fill="#f3f3f3" font-family="Arial" font-size="16" font-weight="700">02 / Frame</text><text x="26" y="154" fill="#b4b4b4" font-family="Arial" font-size="12">A space made useful</text>
+    </g>
+    <g transform="translate(490)">
+      <rect width="220" height="165" rx="22" fill="#2b2b2b" stroke="#454545"/>
+      <rect x="26" y="24" width="82" height="82" rx="21" fill="#303030"/>
+      <path d="M45 91V42h14v49zM64 76V54h14v22zM83 62V42h14v20z" fill="#f3f3f3"/><path d="M45 91h52" stroke="#10a37f" stroke-width="7" stroke-linecap="round"/><path d="M76 37l21 20-21 20" fill="none" stroke="#10a37f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="26" y="136" fill="#f3f3f3" font-family="Arial" font-size="16" font-weight="700">03 / Signal</text><text x="26" y="154" fill="#b4b4b4" font-family="Arial" font-size="12">Progress from where you are</text>
+    </g>
+    <g transform="translate(735)">
+      <rect width="220" height="165" rx="22" fill="#2b2b2b" stroke="#454545"/>
+      <rect x="26" y="24" width="82" height="82" rx="21" fill="#303030"/>
+      <path d="M47 49c10-10 27-10 37 0l8 8-10 10-8-8c-5-5-13-5-18 0s-5 13 0 18l8 8-10 10-8-8c-10-10-10-27 0-38z" fill="#f3f3f3"/><path d="M89 49c10 11 10 28 0 38l-8 8-10-10 8-8c5-5 5-13 0-18s-13-5-18 0l-8 8-10-10 8-8c10-10 27-10 38 0z" fill="#10a37f"/>
+      <text x="26" y="136" fill="#f3f3f3" font-family="Arial" font-size="16" font-weight="700">04 / Form</text><text x="26" y="154" fill="#b4b4b4" font-family="Arial" font-size="12">Connected, human, adaptable</text>
+    </g>
+  </g>
+</svg>

@@ -40,15 +40,26 @@ The app starts on `http://0.0.0.0:5000`. From your phone (same Wi-Fi), open `htt
 2. Tap **Share** → **Add to Home Screen**.
 3. Launch from the home screen — runs full-screen like a native app.
 
-## Coach
+## Coach and AI provider settings
 
-Coach uses an OpenAI-compatible API. In production, configure it with environment variables:
+BuiltHere works with any OpenAI-compatible Chat Completions endpoint: OpenAI,
+LiteLLM, Ollama, Azure-compatible gateways, PeakAI, and self-hosted proxies.
+The household owner can configure the endpoint, API key, and separate models
+for Coach/plans, fast text parsing, and meal-photo vision in **Settings**.
+The key is never rendered back to the browser; leave the field blank to keep a
+saved key unchanged.
+
+For a headless or first-run deployment, environment variables remain supported:
 
 | Variable | Example |
 |---|---|
 | `PEAKAI_URL` | `http://192.168.68.33:4000` |
 | `PEAKAI_API_KEY` | `your-key` |
 | `PEAKAI_MODEL` | `claude-haiku` |
+
+The legacy `PEAKAI_*` names are compatible defaults. New installations may use
+`OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_COACH_MODEL`,
+`OPENAI_FAST_MODEL`, and `OPENAI_VISION_MODEL` instead.
 
 Any LiteLLM proxy, Ollama, or OpenAI-compatible endpoint works. Coach keeps a persistent chat history per user (last 100 messages, shared across devices).
 

@@ -54,6 +54,14 @@ PEAKAI_API_KEY=replace-with-v2-scoped-key
 PEAKAI_MODEL=claude-sonnet
 ```
 
+These legacy environment names remain supported for the current deployment.
+BuiltHere can instead use any OpenAI-compatible endpoint; the household owner
+can configure its base URL, key, and separate Coach/fast/vision models from
+the in-app Settings workspace. The API key is not displayed after saving and
+is stored only in the protected application database. For headless setup, use
+`OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_COACH_MODEL`,
+`OPENAI_FAST_MODEL`, and `OPENAI_VISION_MODEL`.
+
 Secrets must be installed directly on the container with owner-only
 permissions. They do not belong in Git or in the Cloudflare hostname config.
 

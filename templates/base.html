@@ -42,6 +42,7 @@
       <a class="{{ 'is-active' if request.endpoint == 'log_food_page' else '' }}" href="{{ url_for('log_food_page') }}">Food</a>
       <a class="{{ 'is-active' if request.endpoint == 'coach_page' else '' }}" href="{{ url_for('coach_page') }}">Coach</a>
       <a class="{{ 'is-active' if request.endpoint == 'profile_edit' else '' }}" href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
+      {% if is_owner %}<a class="{{ 'is-active' if request.endpoint == 'settings' else '' }}" href="{{ url_for('settings') }}" aria-label="Settings">⚙</a>{% endif %}
     </nav>
     <span class="header-slogan" aria-hidden="true">Your space.<br>Your equipment.<br>Your workout.</span>
     <button id="hamburger-btn" class="hamburger-btn" aria-label="Menu">
@@ -59,6 +60,7 @@
     <a href="{{ url_for('log_food_page') }}">Food</a>
     <a href="{{ url_for('coach_page') }}">Coach</a>
     <a href="{{ url_for('profile_edit', user_id=current_user.id) }}">Profile</a>
+    {% if is_owner %}<a href="{{ url_for('settings') }}">Settings</a>{% endif %}
     <a href="{{ url_for('profile_switch_out') }}">Switch user</a>
   </div>
   <div id="mobile-menu-backdrop" class="mobile-menu-backdrop"></div>

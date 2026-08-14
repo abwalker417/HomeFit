@@ -10,14 +10,8 @@ import re
 
 import requests
 
-PEAKAI_URL = os.environ.get(
-    "PEAKAI_CHAT_URL",
-    os.environ.get("PEAKAI_URL", "http://192.168.68.33:4000").rstrip("/")
-    + "/v1/chat/completions",
-)
-PEAKAI_KEY = os.environ.get("PEAKAI_API_KEY", "peak-homelab-key")
-TEXT_MODEL = os.environ.get("PEAKAI_CHEAP_MODEL", "gpt-4o-mini")
-IMAGE_MODEL = os.environ.get("PEAKAI_VISION_MODEL", "gpt-4o")
+import ai_provider
+import database
 
 # price per 1M tokens (in / out)
 _PRICE = {"gpt-4o-mini": (0.15, 0.60), "gpt-4o": (2.50, 10.00)}
@@ -63,9 +57,11 @@ def _num(v):
 
 
 def _call(messages, model):
+    settings = database.get_ai_provider_settings()
+    base_url = ai_provider.validate_settings(settings)
     resp = requests.post(
-        PEAKAI_URL,
-        headers={"Authorization": f"Bearer {PEAKAI_KEY}", "Content-Type": "application/json"},
+        ai_provider.chat_completions_url(base_url),
+        headers=ai_provider.headers(settings["api_key"]),
         json={"model": model, "stream": False, "max_tokens": 900, "messages": messages},
         timeout=60,
     )
@@ -111,9 +107,10 @@ def parse_meal(text, goal=None, day_total=None):
     text = text.strip()[:500]
     ctx = _context_line(goal, day_total)
     user_msg = f"{ctx}\n\nMeal: {text}" if ctx else text
+    model = database.get_ai_provider_settings()["fast_model"]
     data = _call([{"role": "system", "content": SYSTEM},
-                  {"role": "user", "content": user_msg}], TEXT_MODEL)
-    return _extract(data, TEXT_MODEL, (len(SYSTEM) + len(user_msg)) // 4, None)
+                  {"role": "user", "content": user_msg}], model)
+    return _extract(data, model, (len(SYSTEM) + len(user_msg)) // 4, None)
 
 
 def parse_meal_image(data_url, note="", goal=None, day_total=None):
@@ -126,7 +123,8 @@ def parse_meal_image(data_url, note="", goal=None, day_total=None):
     if ctx:
         prompt += f" {ctx}"
     user_content.insert(0, {"type": "text", "text": prompt})
+    model = database.get_ai_provider_settings()["vision_model"]
     data = _call([{"role": "system", "content": SYSTEM},
-                  {"role": "user", "content": user_content}], IMAGE_MODEL)
+                  {"role": "user", "content": user_content}], model)
     # image ≈ 765 tokens + system + prompt
-    return _extract(data, IMAGE_MODEL, (len(SYSTEM) + len(prompt)) // 4 + 800, None)
+    return _extract(data, model, (len(SYSTEM) + len(prompt)) // 4 + 800, None)

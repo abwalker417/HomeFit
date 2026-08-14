@@ -50,6 +50,18 @@ def test_today_workout_redirects_to_builder_without_active_session(onboarded_cli
     assert response.headers["Location"].endswith("/start-workout")
 
 
+def test_owner_settings_render_and_keep_the_provider_key_masked(onboarded_client):
+    with onboarded_client.session_transaction() as session:
+        session["is_owner"] = True
+
+    response = onboarded_client.get("/settings")
+
+    assert response.status_code == 200
+    assert b"OpenAI-compatible connection" in response.data
+    assert b"API key" in response.data
+    assert b"peak-homefit-key" not in response.data
+
+
 def test_unauthenticated_pages_redirect_to_profile_picker():
     client = homefit_app.app.test_client()
 

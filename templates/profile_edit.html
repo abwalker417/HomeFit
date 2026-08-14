@@ -3,7 +3,7 @@
 
 {% block content %}
 <section class="page-heading">
-  <div><p class="eyebrow">PROFILE</p><h1>Make BuiltHere yours.</h1><p class="subtle">Your identity, training preferences, equipment, and privacy.</p></div>
+  <div><p class="eyebrow">PROFILE</p><h1>Your training setup.</h1><p class="subtle">Keep your goals, availability, limitations, and equipment current.</p></div>
 </section>
 
 <section class="card profile-details-card">
@@ -64,126 +64,6 @@
   </form>
 </section>
 
-<section class="card">
-  <h2>Theme color</h2>
-  <p class="subtle" style="font-size:13px;">Pick the color used across your BuiltHere background and controls. Saved to your profile.</p>
-  <div class="accent-swatches" id="accent-swatches">
-    {% for label, pair in accent_palette.items() %}
-    <button type="button" class="accent-swatch{{ ' is-selected' if pair[0] == accent else '' }}"
-            data-color="{{ pair[0] }}" data-rgb="{{ pair[1] }}"
-            style="--sw: {{ pair[0] }};" aria-label="{{ label }}"></button>
-    {% endfor %}
-  </div>
-</section>
-
-{% if user.id == current_user.id %}
-<section class="card" id="away-card">
-  <h2>Away mode</h2>
-  {% if away %}
-  <p class="subtle" style="font-size:13px;">
-    You're marked <strong style="color:var(--warn);">{{ away.reason }}</strong>
-    since {{ away.start_date }}{% if away.end_date %}, through {{ away.end_date }}{% else %} (until you're back){% endif %}.
-    Streaks and weekly goals are paused; training reminders are muted.
-  </p>
-  <button type="button" id="away-end" class="btn btn-primary">I'm back</button>
-  {% else %}
-  {% if away_upcoming %}
-  <p class="subtle" style="font-size:13px;">
-    Scheduled: <strong>{{ away_upcoming.reason }}</strong> {{ away_upcoming.start_date }} →
-    {{ away_upcoming.end_date or "open" }}. <button type="button" id="away-end" class="pill">Cancel</button>
-  </p>
-  {% endif %}
-  <p class="subtle" style="font-size:13px;">Traveling, on vacation, or sick? Away days pause your streaks, shrink the week's workout &amp; cardio targets, and mute training reminders — no lost streak for days you couldn't train. Dates can be in the past ("I was sick Tue–Thu") or the future (a planned trip).</p>
-  <div class="away-form">
-    <label>Reason
-      <select id="away-reason">
-        <option value="travel">Traveling</option>
-        <option value="vacation">Vacation</option>
-        <option value="sick">Sick</option>
-      </select>
-    </label>
-    <label>From <input type="date" id="away-start"></label>
-    <label>Until <input type="date" id="away-end-date"> <span class="subtle" style="font-size:11px;">(optional — leave blank and tap "I'm back" later)</span></label>
-    <button type="button" id="away-start-btn" class="btn btn-primary">Start away mode</button>
-  </div>
-  {% endif %}
-  <span id="away-status" class="subtle" style="font-size:12px;"></span>
-</section>
-<script>
-(function () {
-  var startBtn = document.getElementById("away-start-btn");
-  var endBtn = document.getElementById("away-end");
-  var status = document.getElementById("away-status");
-  function call(url, body) {
-    fetch(url, {method: "POST", headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(body || {})})
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (d.ok) { location.reload(); }
-        else { status.textContent = d.error || "Something went wrong."; }
-      })
-      .catch(function () { status.textContent = "Network error — try again."; });
-  }
-  if (startBtn) startBtn.addEventListener("click", function () {
-    call("/api/away", {
-      reason: document.getElementById("away-reason").value,
-      start_date: document.getElementById("away-start").value,
-      end_date: document.getElementById("away-end-date").value,
-    });
-  });
-  if (endBtn) endBtn.addEventListener("click", function () { call("/api/away/end"); });
-  var start = document.getElementById("away-start");
-  if (start && !start.value) {
-    var d = new Date();  // local date, not toISOString (UTC = tomorrow in the evening)
-    start.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
-                + "-" + String(d.getDate()).padStart(2, "0");
-  }
-})();
-</script>
-{% endif %}
-
-<section class="card">
-  <h2>What Coach remembers</h2>
-  <p class="subtle" style="font-size:13px;">Goals, preferences, injuries, and life context carried between conversations. Tell Coach “remember that…” in chat, or edit these notes directly.</p>
-  <textarea id="apex-memory-text" rows="12"
-            style="width:100%; box-sizing:border-box; font-family:inherit; font-size:13px; line-height:1.5; resize:vertical;"
-            placeholder="Coach hasn't learned anything yet — chat with it, or add notes here.">{{ apex_memory }}</textarea>
-  <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
-    <button type="button" id="apex-memory-save" class="btn btn-primary">Save memory</button>
-    <button type="button" id="apex-memory-clear" class="btn btn-secondary">Clear</button>
-    <span id="apex-memory-status" class="subtle" style="font-size:12px;"></span>
-  </div>
-</section>
-
-{% if can_manage_profiles %}
-<section class="card">
-  <h2>Manage profiles</h2>
-  <p class="subtle">Edit any profile or add a new one.</p>
-  <ul class="profile-mgmt-list">
-    {% for u in all_users %}
-    <li class="profile-mgmt-row">
-      <span class="profile-mgmt-identity">
-          <span>{{ u.name }}{% if u.id == current_user.id %} <span class="subtle">(you)</span>{% endif %}</span>
-      </span>
-      <a class="pill" href="{{ url_for('profile_edit', user_id=u.id) }}">Edit</a>
-    </li>
-    {% endfor %}
-  </ul>
-  <a class="btn btn-secondary" href="{{ url_for('profile_new') }}" style="display:block; text-align:center; margin-top:12px;">+ Add profile</a>
-</section>
-{% endif %}
-
-{% if can_manage_profiles %}
-<section class="card danger-card">
-  <h2>Danger zone</h2>
-  <p class="subtle">Permanently deletes this profile and all workout history.</p>
-  <form method="post"
-        onsubmit="return confirm('Delete {{ user.name }}\'s profile? This cannot be undone.');">
-    <input type="hidden" name="action" value="delete">
-    <button type="submit" class="btn btn-danger">Delete profile</button>
-  </form>
-</section>
-{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -195,67 +75,5 @@
     });
   });
 
-  // Accent picker — apply live and persist immediately
-  document.querySelectorAll('.accent-swatch').forEach((sw) => {
-    sw.addEventListener('click', async () => {
-      const color = sw.dataset.color;
-      const rgb = sw.dataset.rgb;
-      // Apply instantly for feedback
-      document.documentElement.style.setProperty('--accent', color);
-      document.documentElement.style.setProperty('--accent-rgb', rgb);
-      document.querySelectorAll('.accent-swatch').forEach((s) => s.classList.remove('is-selected'));
-      sw.classList.add('is-selected');
-      try {
-        await fetch('/api/accent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ color }),
-        });
-      } catch (_) { /* visual already applied; will persist on next save attempt */ }
-    });
-  });
-
-  // Coach memory editor
-  (function () {
-    const ta = document.getElementById('apex-memory-text');
-    const saveBtn = document.getElementById('apex-memory-save');
-    const clearBtn = document.getElementById('apex-memory-clear');
-    const status = document.getElementById('apex-memory-status');
-    if (!ta || !saveBtn) return;
-
-    async function save(content, label) {
-      saveBtn.disabled = true;
-      status.textContent = 'Saving…';
-      try {
-        const r = await fetch('/api/apex-memory', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content }),
-        });
-        if (!r.ok) throw new Error('status ' + r.status);
-        status.textContent = label + ' ✓';
-        setTimeout(() => { status.textContent = ''; }, 2500);
-      } catch (e) {
-        status.textContent = "Couldn't save (" + e.message + ')';
-      } finally {
-        saveBtn.disabled = false;
-      }
-    }
-
-    saveBtn.addEventListener('click', () => save(ta.value, 'Saved'));
-
-    let armed = false, t = null;
-    clearBtn.addEventListener('click', () => {
-      if (!armed) {
-        armed = true;
-        clearBtn.textContent = 'Tap to confirm';
-        t = setTimeout(() => { armed = false; clearBtn.textContent = 'Clear'; }, 3000);
-        return;
-      }
-      clearTimeout(t); armed = false; clearBtn.textContent = 'Clear';
-      ta.value = '';
-      save('', 'Cleared');
-    });
-  })();
 </script>
 {% endblock %}

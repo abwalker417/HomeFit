@@ -4,15 +4,8 @@ import json
 import os
 import requests
 
+import ai_provider
 import database
-
-PEAKAI_URL = os.environ.get("PEAKAI_URL", "http://192.168.68.33:4000").rstrip("/")
-PEAKAI_API_KEY = os.environ.get("PEAKAI_API_KEY", "")
-PEAKAI_MODEL = os.environ.get("PEAKAI_MODEL", "claude-sonnet")
-# Only the STRUCTURED/interactive work (workout generation, coach chat/plan-edits) needs
-# Sonnet. The high-volume prose (post-workout insights, brief, digest, nudges) goes to a
-# cheap model — "only fire Sonnet when it's needed."
-MODEL_CHEAP = os.environ.get("PEAKAI_CHEAP_MODEL", "gpt-4o-mini")
 
 SYSTEM_PROMPT = """You are the personal fitness coach built into BuiltHere. Users know you simply as “Coach”; do not introduce yourself as a named AI persona or mention the underlying AI provider.
 You have access to the user's complete fitness profile and workout history.
@@ -26,16 +19,13 @@ IMPORTANT: You cannot save plans yourself. When you propose a plan change, alway
 
 
 def _peakai_call(messages, max_tokens=1024, timeout=90, model=None):
-    if not PEAKAI_API_KEY:
-        raise RuntimeError("PEAKAI_API_KEY is not configured")
+    settings = database.get_ai_provider_settings()
+    base_url = ai_provider.validate_settings(settings)
     resp = requests.post(
-        f"{PEAKAI_URL}/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {PEAKAI_API_KEY}",
-            "Content-Type": "application/json",
-        },
+        ai_provider.chat_completions_url(base_url),
+        headers=ai_provider.headers(settings["api_key"]),
         json={
-            "model": model or PEAKAI_MODEL,
+            "model": model or settings["coach_model"],
             "messages": messages,
             "stream": False,
         },
@@ -79,10 +69,14 @@ def _generate(prompt, json_mode=False, system=None, max_tokens=1024, timeout=90,
 
 
 def is_available():
-    if not PEAKAI_API_KEY:
-        return False
     try:
-        resp = requests.get(f"{PEAKAI_URL}/v1/models", timeout=3)
+        settings = database.get_ai_provider_settings()
+        base_url = ai_provider.validate_settings(settings)
+        resp = requests.get(
+            ai_provider.models_url(base_url),
+            headers=ai_provider.headers(settings["api_key"]),
+            timeout=3,
+        )
         return resp.ok
     except Exception:
         return False
@@ -582,7 +576,8 @@ The user just finished: {last.get('day_name', 'Workout')} ({last.get('duration_s
 
 Write a 2-3 sentence post-workout insight. Reference something specific from their sets/weights if available. One thing done well, one concrete tip for next time. Be direct and brief — no greeting, no sign-off."""
 
-    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60, model=MODEL_CHEAP)
+    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60,
+                     model=database.get_ai_provider_settings()["fast_model"])
 
 
 _NUDGE_GUIDE = {
@@ -623,7 +618,8 @@ to them (use their name/memory naturally if it fits), under 120 characters, plai
 text, no emoji-spam (one tasteful emoji max), no hashtags. Return ONLY JSON:
 {{"title": "2-4 word title", "body": "the one-line message"}}"""
     obj = _parse_json_safe(_generate(prompt, json_mode=True, system=SYSTEM_PROMPT,
-                                     max_tokens=200, timeout=45, model=MODEL_CHEAP))
+                                     max_tokens=200, timeout=45,
+                                     model=database.get_ai_provider_settings()["fast_model"]))
     if isinstance(obj, dict) and obj.get("body"):
         title = str(obj.get("title") or "BuiltHere").strip()[:40]
         body = str(obj["body"]).strip().strip('"')[:160]
@@ -704,7 +700,8 @@ no headers, no greeting, no sign-off). Cover ONLY the areas that have data:
 - Nutrition: protein/calorie adherence if logged
 - One specific focus for next week that ties it together (recovery-aware)."""
 
-    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60, model=MODEL_CHEAP)
+    return _generate(prompt, system=SYSTEM_PROMPT, timeout=60,
+                     model=database.get_ai_provider_settings()["fast_model"])
 
 
 def generate_daily_brief(coaching_data):
@@ -774,7 +771,13 @@ Write the user's DAILY DIGEST — a real recap of yesterday and what today looks
 Reference only data that exists. Output ONLY the digest sentences — no title, date,
 header, separators, bullets, markdown, greeting, sign-off, or character count."""
 
-    return _clean_brief(_generate(prompt, system=SYSTEM_PROMPT, max_tokens=400, timeout=60, model=MODEL_CHEAP))
+    return _clean_brief(_generate(
+        prompt,
+        system=SYSTEM_PROMPT,
+        max_tokens=400,
+        timeout=60,
+        model=database.get_ai_provider_settings()["fast_model"],
+    ))
 
 
 def _clean_brief(text):

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Settings — BuiltHere{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">SETTINGS</p>
+    <h1>Keep the house in tune.</h1>
+    <p class="subtle">Shared configuration for BuiltHere. These controls are visible only to the household owner.</p>
+  </div>
+</section>
+
+<section class="card settings-card">
+  <div class="settings-card-heading">
+    <div><p class="card-eyebrow">AI PROVIDER</p><h2>OpenAI-compatible connection</h2></div>
+    <span class="settings-status{{ ' is-ready' if key_configured else '' }}">{{ 'Configured' if key_configured else 'Needs setup' }}</span>
+  </div>
+  <p class="subtle">Works with OpenAI, Azure-compatible gateways, Ollama, LiteLLM, PeakAI, or any endpoint that supports Chat Completions. Use a base URL ending in <code>/v1</code>.</p>
+  {% if error %}<p class="warn">{{ error }}</p>{% endif %}
+  {% if notice %}<p class="success-note">{{ notice }}</p>{% endif %}
+  <form method="post" class="form" id="ai-settings-form">
+    <label>Base URL
+      <input type="url" name="base_url" id="ai-base-url" required placeholder="https://api.openai.com/v1" value="{{ ai_settings.base_url }}">
+    </label>
+    <label>API key
+      <input type="password" name="api_key" id="ai-api-key" autocomplete="new-password" placeholder="{{ 'Saved — leave blank to keep it' if key_configured else 'Required' }}">
+    </label>
+    <div class="settings-model-grid">
+      <label>Coach &amp; workout plans
+        <input name="coach_model" id="ai-coach-model" list="available-models" required value="{{ ai_settings.coach_model }}">
+        <span class="hint">Conversations, plans, and workout generation.</span>
+      </label>
+      <label>Quick parsing &amp; insights
+        <input name="fast_model" id="ai-fast-model" list="available-models" required value="{{ ai_settings.fast_model }}">
+        <span class="hint">Food text parsing, nudges, briefs, and digests.</span>
+      </label>
+      <label>Meal-photo vision
+        <input name="vision_model" id="ai-vision-model" list="available-models" required value="{{ ai_settings.vision_model }}">
+        <span class="hint">Must support image input.</span>
+      </label>
+    </div>
+    <datalist id="available-models"></datalist>
+    <div class="settings-actions">
+      <button type="button" class="btn btn-secondary" id="ai-test">Test &amp; load models</button>
+      <button type="submit" class="btn btn-primary">Save AI settings</button>
+      <span class="subtle" id="ai-test-status" role="status"></span>
+    </div>
+  </form>
+</section>
+
+<section class="card settings-card">
+  <p class="card-eyebrow">HOUSEHOLD</p>
+  <h2>Profiles</h2>
+  <p class="subtle">Profiles keep training history, equipment, health data, and Coach context separate.</p>
+  <ul class="profile-mgmt-list">
+    {% for u in all_users %}
+    <li class="profile-mgmt-row"><span class="profile-mgmt-identity">{{ u.name }}{% if u.id == current_user.id %} <span class="subtle">(you)</span>{% endif %}</span><a class="pill" href="{{ url_for('profile_edit', user_id=u.id) }}">Edit profile</a></li>
+    {% endfor %}
+  </ul>
+  <a class="btn btn-secondary settings-add-profile" href="{{ url_for('profile_new') }}">Add profile</a>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  const test = document.getElementById('ai-test');
+  const status = document.getElementById('ai-test-status');
+  const modelList = document.getElementById('available-models');
+  if (!test) return;
+  test.addEventListener('click', async () => {
+    test.disabled = true; status.textContent = 'Checking connection…';
+    try {
+      const r = await fetch('/api/settings/ai/test', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
+        base_url: document.getElementById('ai-base-url').value,
+        api_key: document.getElementById('ai-api-key').value,
+        coach_model: document.getElementById('ai-coach-model').value,
+        fast_model: document.getElementById('ai-fast-model').value,
+        vision_model: document.getElementById('ai-vision-model').value
+      })});
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Connection failed');
+      modelList.replaceChildren(...data.models.map((model) => {
+        const option = document.createElement('option'); option.value = model; return option;
+      }));
+      status.textContent = `Connected — ${data.models.length} models available.`;
+    } catch (error) { status.textContent = error.message || 'Could not connect.'; }
+    finally { test.disabled = false; }
+  });
+})();
+</script>
+{% endblock %}

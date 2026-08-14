@@ -26,6 +26,7 @@ STATIC_VERSION = _git_version()
 
 from flask import Flask, Response, abort, jsonify, redirect, render_template, request, session, url_for
 
+import ai_provider
 import coach
 import database
 from workout_logic import (
@@ -330,7 +331,7 @@ ACCENT_PALETTE = {
     "red":    ("#ef4444", "239, 68, 68"),
     "pink":   ("#ec4899", "236, 72, 153"),
 }
-DEFAULT_ACCENT = "#22d3ee"  # ice — brand default for the redesign
+DEFAULT_ACCENT = "#10a37f"  # restrained emerald, shared across the app shell
 
 
 def _accent_rgb(hex_color):
@@ -346,7 +347,9 @@ def _accent_rgb(hex_color):
 def inject_globals():
     uid = session.get("user_id")
     user = database.get_user(uid) if uid else None
-    accent = (database.get_accent_color(uid) if uid else None) or DEFAULT_ACCENT
+    # Legacy per-profile accent values stay in SQLite for compatibility, but the
+    # redesigned shell intentionally uses one restrained palette.
+    accent = DEFAULT_ACCENT
     accent_name = next((n for n, (hex_, _) in ACCENT_PALETTE.items() if hex_ == accent), "ice")
     return {
         "current_user": user,
@@ -374,6 +377,52 @@ def set_accent():
         return jsonify({"error": "invalid color"}), 400
     database.set_accent_color(uid, color)
     return jsonify({"ok": True, "color": color, "accent_rgb": _accent_rgb(color)})
+
+
+def _ai_settings_from_request(payload):
+    current = database.get_ai_provider_settings()
+    return {
+        "base_url": (payload.get("base_url") or "").strip(),
+        "api_key": (payload.get("api_key") or "").strip() or current["api_key"],
+        "coach_model": (payload.get("coach_model") or "").strip(),
+        "fast_model": (payload.get("fast_model") or "").strip(),
+        "vision_model": (payload.get("vision_model") or "").strip(),
+    }
+
+
+@app.route("/settings", methods=["GET", "POST"])
+def settings():
+    if not can_manage_profiles():
+        abort(403)
+    error = None
+    notice = None
+    if request.method == "POST":
+        submitted = _ai_settings_from_request(request.form)
+        try:
+            ai_provider.validate_settings(submitted)
+            database.save_ai_provider_settings(**submitted)
+            notice = "AI provider settings saved. New Coach and parsing requests will use them immediately."
+        except ValueError as exc:
+            error = str(exc)
+    return render_template(
+        "settings.html",
+        ai_settings=database.get_ai_provider_settings(),
+        key_configured=database.ai_provider_key_is_saved(),
+        error=error,
+        notice=notice,
+        all_users=database.list_users(),
+    )
+
+
+@app.route("/api/settings/ai/test", methods=["POST"])
+def test_ai_settings():
+    if not can_manage_profiles():
+        return jsonify({"error": "forbidden"}), 403
+    try:
+        settings_data = _ai_settings_from_request(request.get_json(silent=True) or {})
+        return jsonify({"ok": True, "models": ai_provider.list_models(settings_data)})
+    except (ValueError, requests.RequestException) as exc:
+        return jsonify({"error": str(exc)}), 400
 
 
 @app.route("/api/timezone", methods=["POST"])

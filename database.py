@@ -17,7 +17,7 @@ from typing import Optional
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 DB_PATH = Path(os.environ.get(
     "HOMEFIT_DB",
@@ -367,6 +367,17 @@ def init_db():
                 created_at TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS ai_provider_settings (
+                id             INTEGER PRIMARY KEY CHECK (id = 1),
+                base_url       TEXT NOT NULL,
+                api_key        TEXT NOT NULL DEFAULT '',
+                coach_model    TEXT NOT NULL,
+                fast_model     TEXT NOT NULL,
+                vision_model   TEXT NOT NULL,
+                updated_at     TEXT NOT NULL
+            )
+        """)
 
 
         conn.execute("DELETE FROM schema_version")
@@ -384,6 +395,76 @@ def load_or_create_secret_key() -> bytes:
     except OSError:
         pass
     return key
+
+
+def _default_ai_provider_settings():
+    """Compatibility defaults for any OpenAI-compatible chat-completions API."""
+    base_url = (os.environ.get("OPENAI_BASE_URL") or "").rstrip("/")
+    if not base_url:
+        legacy_url = (os.environ.get("PEAKAI_URL") or "").rstrip("/")
+        # PeakAI's historic environment value names the gateway root; its
+        # OpenAI-compatible API lives under /v1.
+        base_url = legacy_url if not legacy_url or legacy_url.endswith("/v1") else f"{legacy_url}/v1"
+    return {
+        "base_url": base_url,
+        "api_key": os.environ.get("OPENAI_API_KEY") or os.environ.get("PEAKAI_API_KEY") or "",
+        "coach_model": os.environ.get("OPENAI_COACH_MODEL") or os.environ.get("PEAKAI_MODEL") or "gpt-4o-mini",
+        "fast_model": os.environ.get("OPENAI_FAST_MODEL") or os.environ.get("PEAKAI_CHEAP_MODEL") or "gpt-4o-mini",
+        "vision_model": os.environ.get("OPENAI_VISION_MODEL") or os.environ.get("PEAKAI_VISION_MODEL") or "gpt-4o",
+    }
+
+
+def get_ai_provider_settings():
+    """Return stored settings, or environment-backed defaults before first setup."""
+    defaults = _default_ai_provider_settings()
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM ai_provider_settings WHERE id = 1").fetchone()
+    if not row:
+        return defaults
+    saved = dict(row)
+    return {
+        "base_url": saved["base_url"] or defaults["base_url"],
+        "api_key": saved["api_key"] or defaults["api_key"],
+        "coach_model": saved["coach_model"] or defaults["coach_model"],
+        "fast_model": saved["fast_model"] or defaults["fast_model"],
+        "vision_model": saved["vision_model"] or defaults["vision_model"],
+    }
+
+
+def ai_provider_key_is_saved():
+    with get_connection() as conn:
+        row = conn.execute("SELECT api_key FROM ai_provider_settings WHERE id = 1").fetchone()
+    return bool((row and row["api_key"]) or _default_ai_provider_settings()["api_key"])
+
+
+def save_ai_provider_settings(base_url, api_key, coach_model, fast_model, vision_model):
+    """Save instance-wide provider routing. A blank key preserves the current key."""
+    current = get_ai_provider_settings()
+    now = datetime.now().isoformat()
+    values = (
+        (base_url or "").strip().rstrip("/"),
+        (api_key or "").strip() or current["api_key"],
+        (coach_model or "").strip(),
+        (fast_model or "").strip(),
+        (vision_model or "").strip(),
+        now,
+    )
+    with get_connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO ai_provider_settings
+                (id, base_url, api_key, coach_model, fast_model, vision_model, updated_at)
+            VALUES (1, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                base_url=excluded.base_url,
+                api_key=excluded.api_key,
+                coach_model=excluded.coach_model,
+                fast_model=excluded.fast_model,
+                vision_model=excluded.vision_model,
+                updated_at=excluded.updated_at
+            """,
+            values,
+        )
 
 
 def list_users():
