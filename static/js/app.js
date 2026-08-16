@@ -3,9 +3,20 @@
 // Register the PWA service worker so iPhone users can install to the home screen.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) =>
-      console.warn('SW registration failed:', err)
-    );
+    navigator.serviceWorker.register('/sw.js').then((registration) => {
+      // Only households with a planned session get an offline workout pack.
+      // The service worker fetches it while this signed-in session is live.
+      if (!document.querySelector('[data-offline-pack]')) return;
+      const cacheOfflinePack = () => {
+        const worker = registration.active || navigator.serviceWorker.controller;
+        worker?.postMessage({type: 'CACHE_OFFLINE_WORKOUT'});
+      };
+      cacheOfflinePack();
+      // A new worker becomes the controller just after this page has loaded.
+      // Send the pack request again so a first install is ready without asking
+      // the user to refresh or visit the workout screen first.
+      navigator.serviceWorker.addEventListener('controllerchange', cacheOfflinePack, {once: true});
+    }).catch((err) => console.warn('SW registration failed:', err));
   });
 }
 
@@ -531,10 +542,10 @@ if (planWorkoutBtn) {
       if (!planResp.ok || !data.ok) throw new Error(data.error || 'The planned workout could not be loaded.');
       window.location.href = '/today-workout';
     } catch {
-      planWorkoutBtn.style.opacity = '1';
-      planWorkoutBtn.disabled = false;
-      planWorkoutBtn.firstChild.textContent = 'Start planned workout ';
-      if (status) status.textContent = 'That plan could not be loaded. Refresh the page or choose another workout.';
+      // The pre-cached plan opens without server access. Its completion stays
+      // queued locally until BuiltHere is reachable again.
+      if (status) status.textContent = 'BuiltHere is unavailable. Opening your saved offline workout…';
+      window.location.href = '/offline-workout';
     }
   }
   planWorkoutBtn.addEventListener('click', loadPlannedWorkout);

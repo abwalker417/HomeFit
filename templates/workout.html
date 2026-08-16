@@ -92,7 +92,12 @@
 <section id="workout-body"
          data-day-number="{{ day.day_number }}"
          data-day-name="{{ day.name }}"
-         data-user-id="{{ user_id }}">
+         data-user-id="{{ user_id }}"
+         data-offline-date="{{ offline_date or '' }}">
+
+  {% if offline_ready %}
+  <p class="wk-offline-pack" role="status">Offline-ready workout · saved for {{ offline_date }} · changes sync when BuiltHere reconnects.</p>
+  {% endif %}
 
   <!-- One exercise at a time (panel-style). The logger drives all of this from JS. -->
   <div class="wk-card">

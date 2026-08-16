@@ -1802,18 +1802,18 @@ def garage_autosave():
     return jsonify({"ok": True})
 
 
-@app.route("/today-workout")
-def today_workout():
-    workout = session.get("today_workout")
-    if not workout:
-        return redirect(url_for("start_workout"))
+def _render_workout_page(uid, workout, *, offline_ready=False, offline_date=None):
+    """Render a fully self-contained workout page.
+
+    The same page is used for an active server session and the pre-cached
+    offline workout pack.  Its embedded exercises/library let the logger keep
+    running without additional round trips after the page has been saved.
+    """
     focus_raw = workout.get("focus", [])
     if isinstance(focus_raw, list):
         focus_label = ", ".join(f.title() for f in focus_raw) if focus_raw else ""
     else:
         focus_label = str(focus_raw)
-    uid = session["user_id"]
-
     # Build per-exercise weight hints
     ex_history = database.get_exercise_history(uid, limit=15)
     overload_suggestions = {
@@ -1879,7 +1879,44 @@ def today_workout():
     draft = database.get_workout_draft(uid)
     draft_state = draft["state"] if draft else None
     return render_template("workout.html", day=day, profile=profile,
-                           user_id=uid, exercise_library=library, draft_state=draft_state)
+                           user_id=uid, exercise_library=library, draft_state=draft_state,
+                           offline_ready=offline_ready, offline_date=offline_date)
+
+
+@app.route("/today-workout")
+def today_workout():
+    workout = session.get("today_workout")
+    if not workout:
+        return redirect(url_for("start_workout"))
+    return _render_workout_page(session["user_id"], workout)
+
+
+@app.route("/offline-workout")
+def offline_workout():
+    """Today's deterministic plan rendered specifically for the offline cache.
+
+    This never creates a server-side active session.  It is safe to prefetch
+    while online, and a completion made from its cached page uses the normal
+    idempotent completion endpoint once connectivity returns.
+    """
+    uid = session["user_id"]
+    plan = (database.get_apex_plan(uid) or {}).get("plan") or []
+    if not plan:
+        return redirect(url_for("start_workout"))
+    today = database.user_now(uid).date()
+    plan_day = plan[today.weekday() % len(plan)]
+    if plan_day.get("rest") or database.is_rest_override(uid, today.isoformat()):
+        return redirect(url_for("index"))
+    exercises = _safe_plan_day_exercises(uid, plan_day)
+    if not exercises:
+        return redirect(url_for("start_workout"))
+    workout = {
+        "label": plan_day.get("name") or "Today's Workout",
+        "focus": plan_day.get("focus") or plan_day.get("name") or "",
+        "ai_generated": False,
+        "exercises": exercises,
+    }
+    return _render_workout_page(uid, workout, offline_ready=True, offline_date=today.isoformat())
 
 
 @app.route("/today-workout/add", methods=["GET", "POST"])

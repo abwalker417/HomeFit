@@ -17,9 +17,10 @@
     <form method="post" action="{{ url_for('cancel_workout') }}" class="today-cancel"><button type="submit">Cancel workout</button></form>
   {% else %}
     {% if planned_today %}
-      <div class="today-action-copy"><span class="today-status">On your plan</span><h2>{{ planned_today.name or "Today’s workout" }}</h2><p>{{ planned_today.exercises|length }} exercises, ready when you are.</p></div>
+      <div class="today-action-copy" data-offline-pack><span class="today-status">On your plan</span><h2>{{ planned_today.name or "Today’s workout" }}</h2><p>{{ planned_today.exercises|length }} exercises, ready when you are.</p></div>
       <button class="btn today-primary" id="load-plan-workout-btn">Start planned workout <span>→</span></button>
       <p class="today-action-error" id="plan-workout-status" role="status"></p>
+      <a class="pill today-offline-link" href="{{ url_for('offline_workout') }}">Available offline</a>
     {% elif plan_rest_today %}
       <div class="today-action-copy"><span class="today-status">Recovery day</span><h2>Your plan says rest today.</h2><p>Take the recovery, or choose a lighter session below if you want to move.</p></div>
     {% else %}

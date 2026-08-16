@@ -4,10 +4,15 @@ const CACHE = 'builthere-v1';
 const APP_SHELL = [
   '/static/css/style.css',
   '/static/js/app.js',
+  '/static/js/weight-modes.js',
+  '/static/js/workout-flow.js',
   '/static/manifest.json',
 ];
 
-// Only cache true static assets — never navigation pages
+// A deliberately small private offline pack. These pages contain the selected
+// profile's workout data, so we cache only the current device/session and never
+// cache arbitrary routes, APIs, food, history, or Coach content.
+const OFFLINE_PAGES = new Set(['/', '/offline-workout', '/today-workout']);
 const STATIC_ORIGINS = [self.location.origin];
 const STATIC_PATHS = ['/static/'];
 
@@ -31,10 +36,29 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
-  // Never cache navigation — always hit the server so routes stay fresh
-  if (req.mode === 'navigate') return;
-
   const url = new URL(req.url);
+
+  if (req.mode === 'navigate') {
+    if (!OFFLINE_PAGES.has(url.pathname)) return;
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(req);
+        // Redirects are profile/session guards, not an offline workout page.
+        if (response.ok && !response.redirected) {
+          const cache = await caches.open(CACHE);
+          await cache.put(req, response.clone());
+        }
+        return response;
+      } catch (_) {
+        const cached = await caches.match(req);
+        if (cached) return cached;
+        return new Response('<!doctype html><title>BuiltHere offline</title><p>Open BuiltHere once while connected to save today\'s workout for offline use.</p>', {
+          headers: {'Content-Type': 'text/html; charset=utf-8'}, status: 503,
+        });
+      }
+    })());
+    return;
+  }
 
   // Only cache /static/ assets — not API endpoints, not pages
   if (!STATIC_PATHS.some((p) => url.pathname.startsWith(p))) return;
@@ -52,6 +76,22 @@ self.addEventListener('fetch', (event) => {
       })
     )
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (!event.data || event.data.type !== 'CACHE_OFFLINE_WORKOUT') return;
+  const urls = ['/','/offline-workout'];
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.all(urls.map(async (url) => {
+      try {
+        const response = await fetch(url, {credentials: 'same-origin'});
+        if (response.ok && !response.redirected) await cache.put(url, response);
+      } catch (_) {
+        // Keep the last known good offline pack during a transient outage.
+      }
+    }));
+  })());
 });
 
 /* ---------- Web push ---------- */

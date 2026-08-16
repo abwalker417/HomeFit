@@ -50,6 +50,25 @@ def test_today_workout_redirects_to_builder_without_active_session(onboarded_cli
     assert response.headers["Location"].endswith("/start-workout")
 
 
+def test_offline_workout_redirects_without_a_saved_plan(onboarded_client):
+    response = onboarded_client.get("/offline-workout")
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/start-workout")
+
+
+def test_offline_workout_renders_today_saved_plan(onboarded_client):
+    user_id = 1
+    plan_day = {"name": "Lower", "focus": "Lower", "rest": False,
+                "exercises": [{"id": "bodyweight_squat", "sets": 3, "reps": 10}]}
+    homefit_app.database.save_apex_plan(user_id, [plan_day] * 7)
+
+    response = onboarded_client.get("/offline-workout")
+
+    assert response.status_code == 200
+    assert b"Offline-ready workout" in response.data
+
+
 def test_owner_settings_render_and_keep_the_provider_key_masked(onboarded_client):
     with onboarded_client.session_transaction() as session:
         session["is_owner"] = True
