@@ -10,7 +10,8 @@ window.startWorkout = function () {
   const dayName = root.dataset.dayName;
   const dayNumber = parseInt(root.dataset.dayNumber, 10) || 1;
   const offlineDate = root.dataset.offlineDate || '';
-  const localDate = new Date().toLocaleDateString('en-CA');
+  const now = new Date();
+  const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   if (offlineDate && localDate !== offlineDate) {
     root.innerHTML = '<div class="card" style="padding:20px;text-align:center;"><strong>Your offline workout needs a refresh.</strong><p class="subtle">Connect once to BuiltHere so it can save today’s plan.</p></div>';
     return;
