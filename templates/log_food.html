@@ -13,11 +13,13 @@
       <button id="photo-remove" type="button" aria-label="Remove photo">✕</button>
     </div>
     <div class="composer-row">
+      <button id="barcode-btn" type="button" class="composer-attach" title="Scan a barcode" aria-label="Scan a barcode" data-native-action="barcode">▥</button>
       <button id="photo-btn" type="button" class="composer-attach" title="Add a photo" aria-label="Add a photo">📷</button>
       <textarea id="meal-input" rows="1" placeholder="What did you eat? Add a photo or describe it…"></textarea>
       <button id="send-btn" class="composer-send" disabled aria-label="Send">➤</button>
     </div>
     <input id="photo-input" type="file" accept="image/*" style="display:none;">
+    <input id="barcode-input" type="file" accept="image/*" capture="environment" style="display:none;">
     <p id="parse-status" class="subtle" style="font-size:12px; margin:8px 4px 0;"></p>
   </div>
 
@@ -108,6 +110,8 @@
   const photoBtn = document.getElementById('photo-btn');
   const photoInput = document.getElementById('photo-input');
   const photoPreview = document.getElementById('photo-preview');
+  const barcodeBtn = document.getElementById('barcode-btn');
+  const barcodeInput = document.getElementById('barcode-input');
   const photoThumb = document.getElementById('photo-thumb');
   const status = document.getElementById('parse-status');
   const resultCard = document.getElementById('result-card');
@@ -132,6 +136,38 @@
   function updateSendState() {
     sendBtn.disabled = !(input.value.trim() || attachedImage);
   }
+
+  async function lookupBarcode(rawBarcode) {
+    const barcode = String(rawBarcode || '').replace(/[^0-9A-Za-z]/g, '');
+    if (barcode.length < 8) throw new Error('That barcode does not look complete. Try again or enter it manually.');
+    status.textContent = 'Looking up barcode…';
+    resultCard.classList.add('hidden');
+    const response = await fetch('/api/food/barcode', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({barcode})});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Barcode lookup failed');
+    input.value = data.items[0]?.name || '';
+    showResult(data);
+  }
+
+  async function scanBarcodeImage(file) {
+    if (!('BarcodeDetector' in window)) {
+      const typed = window.prompt('This browser cannot scan a barcode from a photo. Enter the UPC/EAN number instead:');
+      if (typed) await lookupBarcode(typed);
+      return;
+    }
+    const detector = new BarcodeDetector({formats: ['upc_a', 'upc_e', 'ean_13', 'ean_8', 'code_128']});
+    const found = await detector.detect(file);
+    if (!found.length) throw new Error('No barcode found. Fill the frame with the barcode and try again.');
+    await lookupBarcode(found[0].rawValue);
+  }
+
+  // The installed iPhone app uses AVFoundation for reliable camera scanning,
+  // then calls this same lookup path with the scanned UPC/EAN value.
+  window.builtHereBarcodeScanned = (barcode) => {
+    lookupBarcode(barcode).catch((error) => {
+      status.textContent = error.message || 'Barcode lookup failed.';
+    });
+  };
 
   let today = [];
   try { today = JSON.parse(document.getElementById('today-data').textContent) || []; } catch (_) {}
@@ -392,6 +428,15 @@
 
   // Attach (not analyze) a photo — preview it; Send does the analysis
   photoBtn.addEventListener('click', () => photoInput.click());
+  barcodeBtn.addEventListener('click', () => barcodeInput.click());
+  barcodeInput.addEventListener('change', async () => {
+    const file = barcodeInput.files[0]; barcodeInput.value = '';
+    if (!file) return;
+    barcodeBtn.disabled = true;
+    try { await scanBarcodeImage(file); }
+    catch (error) { status.textContent = error.message || 'Could not scan that barcode.'; }
+    finally { barcodeBtn.disabled = false; }
+  });
   photoInput.addEventListener('change', async () => {
     const file = photoInput.files[0];
     photoInput.value = '';

@@ -77,6 +77,53 @@ def lookup(name, api_key):
     return None
 
 
+def lookup_barcode(barcode, api_key):
+    """Return a single branded USDA serving for an exact UPC/EAN/GTIN match."""
+    code = re.sub(r"[^0-9A-Za-z]", "", barcode or "")[:32]
+    if not api_key or len(code) < 8:
+        return None
+    # EAN-13 and UPC-A may be represented with or without a leading zero.
+    acceptable = {code, code.lstrip("0"), code.zfill(13)}
+    try:
+        response = requests.post(
+            FDC_SEARCH_URL,
+            params={"api_key": api_key},
+            json={"query": code, "pageSize": 10, "dataType": ["Branded"]},
+            timeout=4,
+        )
+        response.raise_for_status()
+        foods = response.json().get("foods") or []
+    except (requests.RequestException, ValueError, AttributeError):
+        return None
+
+    for food in foods:
+        gtin = re.sub(r"[^0-9A-Za-z]", "", food.get("gtinUpc") or "")
+        if gtin not in acceptable and gtin.lstrip("0") not in acceptable:
+            continue
+        label = food.get("labelNutrients") or {}
+        def label_value(field):
+            return _number((label.get(field) or {}).get("value"))
+        calories = label_value("calories")
+        protein = label_value("protein")
+        carbs = label_value("carbohydrates")
+        fat = label_value("fat")
+        if None in (calories, protein, carbs, fat):
+            continue
+        serving_size = food.get("servingSize")
+        serving_unit = food.get("servingSizeUnit") or "serving"
+        quantity = f"1 serving ({serving_size:g} {serving_unit})" if isinstance(serving_size, (int, float)) else "1 serving"
+        brand = food.get("brandName") or food.get("brandOwner") or ""
+        description = food.get("description") or "Scanned food"
+        name = f"{brand} — {description}" if brand else description
+        return {
+            "name": name[:120], "quantity": quantity,
+            "calories": int(round(calories)), "protein_g": round(protein, 1),
+            "carbs_g": round(carbs, 1), "fat_g": round(fat, 1),
+            "usda_verified": True, "fdc_id": food.get("fdcId"), "barcode": code,
+        }
+    return None
+
+
 def enrich_items(items, api_key):
     """Apply USDA macros where both an FDC match and an AI gram estimate exist."""
     matched = 0

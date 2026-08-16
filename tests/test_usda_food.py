@@ -32,3 +32,23 @@ def test_enrichment_keeps_ai_estimate_when_usda_unavailable(monkeypatch):
 
     assert usda_food.enrich_items(items, "test-key") == 0
     assert items[0]["calories"] == 200
+
+
+def test_lookup_barcode_uses_exact_gtin_and_label_serving(monkeypatch):
+    food = {
+        "fdcId": 456, "description": "Protein bar", "brandName": "BuiltHere",
+        "gtinUpc": "012345678905", "servingSize": 50, "servingSizeUnit": "g",
+        "labelNutrients": {
+            "calories": {"value": 210}, "protein": {"value": 20},
+            "carbohydrates": {"value": 22}, "fat": {"value": 7},
+        },
+    }
+    class Response:
+        def raise_for_status(self): pass
+        def json(self): return {"foods": [food]}
+    monkeypatch.setattr(usda_food.requests, "post", lambda *args, **kwargs: Response())
+
+    result = usda_food.lookup_barcode("012345678905", "test-key")
+    assert result["name"] == "BuiltHere — Protein bar"
+    assert result["quantity"] == "1 serving (50 g)"
+    assert result["calories"] == 210

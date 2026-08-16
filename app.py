@@ -721,6 +721,24 @@ def api_food_parse_image():
         return jsonify({"error": str(e)}), 502
 
 
+@app.route("/api/food/barcode", methods=["POST"])
+def api_food_barcode():
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    barcode = str((request.get_json(silent=True) or {}).get("barcode") or "")
+    key = database.get_usda_fdc_api_key()
+    if not key:
+        return jsonify({"error": "USDA verification is not configured. Add a FoodData Central API key in Settings."}), 503
+    import usda_food
+    item = usda_food.lookup_barcode(barcode, key)
+    if not item:
+        return jsonify({"error": "No matching USDA branded food was found for that barcode."}), 404
+    totals = {key: item[key] for key in ("calories", "protein_g", "carbs_g", "fat_g")}
+    return jsonify({"items": [item], "totals": totals, "note": "USDA branded-food result.",
+                    "cost_usd": 0, "model": "usda-fdc", "tokens": 0})
+
+
 @app.route("/api/food/log", methods=["POST"])
 def api_food_log():
     uid = session.get("user_id")
