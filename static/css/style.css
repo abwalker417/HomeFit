@@ -1633,6 +1633,7 @@ body:has(.app-main--profiles) {
 .food-usda-badge { display: inline-block; margin-left: 5px; padding: 2px 5px; border-radius: 999px; background: rgba(var(--accent-rgb), .14); color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: .07em; vertical-align: middle; }
 .wk-offline-pack { margin: 0 0 14px; padding: 9px 11px; border: 1px solid rgba(var(--accent-rgb), .3); border-radius: 10px; background: rgba(var(--accent-rgb), .08); color: var(--text); font-size: 12px; }
 .today-offline-link { display: inline-block; margin-top: 10px; text-decoration: none; font-size: 12px; }
+.offline-mode-banner { margin: 0 0 18px; padding: 10px 12px; border: 1px solid rgba(var(--accent-rgb), .34); border-radius: 10px; background: rgba(var(--accent-rgb), .1); color: var(--text); font-size: 13px; font-weight: 650; }
 .composer-row { display: flex; gap: 8px; align-items: flex-end; }
 .composer-row textarea {
   flex: 1; border: none; background: transparent; color: var(--text);

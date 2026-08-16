@@ -63,11 +63,14 @@ window.addEventListener('load', () => window.BuiltHereOffline.syncPendingComplet
 
 /* ---------- Native offline workout package ---------- */
 // WKWebView does not reliably restore a service-worker cache after a cold
-// offline launch.  For the installed iPhone app, turn the prepared workout
-// into one self-contained HTML file (CSS + workout scripts inlined) and hand
-// it to the native wrapper. It contains no Food, Health, Coach, or history.
+// offline launch. For the installed iPhone app, save a self-contained Today
+// screen and its planned workout while online. The user never needs to
+// explicitly prepare for an offline session.
 async function saveNativeOfflineWorkoutPack() {
-  if (location.pathname !== '/offline-workout' || !window.webkit?.messageHandlers?.homefitNative) return;
+  if (!window.webkit?.messageHandlers?.homefitNative || location.protocol === 'file:') return;
+  const hasPlannedWorkout = Boolean(document.querySelector('[data-offline-pack]'));
+  const isOfflineWorkout = location.pathname === '/offline-workout';
+  if (!hasPlannedWorkout && !isOfflineWorkout) return;
   try {
     const assets = await Promise.all([
       fetch('/static/css/style.css').then((r) => r.ok ? r.text() : ''),
@@ -76,7 +79,13 @@ async function saveNativeOfflineWorkoutPack() {
       fetch('/static/js/workout-flow.js').then((r) => r.ok ? r.text() : ''),
     ]);
     if (assets.some((asset) => !asset)) return;
-    const copy = document.documentElement.cloneNode(true);
+    const packDocument = isOfflineWorkout
+      ? document
+      : new DOMParser().parseFromString(await fetch('/offline-workout').then((r) => {
+          if (!r.ok) throw new Error('offline workout unavailable');
+          return r.text();
+        }), 'text/html');
+    const copy = packDocument.documentElement.cloneNode(true);
     copy.querySelectorAll('link[rel="stylesheet"]').forEach((node) => node.remove());
     // Keep relative API calls pointed at the configured server once this file
     // is loaded from the iPhone's local filesystem after a reconnect.
@@ -94,14 +103,56 @@ async function saveNativeOfflineWorkoutPack() {
       if (!content) { node.remove(); return; }
       node.removeAttribute('src'); node.removeAttribute('async'); node.textContent = content;
     });
+    const workoutHtml = '<!doctype html>\n' + copy.outerHTML;
     window.webkit.messageHandlers.homefitNative.postMessage({
-      type: 'offlineWorkoutPack', html: '<!doctype html>\n' + copy.outerHTML,
+      type: 'offlineWorkoutPack', file: 'offline-workout.html', html: workoutHtml,
     });
+
+    // The dashboard itself is the local landing screen. It only includes the
+    // planned-workout path; the rest of the live app remains server-backed.
+    if (!isOfflineWorkout) {
+      const dashboard = document.documentElement.cloneNode(true);
+      dashboard.querySelectorAll('link[rel="stylesheet"]').forEach((node) => node.remove());
+      const dashboardBase = document.createElement('base'); dashboardBase.href = location.origin + '/';
+      dashboard.querySelector('head')?.appendChild(dashboardBase);
+      const dashboardStyle = document.createElement('style'); dashboardStyle.textContent = assets[0];
+      dashboard.querySelector('head')?.appendChild(dashboardStyle);
+      Array.from(dashboard.querySelectorAll('script[src]')).forEach((node) => {
+        const source = node.getAttribute('src') || '';
+        const content = [...replacement.entries()].find(([name]) => source.includes(name))?.[1];
+        if (!content) { node.remove(); return; }
+        node.removeAttribute('src'); node.removeAttribute('async'); node.textContent = content;
+      });
+      window.webkit.messageHandlers.homefitNative.postMessage({
+        type: 'offlineWorkoutPack', file: 'offline-dashboard.html', html: '<!doctype html>\n' + dashboard.outerHTML,
+      });
+    }
   } catch (_) {
     // The current live page remains usable; try again next time it is opened.
   }
 }
 window.addEventListener('load', saveNativeOfflineWorkoutPack);
+
+// The native fallback opens local files. Keep its scope deliberate: Today and
+// a ready plan work, while network-only areas are clearly unavailable.
+if (location.protocol === 'file:') {
+  document.addEventListener('click', (event) => {
+    const planButton = event.target.closest('#load-plan-workout-btn');
+    if (!planButton) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    window.location.assign(new URL('offline-workout.html', document.URL).href);
+  }, true);
+  window.addEventListener('load', () => {
+    const main = document.querySelector('.app-main');
+    if (!main || document.querySelector('.offline-mode-banner')) return;
+    const notice = document.createElement('p');
+    notice.className = 'offline-mode-banner';
+    notice.setAttribute('role', 'status');
+    notice.textContent = 'Offline mode · today’s saved workout is ready on this device.';
+    main.prepend(notice);
+  });
+}
 
 /* ---------- Hamburger menu ---------- */
 (function () {
