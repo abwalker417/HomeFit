@@ -7,6 +7,7 @@ exact-variation match.
 """
 
 import json
+import time
 from urllib.parse import quote_plus
 
 import requests
@@ -73,12 +74,21 @@ Rules:
 """
     content = [{"type": "text", "text": prompt}]
     content.extend({"type": "image_url", "image_url": {"url": frame}} for frame in demo_frames[:2])
-    response = requests.post(
-        ai_provider.chat_completions_url(base_url),
-        headers=ai_provider.headers(settings["api_key"]),
-        json={"model": settings["vision_model"], "messages": [{"role": "user", "content": content}], "stream": False},
-        timeout=45,
-    )
+    response = None
+    # PeakAI and many hosted OpenAI-compatible gateways can return a temporary
+    # 5xx while a vision worker is warming up. Retry only those transient
+    # server-side failures; bad credentials or malformed requests still fail.
+    for attempt in range(3):
+        response = requests.post(
+            ai_provider.chat_completions_url(base_url),
+            headers=ai_provider.headers(settings["api_key"]),
+            json={"model": settings["vision_model"], "messages": [{"role": "user", "content": content}], "stream": False},
+            timeout=45,
+        )
+        if response.status_code < 500:
+            break
+        if attempt < 2:
+            time.sleep(2 ** attempt)
     response.raise_for_status()
     result = _json_object(response.json()["choices"][0]["message"]["content"])
     confidence = float(result.get("confidence") or 0)

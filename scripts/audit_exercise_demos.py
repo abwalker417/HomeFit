@@ -28,6 +28,7 @@ def main():
     parser = argparse.ArgumentParser(description="Verify BuiltHere exercise demos.")
     parser.add_argument("--limit", type=int, help="Verify at most this many demos.")
     parser.add_argument("--include-held", action="store_true", help="Recheck demos already held for review.")
+    parser.add_argument("--retry-errors", action="store_true", help="Retry only entries held by a verifier error.")
     args = parser.parse_args()
 
     database.init_db()
@@ -35,7 +36,10 @@ def main():
         demos = json.load(handle)
     existing = database.get_exercise_demo_review_overrides()
     exercises = [exercise for exercise in load_exercises() if exercise["id"] in demos]
-    if not args.include_held:
+    if args.retry_errors:
+        exercises = [exercise for exercise in exercises
+                     if (existing.get(exercise["id"], {}).get("note") or "").startswith("Verifier error:")]
+    elif not args.include_held:
         exercises = [exercise for exercise in exercises if exercise["id"] not in existing]
     if args.limit:
         exercises = exercises[:args.limit]
