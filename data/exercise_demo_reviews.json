@@ -1,7 +1,7 @@
 {
-  "glute_bridge": "needs_review",
-  "wall_push_up": "needs_review",
-  "tricep_dip_chair": "needs_review",
+  "glute_bridge": "form_demo",
+  "wall_push_up": "form_demo",
+  "tricep_dip_chair": "form_demo",
   "door_row": "needs_review",
   "db_dumbbell_lunge": "needs_review",
   "band_lat_pulldown": "needs_review",
@@ -29,6 +29,8 @@
   "bench_step_up": "form_demo",
   "hip_thrust_bench": "form_demo",
   "db_goblet_squat": "form_demo",
+  "calf_raise": "form_demo",
+  "good_morning": "form_demo",
   "oblique_drops": "needs_review",
   "step_up_knee_drive": "needs_review"
 }

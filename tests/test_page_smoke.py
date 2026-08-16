@@ -88,12 +88,12 @@ def test_owner_can_review_exercise_demos_and_held_demos_do_not_load(onboarded_cl
     response = onboarded_client.get("/settings/exercise-demo-review")
 
     assert response.status_code == 200
-    assert b"Wall Push-Up" in response.data
+    assert b"Door-Frame Row" in response.data
     assert b"Needs review" in response.data
 
     homefit_app._exercise_animations = None
     animations = homefit_app._load_exercise_animations()
-    assert "wall_push_up" not in animations
+    assert "door_row" not in animations
     assert "push_up" in animations
 
 
