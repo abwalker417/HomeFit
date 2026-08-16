@@ -328,7 +328,7 @@
     resultItems.innerHTML = d.items.map((i) =>
       `<div class="pi-row" data-name="${esc(i.name)}" data-qty="${esc(i.quantity)}" style="padding:8px 0; border-bottom:1px solid var(--border);">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span>${i.name} <span class="subtle" style="font-size:12px;">${i.quantity}</span></span>
+          <span>${i.name} <span class="subtle" style="font-size:12px;">${i.quantity}</span>${i.usda_verified ? ' <span class="food-usda-badge">USDA</span>' : ''}</span>
           <button type="button" class="pi-del pill" style="cursor:pointer; border:none; font-size:11px;">remove</button>
         </div>
         <div style="display:flex; gap:5px; margin-top:4px; font-size:12px; color:var(--subtle); align-items:center;">

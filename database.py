@@ -17,7 +17,7 @@ from typing import Optional
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 DB_PATH = Path(os.environ.get(
     "HOMEFIT_DB",
@@ -378,6 +378,13 @@ def init_db():
                 updated_at     TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS food_data_settings (
+                id              INTEGER PRIMARY KEY CHECK (id = 1),
+                usda_fdc_api_key TEXT NOT NULL DEFAULT '',
+                updated_at      TEXT NOT NULL
+            )
+        """)
 
 
         conn.execute("DELETE FROM schema_version")
@@ -435,6 +442,31 @@ def ai_provider_key_is_saved():
     with get_connection() as conn:
         row = conn.execute("SELECT api_key FROM ai_provider_settings WHERE id = 1").fetchone()
     return bool((row and row["api_key"]) or _default_ai_provider_settings()["api_key"])
+
+
+def get_usda_fdc_api_key():
+    """Return the saved USDA FoodData Central key, or the server fallback."""
+    default = os.environ.get("USDA_FDC_API_KEY", "").strip()
+    with get_connection() as conn:
+        row = conn.execute("SELECT usda_fdc_api_key FROM food_data_settings WHERE id = 1").fetchone()
+    return (row["usda_fdc_api_key"].strip() if row and row["usda_fdc_api_key"].strip() else default)
+
+
+def usda_fdc_key_is_saved():
+    return bool(get_usda_fdc_api_key())
+
+
+def save_usda_fdc_api_key(api_key):
+    """Save the instance-wide FDC key. A blank submission keeps the existing key."""
+    key = (api_key or "").strip() or get_usda_fdc_api_key()
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO food_data_settings (id, usda_fdc_api_key, updated_at)
+               VALUES (1, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET usda_fdc_api_key=excluded.usda_fdc_api_key,
+                                             updated_at=excluded.updated_at""",
+            (key[:512], datetime.now().isoformat()),
+        )
 
 
 def save_ai_provider_settings(base_url, api_key, coach_model, fast_model, vision_model):

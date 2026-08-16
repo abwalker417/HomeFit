@@ -395,17 +395,22 @@ def settings():
     if request.method == "POST":
         if not is_owner:
             abort(403)
-        submitted = _ai_settings_from_request(request.form)
-        try:
-            ai_provider.validate_settings(submitted)
-            database.save_ai_provider_settings(**submitted)
-            notice = "AI provider settings saved. New Coach and parsing requests will use them immediately."
-        except ValueError as exc:
-            error = str(exc)
+        if request.form.get("settings_area") == "usda":
+            database.save_usda_fdc_api_key(request.form.get("usda_fdc_api_key"))
+            notice = "USDA FoodData Central settings saved. New food parses will verify matching ingredients when available."
+        else:
+            submitted = _ai_settings_from_request(request.form)
+            try:
+                ai_provider.validate_settings(submitted)
+                database.save_ai_provider_settings(**submitted)
+                notice = "AI provider settings saved. New Coach and parsing requests will use them immediately."
+            except ValueError as exc:
+                error = str(exc)
     return render_template(
         "settings.html",
         ai_settings=database.get_ai_provider_settings() if is_owner else None,
         key_configured=database.ai_provider_key_is_saved() if is_owner else False,
+        usda_key_configured=database.usda_fdc_key_is_saved() if is_owner else False,
         error=error,
         notice=notice,
         all_users=database.list_users() if is_owner else [],
@@ -422,6 +427,18 @@ def test_ai_settings():
         return jsonify({"ok": True, "models": ai_provider.list_models(settings_data)})
     except (ValueError, requests.RequestException) as exc:
         return jsonify({"error": str(exc)}), 400
+
+
+@app.route("/api/settings/usda/test", methods=["POST"])
+def test_usda_settings():
+    if not can_manage_profiles():
+        return jsonify({"error": "forbidden"}), 403
+    import usda_food
+    key = ((request.get_json(silent=True) or {}).get("api_key") or "").strip() or database.get_usda_fdc_api_key()
+    match = usda_food.lookup("banana", key)
+    if not match:
+        return jsonify({"error": "Could not reach USDA FoodData Central with that key."}), 400
+    return jsonify({"ok": True, "match": match["description"]})
 
 
 @app.route("/api/timezone", methods=["POST"])

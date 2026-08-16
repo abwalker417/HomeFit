@@ -1630,6 +1630,7 @@ body:has(.app-main--profiles) {
 .food-favorite-row strong { font-size: 14px; }
 .food-favorite-row span { margin-top: 2px; font-size: 12px; }
 .food-favorite-list-item .favdel { flex-shrink: 0; cursor: pointer; border: none; font-size: 11px; }
+.food-usda-badge { display: inline-block; margin-left: 5px; padding: 2px 5px; border-radius: 999px; background: rgba(var(--accent-rgb), .14); color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: .07em; vertical-align: middle; }
 .composer-row { display: flex; gap: 8px; align-items: flex-end; }
 .composer-row textarea {
   flex: 1; border: none; background: transparent; color: var(--text);

@@ -12,6 +12,7 @@ import requests
 
 import ai_provider
 import database
+import usda_food
 
 # price per 1M tokens (in / out)
 _PRICE = {"gpt-4o-mini": (0.15, 0.60), "gpt-4o": (2.50, 10.00)}
@@ -26,7 +27,7 @@ SYSTEM = (
     "running low on protein for the day, or near the calorie goal). Return ONLY "
     "JSON:\n"
     '{"items":[{"name":"string","quantity":"string","calories":int,'
-    '"protein_g":number,"carbs_g":number,"fat_g":number}],"note":"string"}\n'
+    '"protein_g":number,"carbs_g":number,"fat_g":number,"grams":number}],"note":"string"}\n'
     "No prose, no code fences. If you cannot identify any food, return "
     '{"items":[],"note":""}.'
 )
@@ -86,7 +87,11 @@ def _extract(data, model, in_est, out_est_text):
             "protein_g": _num(it.get("protein_g")),
             "carbs_g": _num(it.get("carbs_g")),
             "fat_g": _num(it.get("fat_g")),
+            # Portions are estimated by the model; USDA nutrition is per 100 g,
+            # so we only use its data when a plausible gram estimate is present.
+            "grams": _num(it.get("grams")),
         })
+    usda_matches = usda_food.enrich_items(items, database.get_usda_fdc_api_key())
     totals = {
         "calories": sum(i["calories"] for i in items),
         "protein_g": round(sum(i["protein_g"] for i in items), 1),
@@ -99,7 +104,7 @@ def _extract(data, model, in_est, out_est_text):
     in_tok = usage.get("prompt_tokens") or in_est
     out_tok = usage.get("completion_tokens") or (len(content) // 4)
     cost = (in_tok * pin + out_tok * pout) / 1_000_000
-    return {"items": items, "totals": totals, "note": note,
+    return {"items": items, "totals": totals, "note": note, "usda_matches": usda_matches,
             "cost_usd": round(cost, 6), "model": model, "tokens": in_tok + out_tok}
 
 
