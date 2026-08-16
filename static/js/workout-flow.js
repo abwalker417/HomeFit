@@ -272,7 +272,10 @@ window.startWorkout = function () {
     $('wk-howto-name').textContent = e.name;
     const m = $('wk-howto-media');
     if (e.anim && e.anim.length >= 2) {
-      m.innerHTML = `<div class="wk-howto-anim"><img src="${e.anim[0]}"><img class="wk-howto-f2" src="${e.anim[1]}"></div>`;
+      const note = e.anim_tier === 'form'
+        ? 'Form example — follow the setup and equipment steps below for this version.'
+        : 'Verified demo for this exercise.';
+      m.innerHTML = `<div class="wk-howto-anim"><img src="${e.anim[0]}" alt=""><img class="wk-howto-f2" src="${e.anim[1]}" alt=""></div><p class="wk-howto-demo-note">${note}</p>`;
       m.style.display = '';
     } else if (e.demo_image) {
       m.innerHTML = `<img src="${e.demo_image}" alt="">`; m.style.display = '';

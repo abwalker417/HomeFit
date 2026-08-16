@@ -6,7 +6,7 @@
   <div>
     <p class="eyebrow">EXERCISE QUALITY</p>
     <h1>Review movement guidance.</h1>
-    <p class="subtle">A demo is shown only when it matches the exact exercise and setup. “Needs review” and “hidden” both use the written how-to instead.</p>
+    <p class="subtle">Exact demos match the exercise and setup. A “form example” shows the same movement pattern but clearly notes when the setup differs. “Needs review” and “hidden” use the written how-to instead.</p>
   </div>
 </section>
 
@@ -27,6 +27,7 @@
         <label>Decision
           <select name="status">
             <option value="approved" {{ 'selected' if item.status == 'approved' else '' }}>Approved — show this demo</option>
+            <option value="form_demo" {{ 'selected' if item.status == 'form_demo' else '' }}>Form example — show with setup note</option>
             <option value="needs_review" {{ 'selected' if item.status == 'needs_review' else '' }}>Needs review — hide demo for now</option>
             <option value="hidden" {{ 'selected' if item.status == 'hidden' else '' }}>No demo — hide it</option>
           </select>

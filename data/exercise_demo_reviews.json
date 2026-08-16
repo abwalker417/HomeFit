@@ -16,7 +16,7 @@
   "cable_bicep_curl_cage": "needs_review",
   "landmine_row_cage": "needs_review",
   "landmine_squat_cage": "needs_review",
-  "bench_supported_row": "needs_review",
+  "bench_supported_row": "approved",
   "ab_machine_oblique": "needs_review",
   "db_rear_delt_fly": "needs_review",
   "reverse_lunge": "needs_review",
@@ -25,7 +25,10 @@
   "typewriter_pullup": "needs_review",
   "rack_pullup": "needs_review",
   "db_skullcrusher": "needs_review",
-  "db_chest_fly": "needs_review",
+  "db_chest_fly": "form_demo",
+  "bench_step_up": "form_demo",
+  "hip_thrust_bench": "form_demo",
+  "db_goblet_squat": "form_demo",
   "oblique_drops": "needs_review",
   "step_up_knee_drive": "needs_review"
 }

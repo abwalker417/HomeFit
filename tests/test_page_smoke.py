@@ -97,6 +97,16 @@ def test_owner_can_review_exercise_demos_and_held_demos_do_not_load(onboarded_cl
     assert "push_up" in animations
 
 
+def test_form_example_demo_loads_with_a_distinct_tier(onboarded_client):
+    homefit_app.database.save_exercise_demo_review(
+        "bench_step_up", "form_demo", "Same movement, with a knee-drive variation."
+    )
+    homefit_app._exercise_animations = None
+
+    assert "bench_step_up" in homefit_app._load_exercise_animations()
+    assert homefit_app._exercise_demo_tier("bench_step_up") == "form"
+
+
 def test_any_signed_in_user_can_hold_a_suspect_demo(onboarded_client):
     response = onboarded_client.post(
         "/api/exercise-demo-report",

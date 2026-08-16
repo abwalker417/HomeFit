@@ -2175,7 +2175,7 @@ def get_exercise_demo_review_overrides():
 
 
 def save_exercise_demo_review(exercise_id, status, note="", instructions=None):
-    if status not in {"approved", "needs_review", "hidden"}:
+    if status not in {"approved", "form_demo", "needs_review", "hidden"}:
         raise ValueError("invalid demo review status")
     with get_connection() as conn:
         conn.execute(

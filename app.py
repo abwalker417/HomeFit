@@ -1523,6 +1523,7 @@ def _garage_workout(uid):
             "last_weight": last_weight(e.get("id")),
             "equipment": e.get("equipment") or raw.get(e.get("id"), {}).get("equipment"),
             "anim": anims.get(e.get("id")),
+            "anim_tier": _exercise_demo_tier(e.get("id")),
             "instructions": raw.get(e.get("id"), {}).get("instructions"),
         })
     return {"rest": False, "name": day.get("name", "Workout"), "exercises": exercises}
@@ -1584,6 +1585,7 @@ def _garage_workout_for_type(uid, wtype):
             "last_weight": last_weight(s["id"]),
             "equipment": e.get("equipment"),
             "anim": anims.get(s["id"]),
+            "anim_tier": _exercise_demo_tier(s["id"]),
             "instructions": e.get("instructions"),
         })
     return {"rest": False, "name": GARAGE_TYPES[wtype], "exercises": exercises}
@@ -1608,6 +1610,7 @@ def _garage_library(uid):
             "default_sets": r.get("default_sets", 3), "default_reps": r.get("default_reps", 10),
             "unit": r.get("unit", "reps"), "rest_seconds": r.get("rest_seconds", 60),
             "instructions": r.get("instructions", ""), "anim": anims.get(st["id"]),
+            "anim_tier": _exercise_demo_tier(st["id"]),
         })
     return lib
 
@@ -1863,6 +1866,7 @@ def _render_workout_page(uid, workout, *, offline_ready=False, offline_date=None
         ex["weight_hint"] = weight_hint(ex.get("id", ""))
         ex["demo_image"] = images.get(ex.get("name", ""))
         ex["anim"] = anims.get(ex.get("id", ""))
+        ex["anim_tier"] = _exercise_demo_tier(ex.get("id", ""))
 
     # Embed the full exercise library so "Add exercise" works in-page (no network
     # round-trip — the native app re-fetches every screen, which froze on flaky
@@ -1881,6 +1885,7 @@ def _render_workout_page(uid, workout, *, offline_ready=False, offline_date=None
             "instructions": r.get("instructions", ""), "rest_seconds": r.get("rest_seconds", 60),
             "available": st["available"], "in_workout": st["id"] in in_workout,
             "anim": anims.get(st["id"]),
+            "anim_tier": _exercise_demo_tier(st["id"]),
         })
 
     day = {
@@ -2140,7 +2145,7 @@ def _load_exercise_animations():
                 # substitute a merely similar third-party animation.
                 _exercise_animations = {
                     exercise_id: frames for exercise_id, frames in raw.items()
-                    if reviews.get(exercise_id, "approved") == "approved"
+                    if reviews.get(exercise_id, "approved") in {"approved", "form_demo"}
                 }
         except Exception:
             _exercise_animations = {}
@@ -2163,6 +2168,11 @@ def _exercise_demo_review_statuses():
         for exercise_id, review in database.get_exercise_demo_review_overrides().items()
     })
     return statuses
+
+
+def _exercise_demo_tier(exercise_id):
+    """Whether media is exact or a clearly-labelled form reference."""
+    return "form" if _exercise_demo_review_statuses().get(exercise_id) == "form_demo" else "exact"
 
 
 @app.route("/api/identify-exercise", methods=["POST"])
