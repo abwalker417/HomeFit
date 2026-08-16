@@ -1961,6 +1961,76 @@ def get_food_favorites(user_id):
     return out
 
 
+def get_native_archive(user_id):
+    """Return one user's portable BuiltHere archive without secrets or Health data.
+
+    This is intentionally read-only. The native app uses original V2 IDs as
+    stable import IDs, so re-importing an archive cannot create duplicates.
+    """
+    profile = get_profile(user_id)
+    user = get_user(user_id) or {}
+    if not profile:
+        return None
+    plan = get_apex_plan(user_id)
+    goal = get_nutrition_goal(user_id)
+    with get_connection() as conn:
+        weights = [dict(row) for row in conn.execute(
+            "SELECT id, weight, logged_at FROM weight_log WHERE user_id = ? ORDER BY id", (user_id,))]
+        workouts = [dict(row) for row in conn.execute(
+            """SELECT id, day_name, day_number, exercises_json, duration_seconds, completed_at
+               FROM workout_log WHERE user_id = ? ORDER BY id""", (user_id,))]
+        foods = [dict(row) for row in conn.execute(
+            """SELECT id, meal_date, description, items_json, calories, protein_g, carbs_g, fat_g, created_at
+               FROM food_log WHERE user_id = ? ORDER BY id""", (user_id,))]
+        favorites = [dict(row) for row in conn.execute(
+            """SELECT id, name, items_json, calories, protein_g, carbs_g, fat_g, created_at
+               FROM food_favorite WHERE user_id = ? ORDER BY id""", (user_id,))]
+
+    def timestamp(value):
+        # V2 stores user-local naive timestamps. Preserve that wall-clock value
+        # explicitly as ISO-8601 UTC only for migration transport; native import
+        # never writes historical records back to Apple Health.
+        try:
+            return datetime.fromisoformat(value).replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+        except (TypeError, ValueError):
+            return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    archive = {
+        "formatVersion": 1,
+        "createdAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "source": "builthere-v2",
+        "profile": {
+            "id": f"v2-profile-{user_id}", "name": user.get("name", "BuiltHere user"),
+            "currentWeight": profile["current_weight"], "goalWeight": profile["goal_weight"],
+            "fitnessLevel": profile.get("fitness_level", "beginner"),
+            "limitations": profile.get("limitations", []), "equipment": profile.get("equipment", []),
+            "customEquipment": profile.get("custom_equipment", []),
+            "ignoredExercises": profile.get("ignored_exercises", []),
+            "daysPerWeek": profile.get("days_per_week", 4),
+            "workoutDurationTarget": profile.get("workout_duration_target", 45),
+            "accentColor": profile.get("accent_color", "#3b82f6"),
+            "timezone": profile.get("timezone"), "updatedAt": timestamp(profile.get("updated_at")),
+        },
+        "weeklyPlan": ({"id": f"v2-plan-{user_id}", "planJSON": json.dumps(plan["plan"]),
+                        "updatedAt": timestamp(plan["created_at"])} if plan else None),
+        "nutritionGoal": ({"id": f"v2-nutrition-{user_id}", "calories": goal["calories"],
+                           "proteinGrams": goal["protein_g"], "carbsGrams": goal["carbs_g"],
+                           "fatGrams": goal["fat_g"], "updatedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")}
+                          if goal else None),
+        "weights": [{"id": f"v2-weight-{row['id']}", "pounds": row["weight"], "loggedAt": timestamp(row["logged_at"])} for row in weights],
+        "workouts": [{"id": f"v2-workout-{row['id']}", "name": row["day_name"], "dayNumber": row["day_number"],
+                      "exercisesJSON": row["exercises_json"], "durationSeconds": row["duration_seconds"],
+                      "completedAt": timestamp(row["completed_at"])} for row in workouts],
+        "foodEntries": [{"id": f"v2-food-{row['id']}", "mealDate": row["meal_date"], "description": row["description"],
+                         "itemsJSON": row["items_json"], "calories": row["calories"], "proteinGrams": row["protein_g"],
+                         "carbsGrams": row["carbs_g"], "fatGrams": row["fat_g"], "createdAt": timestamp(row["created_at"])} for row in foods],
+        "foodFavorites": [{"id": f"v2-favorite-{row['id']}", "name": row["name"], "itemsJSON": row["items_json"],
+                           "calories": row["calories"], "proteinGrams": row["protein_g"], "carbsGrams": row["carbs_g"],
+                           "fatGrams": row["fat_g"], "createdAt": timestamp(row["created_at"])} for row in favorites],
+    }
+    return archive
+
+
 def delete_food_favorite(user_id, fav_id):
     with get_connection() as conn:
         conn.execute("DELETE FROM food_favorite WHERE id = ? AND user_id = ?", (fav_id, user_id))

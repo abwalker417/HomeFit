@@ -67,6 +67,7 @@ PUBLIC_ENDPOINTS = {
     "profile_switch_out", "manifest", "service_worker", "static",
     "api_last_workout", "api_recent_workouts", "api_last_weight", "api_external_workout", "api_sleep",
     "api_health_metric", "push_register_apns", "api_panel_summary",
+	"native_archive",
     "api_food_agent_today", "api_food_agent_log", "api_food_agent_log_image",
     "api_food_agent_goals", "api_food_agent_favorites", "api_food_agent_log_favorite",
     "api_coach_readiness", "api_coach_plan", "api_coach_rest_day", "api_coach_rest_day_clear",
@@ -374,6 +375,22 @@ def set_accent():
         return jsonify({"error": "invalid color"}), 400
     database.set_accent_color(uid, color)
     return jsonify({"ok": True, "color": color, "accent_rgb": _accent_rgb(color)})
+
+
+@app.route("/api/native-archive", methods=["GET"])
+def native_archive():
+    """Authenticated, read-only export for the offline-native migration."""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "", 1).strip()
+    uid = session.get("user_id") or database.get_user_id_by_token(token)
+    if not uid:
+        return jsonify({"error": "unauthorized"}), 401
+    archive = database.get_native_archive(uid)
+    if not archive:
+        return jsonify({"error": "profile not found"}), 404
+    response = jsonify(archive)
+    response.headers["Content-Disposition"] = "attachment; filename=BuiltHere-backup.json"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 def _ai_settings_from_request(payload):
