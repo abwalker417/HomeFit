@@ -2327,6 +2327,7 @@ def toggle_ignore(exercise_id):
 @app.route("/api/last_workout")
 def api_last_workout():
     from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
     token = request.args.get("token", "")
     uid = database.get_user_id_by_token(token)
     if not uid:
@@ -2337,6 +2338,11 @@ def api_last_workout():
     profile = database.get_profile(uid)
     duration_s = workout.get("duration_seconds") or 0
     completed_at = datetime.fromisoformat(workout["completed_at"])
+    # Workout completion timestamps are stored as local wall time. Attach the
+    # profile's zone before serializing for iOS; treating a naive Denver time as
+    # UTC shifts the Apple Health workout six hours earlier.
+    if completed_at.tzinfo is None:
+        completed_at = completed_at.replace(tzinfo=ZoneInfo(database.get_user_timezone(uid)))
     start_time = completed_at - timedelta(seconds=duration_s)
     exercises = workout.get("exercises", [])
     enriched = [get_exercise_by_id(e["id"]) for e in exercises if e.get("id") and e.get("completed")]
@@ -2363,6 +2369,7 @@ def api_recent_workouts():
     Auth: ?token= (same api_token as the other relays).
     """
     from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
     token = request.args.get("token", "")
     uid = database.get_user_id_by_token(token)
     if not uid:
@@ -2382,6 +2389,8 @@ def api_recent_workouts():
             continue
         if completed_at < cutoff:
             break  # history is newest-first; everything older follows
+        if completed_at.tzinfo is None:
+            completed_at = completed_at.replace(tzinfo=ZoneInfo(database.get_user_timezone(uid)))
         duration_s = w.get("duration_seconds") or 0
         start_time = completed_at - timedelta(seconds=duration_s)
         enriched = [get_exercise_by_id(e["id"]) for e in w.get("exercises", [])
