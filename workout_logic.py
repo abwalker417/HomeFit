@@ -79,7 +79,19 @@ def load_exercises():
     if not EXERCISE_PATH.exists():
         return []
     with open(EXERCISE_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+        exercises = json.load(f)
+    # Reviewed wording lives in SQLite so it survives application releases.
+    # Import here keeps the catalog's source JSON portable for the native app.
+    try:
+        import database
+        overrides = database.get_exercise_demo_review_overrides()
+    except Exception:
+        overrides = {}
+    for exercise in exercises:
+        instructions = overrides.get(exercise.get("id"), {}).get("instructions")
+        if instructions:
+            exercise["instructions"] = instructions
+    return exercises
 
 
 def _norm(s):

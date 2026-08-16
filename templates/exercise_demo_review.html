@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Exercise quality review — BuiltHere{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">EXERCISE QUALITY</p>
+    <h1>Review movement guidance.</h1>
+    <p class="subtle">A demo is shown only when it matches the exact exercise and setup. “Needs review” and “hidden” both use the written how-to instead.</p>
+  </div>
+</section>
+
+<section class="card settings-card">
+  <p class="subtle">Start with the items at the top. The source label is the third-party animation’s exercise name, so mismatches are easy to spot.</p>
+  <div class="demo-review-list">
+    {% for item in queue %}
+    <article class="demo-review-row">
+      <div>
+        <p class="card-eyebrow">{{ item.exercise.category|upper }} · {{ item.status|replace('_', ' ')|upper }}</p>
+        <h2>{{ item.exercise.name }}</h2>
+        <p class="subtle">{{ item.exercise.instructions }}</p>
+        {% if item.demo_source %}<p class="hint">Current demo source: <strong>{{ item.demo_source }}</strong></p>{% else %}<p class="hint">No demo is available yet.</p>{% endif %}
+        <p class="hint">Reference: <a href="https://www.acefitness.org/resources/everyone/exercise-library/?search={{ item.exercise.name|urlencode }}" target="_blank" rel="noopener">ACE Exercise Library</a></p>
+      </div>
+      <form method="post" class="form demo-review-form">
+        <input type="hidden" name="exercise_id" value="{{ item.exercise.id }}">
+        <label>Decision
+          <select name="status">
+            <option value="approved" {{ 'selected' if item.status == 'approved' else '' }}>Approved — show this demo</option>
+            <option value="needs_review" {{ 'selected' if item.status == 'needs_review' else '' }}>Needs review — hide demo for now</option>
+            <option value="hidden" {{ 'selected' if item.status == 'hidden' else '' }}>No demo — hide it</option>
+          </select>
+        </label>
+        <label>Review note <input name="note" maxlength="500" value="{{ item.note }}" placeholder="What needs correcting?"></label>
+        <button class="btn btn-secondary" type="submit">Save decision</button>
+        {% if item.demo_source %}<button class="btn btn-secondary verify-demo" type="button" data-exercise-id="{{ item.exercise.id }}">Verify with AI</button>{% endif %}
+        <span class="hint verify-result" role="status"></span>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.verify-demo').forEach((button) => {
+  button.addEventListener('click', async () => {
+    const result = button.parentElement.querySelector('.verify-result');
+    button.disabled = true; result.textContent = 'Checking exact movement and setup…';
+    try {
+      const response = await fetch('/api/settings/exercise-demo-review/verify', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({exercise_id: button.dataset.exerciseId})
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Verification failed.');
+      result.textContent = `${data.status === 'approved' ? 'Approved' : 'Held for review'} (${Math.round(data.confidence * 100)}%): ${data.reason}`;
+    } catch (error) { result.textContent = error.message || 'Verification failed.'; }
+    finally { button.disabled = false; }
+  });
+});
+</script>
+{% endblock %}

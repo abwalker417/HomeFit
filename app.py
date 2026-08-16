@@ -2114,6 +2114,7 @@ def daily_brief():
 
 _exercise_images = None
 _exercise_animations = None
+_exercise_demo_review_seed = None
 
 def _load_exercise_images():
     global _exercise_images
@@ -2133,10 +2134,35 @@ def _load_exercise_animations():
         path = os.path.join(os.path.dirname(__file__), "data", "exercise_animations.json")
         try:
             with open(path) as f:
-                _exercise_animations = json.load(f)
+                raw = json.load(f)
+                reviews = _exercise_demo_review_statuses()
+                # A form cue is useful only if it is the same movement. Never
+                # substitute a merely similar third-party animation.
+                _exercise_animations = {
+                    exercise_id: frames for exercise_id, frames in raw.items()
+                    if reviews.get(exercise_id, "approved") == "approved"
+                }
         except Exception:
             _exercise_animations = {}
     return _exercise_animations
+
+
+def _exercise_demo_review_statuses():
+    """Combine checked-in safety holds with persistent owner decisions."""
+    global _exercise_demo_review_seed
+    if _exercise_demo_review_seed is None:
+        path = os.path.join(os.path.dirname(__file__), "data", "exercise_demo_reviews.json")
+        try:
+            with open(path) as f:
+                _exercise_demo_review_seed = json.load(f)
+        except Exception:
+            _exercise_demo_review_seed = {}
+    statuses = dict(_exercise_demo_review_seed)
+    statuses.update({
+        exercise_id: review["status"]
+        for exercise_id, review in database.get_exercise_demo_review_overrides().items()
+    })
+    return statuses
 
 
 @app.route("/api/identify-exercise", methods=["POST"])
@@ -2404,6 +2430,91 @@ def exercises():
         return redirect(url_for("onboarding"))
     items = all_exercises_with_status(profile)
     return render_template("exercises.html", exercises=items, profile=profile, user_id=uid)
+
+
+@app.route("/settings/exercise-demo-review", methods=["GET", "POST"])
+def exercise_demo_review():
+    """Owner-only quality queue for exercise instructions and demo media."""
+    if not can_manage_profiles():
+        abort(403)
+
+    from workout_logic import load_exercises
+    if request.method == "POST":
+        exercise_id = (request.form.get("exercise_id") or "").strip()
+        status = (request.form.get("status") or "needs_review").strip()
+        known_ids = {exercise["id"] for exercise in load_exercises()}
+        if exercise_id not in known_ids:
+            abort(404)
+        try:
+            database.save_exercise_demo_review(exercise_id, status, request.form.get("note", ""))
+        except ValueError:
+            abort(400)
+        global _exercise_animations
+        _exercise_animations = None
+        return redirect(url_for("exercise_demo_review"))
+
+    raw_demos = {}
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "data", "exercise_animations.json")) as f:
+            raw_demos = json.load(f)
+    except Exception:
+        pass
+    statuses = _exercise_demo_review_statuses()
+    overrides = database.get_exercise_demo_review_overrides()
+    queue = []
+    for exercise in load_exercises():
+        exercise_id = exercise["id"]
+        demo = raw_demos.get(exercise_id)
+        status = statuses.get(exercise_id, "approved" if demo else "needs_review")
+        queue.append({
+            "exercise": exercise,
+            "status": status,
+            "note": overrides.get(exercise_id, {}).get("note", ""),
+            "demo_source": (demo[0].split("/exercises/")[1].split("/")[0].replace("_", " ") if demo else None),
+        })
+    queue.sort(key=lambda item: (item["status"] == "approved", item["exercise"]["name"].lower()))
+    return render_template("exercise_demo_review.html", queue=queue)
+
+
+@app.route("/api/settings/exercise-demo-review/verify", methods=["POST"])
+def verify_exercise_demo():
+    """Run the conservative vision verifier; it approves only exact matches."""
+    if not can_manage_profiles():
+        return jsonify({"error": "forbidden"}), 403
+    exercise_id = ((request.get_json(silent=True) or {}).get("exercise_id") or "").strip()
+    from workout_logic import load_exercises
+    exercise = next((item for item in load_exercises() if item["id"] == exercise_id), None)
+    if not exercise:
+        return jsonify({"error": "exercise not found"}), 404
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "data", "exercise_animations.json")) as f:
+            demo = json.load(f).get(exercise_id)
+        import exercise_quality
+        result = exercise_quality.verify_demo(exercise, demo)
+        database.save_exercise_demo_review(
+            exercise_id, result["status"], result["reason"], result.get("instructions") or None
+        )
+        global _exercise_animations
+        _exercise_animations = None
+        return jsonify({"ok": True, **result})
+    except (ValueError, requests.RequestException, KeyError, json.JSONDecodeError) as exc:
+        return jsonify({"error": str(exc) or "Verification could not be completed."}), 502
+
+
+@app.route("/api/exercise-demo-report", methods=["POST"])
+def report_exercise_demo():
+    """Any signed-in user can pull a suspect demo before it misleads someone else."""
+    if not session.get("user_id"):
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    exercise_id = (data.get("exercise_id") or "").strip()
+    from workout_logic import load_exercises
+    if exercise_id not in {item["id"] for item in load_exercises()}:
+        return jsonify({"error": "exercise not found"}), 404
+    database.save_exercise_demo_review(exercise_id, "needs_review", data.get("note", "Reported by a BuiltHere user."))
+    global _exercise_animations
+    _exercise_animations = None
+    return jsonify({"ok": True})
 
 
 @app.route("/api/toggle_ignore/<exercise_id>", methods=["POST"])

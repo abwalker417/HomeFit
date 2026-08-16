@@ -193,6 +193,19 @@ def init_db():
                 generated_at TEXT NOT NULL
             )
         """)
+        # Review decisions are data, not source files: they survive application
+        # updates and let an owner correct a questionable exercise demo without
+        # editing a release on the server.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS exercise_demo_review (
+                exercise_id TEXT PRIMARY KEY,
+                status      TEXT NOT NULL,
+                note        TEXT NOT NULL DEFAULT '',
+                instructions TEXT,
+                updated_at  TEXT NOT NULL
+            )
+        """)
+        _ensure_column(conn, "exercise_demo_review", "instructions", "TEXT")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS apex_memory (
                 user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -2150,3 +2163,27 @@ def save_user_photo(user_id, filename):
 def clear_apex_chat(user_id):
     with get_connection() as conn:
         conn.execute("DELETE FROM apex_chat WHERE user_id = ?", (user_id,))
+
+
+def get_exercise_demo_review_overrides():
+    """Owner review decisions keyed by catalog exercise id."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT exercise_id, status, note, instructions, updated_at FROM exercise_demo_review"
+        ).fetchall()
+    return {row["exercise_id"]: dict(row) for row in rows}
+
+
+def save_exercise_demo_review(exercise_id, status, note="", instructions=None):
+    if status not in {"approved", "needs_review", "hidden"}:
+        raise ValueError("invalid demo review status")
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO exercise_demo_review (exercise_id, status, note, instructions, updated_at)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(exercise_id) DO UPDATE SET
+                 status=excluded.status, note=excluded.note,
+                 instructions=COALESCE(excluded.instructions, exercise_demo_review.instructions),
+                 updated_at=excluded.updated_at""",
+            (exercise_id, status, (note or "").strip()[:500], instructions, datetime.now().isoformat()),
+        )

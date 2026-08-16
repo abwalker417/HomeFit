@@ -81,6 +81,33 @@ def test_owner_settings_render_and_keep_the_provider_key_masked(onboarded_client
     assert b"peak-homefit-key" not in response.data
 
 
+def test_owner_can_review_exercise_demos_and_held_demos_do_not_load(onboarded_client):
+    with onboarded_client.session_transaction() as session:
+        session["is_owner"] = True
+
+    response = onboarded_client.get("/settings/exercise-demo-review")
+
+    assert response.status_code == 200
+    assert b"Wall Push-Up" in response.data
+    assert b"Needs review" in response.data
+
+    homefit_app._exercise_animations = None
+    animations = homefit_app._load_exercise_animations()
+    assert "wall_push_up" not in animations
+    assert "push_up" in animations
+
+
+def test_any_signed_in_user_can_hold_a_suspect_demo(onboarded_client):
+    response = onboarded_client.post(
+        "/api/exercise-demo-report",
+        json={"exercise_id": "push_up", "note": "The setup does not match."},
+    )
+
+    assert response.status_code == 200
+    homefit_app._exercise_animations = None
+    assert "push_up" not in homefit_app._load_exercise_animations()
+
+
 def test_unauthenticated_pages_redirect_to_profile_picker():
     client = homefit_app.app.test_client()
 

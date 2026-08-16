@@ -92,6 +92,13 @@
   </ul>
   <a class="btn btn-secondary settings-add-profile" href="{{ url_for('profile_new') }}">Add profile</a>
 </section>
+
+<section class="card settings-card">
+  <p class="card-eyebrow">EXERCISE QUALITY</p>
+  <h2>Demo and instruction review</h2>
+  <p class="subtle">Only approved demos are shown in workouts. Flag a mismatch and BuiltHere will fall back to the written instructions until it is reviewed.</p>
+  <a class="btn btn-secondary" href="{{ url_for('exercise_demo_review') }}">Review exercise demos</a>
+</section>
 {% endif %}
 
 <section class="card settings-card" id="native-device-settings" hidden>

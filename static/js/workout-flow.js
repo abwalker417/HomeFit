@@ -267,6 +267,8 @@ window.startWorkout = function () {
   const ov = $('wk-howto-ov');
   $('wk-howto').addEventListener('click', () => {
     const e = exAt(cur);
+    $('wk-howto-report').disabled = false;
+    $('wk-howto-report').textContent = 'Report issue';
     $('wk-howto-name').textContent = e.name;
     const m = $('wk-howto-media');
     if (e.anim && e.anim.length >= 2) {
@@ -276,8 +278,19 @@ window.startWorkout = function () {
       m.innerHTML = `<img src="${e.demo_image}" alt="">`; m.style.display = '';
     } else { m.innerHTML = ''; m.style.display = 'none'; }
     $('wk-howto-text').textContent = e.instructions || 'No instructions for this move yet.';
-    $('wk-howto-yt').href = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(e.name + ' proper form');
+    $('wk-howto-ref').href = 'https://www.acefitness.org/resources/everyone/exercise-library/?search=' + encodeURIComponent(e.name);
     ov.classList.remove('hidden');
+  });
+  $('wk-howto-report').addEventListener('click', async () => {
+    const e = exAt(cur);
+    const button = $('wk-howto-report');
+    button.disabled = true; button.textContent = 'Reported';
+    try {
+      await fetch('/api/exercise-demo-report', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({exercise_id: e.id, note: 'Reported from the workout how-to.'})
+      });
+    } catch (_) { button.textContent = 'Try again'; button.disabled = false; }
   });
   function closeHowto() { ov.classList.add('hidden'); $('wk-howto-media').innerHTML = ''; }
   $('wk-howto-close').addEventListener('click', closeHowto);
