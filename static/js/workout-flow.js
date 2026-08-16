@@ -119,9 +119,13 @@ window.startWorkout = function () {
     const pending = pendingCompletion();
     if (!pending || !pending.payload || !navigator.onLine) return;
     try {
-      await sendCompletion(pending.payload);
-      localStorage.removeItem(PENDING_KEY);
-      setSyncStatus('Workout synced.');
+      if (window.BuiltHereOffline?.syncPendingCompletions) {
+        await window.BuiltHereOffline.syncPendingCompletions();
+      } else {
+        await sendCompletion(pending.payload);
+        localStorage.removeItem(PENDING_KEY);
+      }
+      if (!pendingCompletion()) setSyncStatus('Workout synced.');
     } catch (_) {
       setSyncStatus('Saved on this device — will sync when the connection returns.');
     }
@@ -359,7 +363,9 @@ window.startWorkout = function () {
       }
       showCompletionScreen(duration, data.kcal, data.exercises_completed, dayName);
     } catch (err) {
-      localStorage.setItem(PENDING_KEY, JSON.stringify({ payload, queuedAt: Date.now() }));
+      localStorage.setItem(PENDING_KEY, JSON.stringify({
+        payload, queuedAt: Date.now(), completedAt: new Date().toISOString(),
+      }));
       localStorage.removeItem(STORE_KEY);
       setSyncStatus('Workout saved on this device. It will sync automatically when you reconnect.');
       showCompletionScreen(duration, null, items.filter((item) => item.completed).length, dayName, true);

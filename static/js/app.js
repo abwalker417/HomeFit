@@ -20,6 +20,47 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ---------- Offline workout completion sync ---------- */
+// Keep this queue independent of the workout page: it must flush even when the
+// user finished offline, closed the app, and only returns after the server does.
+window.BuiltHereOffline = window.BuiltHereOffline || {};
+window.BuiltHereOffline.syncPendingCompletions = async function () {
+  if (!navigator.onLine) return 0;
+  const keys = [];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key && key.startsWith('homefit_pending_completion_')) keys.push(key);
+  }
+  let synced = 0;
+  for (const key of keys) {
+    let pending;
+    try { pending = JSON.parse(localStorage.getItem(key)); } catch (_) { continue; }
+    if (!pending?.payload) continue;
+    try {
+      const response = await fetch('/api/complete_workout', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(pending.payload),
+      });
+      if (!response.ok) continue;
+      const data = await response.json();
+      localStorage.removeItem(key);
+      synced += 1;
+      if (window.webkit?.messageHandlers?.healthKit) {
+        const end = pending.completedAt || new Date(pending.queuedAt || Date.now()).toISOString();
+        const duration = Number(pending.payload.duration_seconds) || 0;
+        const start = new Date(new Date(end).getTime() - duration * 1000).toISOString();
+        window.webkit.messageHandlers.healthKit.postMessage({
+          type: 'logWorkout', durationSeconds: duration, kcal: data.kcal || 0, startTime: start, endTime: end,
+        });
+      }
+    } catch (_) {
+      // Captive Wi-Fi can report online while the server remains unreachable.
+    }
+  }
+  return synced;
+};
+window.addEventListener('online', () => window.BuiltHereOffline.syncPendingCompletions());
+window.addEventListener('load', () => window.BuiltHereOffline.syncPendingCompletions());
+
 /* ---------- Hamburger menu ---------- */
 (function () {
   const btn = document.getElementById('hamburger-btn');
