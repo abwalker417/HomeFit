@@ -61,6 +61,48 @@ window.BuiltHereOffline.syncPendingCompletions = async function () {
 window.addEventListener('online', () => window.BuiltHereOffline.syncPendingCompletions());
 window.addEventListener('load', () => window.BuiltHereOffline.syncPendingCompletions());
 
+/* ---------- Native offline workout package ---------- */
+// WKWebView does not reliably restore a service-worker cache after a cold
+// offline launch.  For the installed iPhone app, turn the prepared workout
+// into one self-contained HTML file (CSS + workout scripts inlined) and hand
+// it to the native wrapper. It contains no Food, Health, Coach, or history.
+async function saveNativeOfflineWorkoutPack() {
+  if (location.pathname !== '/offline-workout' || !window.webkit?.messageHandlers?.homefitNative) return;
+  try {
+    const assets = await Promise.all([
+      fetch('/static/css/style.css').then((r) => r.ok ? r.text() : ''),
+      fetch('/static/js/app.js').then((r) => r.ok ? r.text() : ''),
+      fetch('/static/js/weight-modes.js').then((r) => r.ok ? r.text() : ''),
+      fetch('/static/js/workout-flow.js').then((r) => r.ok ? r.text() : ''),
+    ]);
+    if (assets.some((asset) => !asset)) return;
+    const copy = document.documentElement.cloneNode(true);
+    copy.querySelectorAll('link[rel="stylesheet"]').forEach((node) => node.remove());
+    // Keep relative API calls pointed at the configured server once this file
+    // is loaded from the iPhone's local filesystem after a reconnect.
+    const base = document.createElement('base'); base.href = location.origin + '/';
+    copy.querySelector('head')?.appendChild(base);
+    const style = document.createElement('style'); style.textContent = assets[0];
+    copy.querySelector('head')?.appendChild(style);
+    const scripts = Array.from(copy.querySelectorAll('script[src]'));
+    const replacement = new Map([
+      ['app.js', assets[1]], ['weight-modes.js', assets[2]], ['workout-flow.js', assets[3]],
+    ]);
+    scripts.forEach((node) => {
+      const source = node.getAttribute('src') || '';
+      const content = [...replacement.entries()].find(([name]) => source.includes(name))?.[1];
+      if (!content) { node.remove(); return; }
+      node.removeAttribute('src'); node.removeAttribute('async'); node.textContent = content;
+    });
+    window.webkit.messageHandlers.homefitNative.postMessage({
+      type: 'offlineWorkoutPack', html: '<!doctype html>\n' + copy.outerHTML,
+    });
+  } catch (_) {
+    // The current live page remains usable; try again next time it is opened.
+  }
+}
+window.addEventListener('load', saveNativeOfflineWorkoutPack);
+
 /* ---------- Hamburger menu ---------- */
 (function () {
   const btn = document.getElementById('hamburger-btn');
