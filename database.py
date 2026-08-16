@@ -1918,7 +1918,7 @@ def get_food_favorites(user_id):
     with get_connection() as conn:
         rows = conn.execute(
             "SELECT id, name, items_json, calories, protein_g, carbs_g, fat_g "
-            "FROM food_favorite WHERE user_id = ? ORDER BY name", (user_id,),
+            "FROM food_favorite WHERE user_id = ? ORDER BY datetime(created_at) DESC, id DESC", (user_id,),
         ).fetchall()
     out = [dict(r) for r in rows]
     for r in out:

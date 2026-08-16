@@ -1603,6 +1603,33 @@ body:has(.app-main--profiles) {
 
 /* Nutrition composer (chat-style: photo + text + send) */
 .food-composer { padding: 10px; }
+.food-favorites-panel { padding: 14px; margin-top: 6px; }
+.food-favorites-heading { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.food-favorites-heading p { margin: 3px 0 0; font-size: 12px; }
+.food-favorites-search {
+  width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: 10px; background: var(--surface-2, var(--surface)); color: var(--text); font: inherit;
+}
+.food-favorites-search:focus { outline: 2px solid rgba(var(--accent-rgb), .45); outline-offset: 1px; border-color: var(--accent); }
+.food-favorites-label { margin: 16px 0 7px; color: var(--subtle); font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+.food-favorites-recent { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.food-favorite-card, .food-favorite-row {
+  border: 1px solid var(--border); background: var(--surface-2, var(--surface)); color: var(--text); cursor: pointer;
+  font: inherit; text-align: left; transition: border-color .15s, background .15s;
+}
+.food-favorite-card { min-height: 76px; border-radius: 12px; padding: 10px; }
+.food-favorite-card strong, .food-favorite-card span, .food-favorite-row strong, .food-favorite-row span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.food-favorite-card strong { font-size: 13px; }
+.food-favorite-card span { margin-top: 5px; color: var(--subtle); font-size: 11px; }
+.food-favorite-card:hover, .food-favorite-card:focus-visible, .food-favorite-row:hover, .food-favorite-row:focus-visible { border-color: var(--accent); background: rgba(var(--accent-rgb), .08); outline: none; }
+.food-favorites-list-heading { display: flex; justify-content: space-between; align-items: baseline; margin: 18px 0 5px; font-size: 13px; font-weight: 700; }
+.food-favorites-list-heading .subtle { font-size: 11px; font-weight: 500; }
+.food-favorites-list { gap: 0; margin: 0; }
+.food-favorite-list-item { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.food-favorite-row { flex: 1; min-width: 0; border: none; border-radius: 8px; padding: 5px 4px; }
+.food-favorite-row strong { font-size: 14px; }
+.food-favorite-row span { margin-top: 2px; font-size: 12px; }
+.food-favorite-list-item .favdel { flex-shrink: 0; cursor: pointer; border: none; font-size: 11px; }
 .composer-row { display: flex; gap: 8px; align-items: flex-end; }
 .composer-row textarea {
   flex: 1; border: none; background: transparent; color: var(--text);

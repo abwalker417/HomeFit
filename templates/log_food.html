@@ -25,8 +25,18 @@
     <button id="fav-toggle" class="btn btn-secondary" style="width:100%; display:flex; justify-content:space-between; align-items:center;">
       <span>★ Favorites</span><span id="fav-count" class="subtle" style="font-size:12px;"></span>
     </button>
-    <div id="fav-panel" class="card hidden" style="padding:6px 8px; margin-top:6px;">
-      <ul id="fav-list" class="exercise-list" style="margin:0;"></ul>
+    <div id="fav-panel" class="card hidden food-favorites-panel">
+      <div class="food-favorites-heading">
+        <div><strong>Quick add</strong><p class="subtle">Tap a saved meal to log it.</p></div>
+      </div>
+      <input id="fav-search" class="food-favorites-search" type="search" placeholder="Search saved meals" aria-label="Search saved meals" autocomplete="off">
+      <div id="fav-recent-wrap" class="hidden">
+        <p class="food-favorites-label">RECENTLY SAVED</p>
+        <div id="fav-recent" class="food-favorites-recent"></div>
+      </div>
+      <div id="fav-list-heading" class="food-favorites-list-heading"><span id="fav-list-label">All favorites</span><span id="fav-results-count" class="subtle"></span></div>
+      <ul id="fav-list" class="exercise-list food-favorites-list"></ul>
+      <p id="fav-empty" class="subtle hidden" style="margin:12px 0 4px; text-align:center;">No saved meals match that search.</p>
     </div>
   </div>
 
@@ -204,9 +214,38 @@
     });
   }
 
+  function favoriteSearchText(f) {
+    return [f.name, ...(f.items || []).flatMap((item) => [item.name, item.quantity])]
+      .filter(Boolean).join(' ').toLowerCase();
+  }
+
+  function favoriteMarkup(f, compact) {
+    const name = escapeHtml(f.name);
+    const macros = `${f.calories} cal · ${Math.round(f.protein_g)}p ${Math.round(f.carbs_g)}c ${Math.round(f.fat_g)}f`;
+    if (compact) {
+      return `<button class="favlog food-favorite-card" type="button">
+        <strong>${name}</strong><span>${macros}</span>
+      </button>`;
+    }
+    return `<button class="favlog food-favorite-row" type="button">
+      <strong>${name}</strong><span class="subtle">${macros}</span>
+    </button>`;
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
   function renderFavorites() {
     const sec = document.getElementById('fav-section');
     const list = document.getElementById('fav-list');
+    const recentWrap = document.getElementById('fav-recent-wrap');
+    const recent = document.getElementById('fav-recent');
+    const empty = document.getElementById('fav-empty');
+    const listHeading = document.getElementById('fav-list-heading');
+    const query = (document.getElementById('fav-search').value || '').trim().toLowerCase();
     if (!favorites.length) {
       sec.classList.add('hidden'); list.innerHTML = '';
       document.getElementById('fav-panel').classList.add('hidden');
@@ -214,14 +253,23 @@
     }
     sec.classList.remove('hidden');
     document.getElementById('fav-count').textContent = favorites.length + ' saved';
+    const matching = favorites.filter((f) => favoriteSearchText(f).includes(query));
+    const quickPicks = query ? [] : matching.slice(0, 4);
+    const listItems = query ? matching : matching.slice(quickPicks.length);
+    recentWrap.classList.toggle('hidden', !quickPicks.length);
+    recent.innerHTML = quickPicks.map((f) => favoriteMarkup(f, true)).join('');
+    recent.querySelectorAll('.favlog').forEach((button, index) =>
+      button.addEventListener('click', () => logFavorite(quickPicks[index])));
+    listHeading.classList.toggle('hidden', !query && !listItems.length);
+    document.getElementById('fav-list-label').textContent = query ? 'Search results' : 'More saved meals';
+    document.getElementById('fav-results-count').textContent = query ? `${matching.length} found` : `${listItems.length} more`;
     list.innerHTML = '';
-    favorites.forEach((f) => {
+    empty.classList.toggle('hidden', matching.length !== 0);
+    listItems.forEach((f) => {
       const li = document.createElement('li');
-      li.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 4px; border-bottom:1px solid var(--border);';
-      li.innerHTML = `<button class="favlog" style="flex:1; text-align:left; cursor:pointer; border:none; background:none; color:inherit; padding:0;">
-          <strong>${f.name}</strong> <span class="subtle" style="font-size:12px;">${f.calories} cal · ${Math.round(f.protein_g)}p ${Math.round(f.carbs_g)}c ${Math.round(f.fat_g)}f</span>
-        </button>
-        <button class="favdel pill" title="Remove favorite" style="cursor:pointer; border:none; font-size:11px;">✕</button>`;
+      li.className = 'food-favorite-list-item';
+      li.innerHTML = `${favoriteMarkup(f, false)}
+        <button class="favdel pill" title="Remove favorite" aria-label="Remove ${escapeHtml(f.name)} from favorites">✕</button>`;
       li.querySelector('.favlog').addEventListener('click', () => logFavorite(f));
       let armed = false, t = null;
       const del = li.querySelector('.favdel');
@@ -401,6 +449,7 @@
 
   document.getElementById('fav-toggle').addEventListener('click', () =>
     document.getElementById('fav-panel').classList.toggle('hidden'));
+  document.getElementById('fav-search').addEventListener('input', renderFavorites);
 
   // Save the (possibly edited) scan result as a named favorite
   document.getElementById('fav-save-btn').addEventListener('click', async () => {
