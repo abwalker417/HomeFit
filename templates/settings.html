@@ -101,6 +101,15 @@
 </section>
 {% endif %}
 
+{% if current_user %}
+<section class="card settings-card">
+  <p class="card-eyebrow">DATA &amp; BACKUP</p>
+  <h2>Export your BuiltHere data</h2>
+  <p class="subtle">Download a private backup of your profile, plan, workouts, food history, favorites, weigh-ins, and nutrition targets. Save it to Files, iCloud Drive, or another trusted location, then import it into BuiltHere on a new device.</p>
+  <a class="btn btn-secondary" href="{{ url_for('native_archive') }}" download="BuiltHere-backup.json">Download BuiltHere backup</a>
+</section>
+{% endif %}
+
 <section class="card settings-card" id="native-device-settings" hidden>
   <p class="card-eyebrow">THIS IPHONE</p>
   <h2>Device connection</h2>

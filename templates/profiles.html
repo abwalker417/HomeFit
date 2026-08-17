@@ -10,7 +10,6 @@
   <div class="profile-grid">
     {% for u in users %}
     <form method="post" action="{{ url_for('profile_switch', user_id=u.id) }}" class="profile-form">
-      {% if next_path %}<input type="hidden" name="next" value="{{ next_path }}">{% endif %}
       <button type="submit" class="profile-tile">
         {% if u.photo %}
           <img class="profile-photo" src="{{ url_for('static', filename='uploads/' + u.photo) }}" alt="">

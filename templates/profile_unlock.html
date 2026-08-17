@@ -3,7 +3,7 @@
 
 {% block content %}
 <section class="unlock-page">
-  <a class="back-link" href="{{ url_for('profiles', next=next_path) if next_path else url_for('profiles') }}">← Back</a>
+  <a class="back-link" href="{{ url_for('profiles') }}">← Back</a>
 
   <div class="unlock-hero">
     <div class="unlock-emoji">{{ user.emoji }}</div>
@@ -16,7 +16,6 @@
   {% endif %}
 
   <form method="post" class="form card" autocomplete="off">
-    {% if next_path %}<input type="hidden" name="next" value="{{ next_path }}">{% endif %}
     <label class="field">
       <span>PIN</span>
       <input type="password" name="pin" inputmode="numeric"
