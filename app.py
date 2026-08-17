@@ -393,6 +393,19 @@ def native_archive():
     return response
 
 
+@app.route("/export-native")
+def export_native():
+    """Safari-friendly bridge into the authenticated native backup download.
+
+    A fresh native install does not possess the V2 API token.  This route lets a
+    person select/unlock their existing household profile in Safari first, then
+    immediately downloads that profile's archive using the resulting session.
+    """
+    if not session.get("user_id"):
+        return redirect(url_for("profiles", next="/export-native"))
+    return redirect(url_for("native_archive"))
+
+
 def _ai_settings_from_request(payload):
     current = database.get_ai_provider_settings()
     return {
@@ -516,11 +529,17 @@ def api_away_end():
 @app.route("/profiles")
 def profiles():
     users = database.list_users()
+    next_path = request.args.get("next", "")
+    # Only permit our deliberate migration handoff; never turn profile choice
+    # into an open redirect.
+    if next_path != "/export-native":
+        next_path = ""
     return render_template(
         "profiles.html",
         users=users,
         can_create=can_manage_profiles(),
         owner_exists=owner_exists(),
+        next_path=next_path,
     )
 
 
@@ -555,12 +574,15 @@ def profile_switch(user_id):
     user = database.get_user(user_id)
     if not user:
         abort(404)
+    next_path = request.form.get("next", "")
+    if next_path != "/export-native":
+        next_path = ""
     if user.get("has_pin"):
-        return redirect(url_for("profile_unlock", user_id=user_id))
+        return redirect(url_for("profile_unlock", user_id=user_id, next=next_path))
     session["user_id"] = user_id
     if user_id == 1:
         session["is_owner"] = True
-    return redirect(url_for("index"))
+    return redirect(next_path or url_for("index"))
 
 
 @app.route("/profiles/<int:user_id>/unlock", methods=["GET", "POST"])
@@ -569,6 +591,9 @@ def profile_unlock(user_id):
     if not user:
         abort(404)
     error = None
+    next_path = request.values.get("next", "")
+    if next_path != "/export-native":
+        next_path = ""
     if request.method == "POST":
         remaining = pin_lockout_remaining(user_id)
         if remaining > 0:
@@ -578,12 +603,12 @@ def profile_unlock(user_id):
             session["user_id"] = user_id
             if user_id == 1:
                 session["is_owner"] = True
-            return redirect(url_for("index"))
+            return redirect(next_path or url_for("index"))
         else:
             record_pin_fail(user_id)
             remaining = pin_lockout_remaining(user_id)
             error = _lockout_message(remaining) if remaining > 0 else "Wrong PIN."
-    return render_template("profile_unlock.html", user=user, error=error)
+    return render_template("profile_unlock.html", user=user, error=error, next_path=next_path)
 
 
 @app.route("/profiles/<int:user_id>/edit", methods=["GET", "POST"])
